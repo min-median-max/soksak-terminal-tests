@@ -53,7 +53,7 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 			"phase": "live", "contains": view.Marker, "timeoutMs": 20000,
 		})
 		if err != nil {
-			return err
+			return terminalRestoreDiagnostic(cli, view, "warm restore wait", err)
 		}
 		if warm["recoveryOutcome"] != "continued" || warm["fidelity"] != "complete" {
 			return fmt.Errorf("%s warm restore is incomplete: %+v", view.Plugin, warm)
@@ -97,7 +97,7 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 			"phase": "archived", "contains": view.Marker, "timeoutMs": 20000,
 		})
 		if err != nil {
-			return err
+			return terminalRestoreDiagnostic(cli, view, "archived restore wait", err)
 		}
 		if archived["recoveryOutcome"] != "archived" || archived["fidelity"] != "complete" {
 			return fmt.Errorf("%s archived restore is incomplete: %+v", view.Plugin, archived)
@@ -108,6 +108,12 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 		}
 	}
 	return nil
+}
+
+func terminalRestoreDiagnostic(cli CLI, view RestoreView, stage string, cause error) error {
+	status, statusErr := terminal(cli, view.Plugin, "status", view.View, nil)
+	read, readErr := terminal(cli, view.Plugin, "read", view.View, nil)
+	return fmt.Errorf("%s %s failed: %w; status=%+v statusErr=%v read=%+v readErr=%v", view.Plugin, stage, cause, status, statusErr, read, readErr)
 }
 
 func detachedMarkerCommand(index int, scheduled string) string {
