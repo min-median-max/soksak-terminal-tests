@@ -14,7 +14,12 @@ export SHELL=/bin/bash
 
 dbus-run-session -- xvfb-run -a -s "-screen 0 1920x1200x24" sh -eu -c '
   printf "\n" | gnome-keyring-daemon --unlock >/tmp/soksak-keyring.env
-  openbox >/tmp/soksak-openbox.log 2>&1 &
+  wm_ready=/tmp/soksak-openbox-ready.$$
+  mkfifo "$wm_ready"
+  openbox --startup "sh -c \"printf ready\\\\n > $wm_ready\"" >/tmp/soksak-openbox.log 2>&1 &
+  read -r wm_status <"$wm_ready"
+  rm -f "$wm_ready"
+  test "$wm_status" = ready
   export GDK_BACKEND=x11
   export GSK_RENDERER=cairo
   export GTK_A11Y=none
