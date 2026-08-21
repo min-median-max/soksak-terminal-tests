@@ -15,11 +15,23 @@ type CLI struct {
 }
 
 type response struct {
-	Code string         `json:"code"`
-	Data map[string]any `json:"data"`
+	Code string `json:"code"`
+	Data any    `json:"data"`
 }
 
 func (cli CLI) Call(command string, params map[string]any) (map[string]any, error) {
+	value, err := cli.CallValue(command, params)
+	if err != nil {
+		return nil, err
+	}
+	data, ok := value.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("%s returned %T data instead of an object", command, value)
+	}
+	return data, nil
+}
+
+func (cli CLI) CallValue(command string, params map[string]any) (any, error) {
 	if !filepath.IsAbs(cli.Path) {
 		return nil, fmt.Errorf("CLI path must be absolute: %s", cli.Path)
 	}
@@ -44,7 +56,7 @@ func (cli CLI) Call(command string, params map[string]any) (map[string]any, erro
 	return decodeCLIResponse(command, output, runErr)
 }
 
-func decodeCLIResponse(command string, output []byte, runErr error) (map[string]any, error) {
+func decodeCLIResponse(command string, output []byte, runErr error) (any, error) {
 	if runErr != nil {
 		return nil, fmt.Errorf("%s failed: %w: %s", command, runErr, output)
 	}

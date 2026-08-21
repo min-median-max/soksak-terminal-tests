@@ -81,9 +81,22 @@ func (lifecycle *Lifecycle) Start() error {
 	deadline := time.Now().Add(45 * time.Second)
 	var readinessErr error
 	for time.Now().Before(deadline) {
-		_, readinessErr = lifecycle.client("main").Call("composition_status", map[string]any{})
-		if readinessErr == nil {
-			return nil
+		value, err := lifecycle.client("main").CallValue("window_list", map[string]any{})
+		if err == nil {
+			windows, _ := value.([]any)
+			for _, candidate := range windows {
+				window, _ := candidate.(string)
+				if window == "" {
+					continue
+				}
+				_, readinessErr = lifecycle.client(window).Call("app.boot.wait", map[string]any{"timeoutMs": 45000})
+				if readinessErr == nil {
+					lifecycle.window = window
+					return nil
+				}
+			}
+		} else {
+			readinessErr = err
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
@@ -105,7 +118,10 @@ func (lifecycle *Lifecycle) PrepareHome(settingsPath string) error {
 }
 
 func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
-	data, err := lifecycle.client("main").Call("window.open", map[string]any{
+	if lifecycle.window == "" {
+		return "", fmt.Errorf("ready window is not known")
+	}
+	data, err := lifecycle.client(lifecycle.window).Call("window.open", map[string]any{
 		"root": lifecycle.config.Workspace, "focus": false,
 	})
 	if err != nil {

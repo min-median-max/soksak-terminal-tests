@@ -18,11 +18,17 @@ func TestCLIRequiresDeclaredAbsolutePathsAndWindow(t *testing.T) {
 }
 
 func TestDecodeCLIResponseUsesThePublicSokOutput(t *testing.T) {
-	data, err := decodeCLIResponse("composition_status", []byte(`{"code":"OK","data":{"plugins":7}}`), nil)
+	value, err := decodeCLIResponse("composition_status", []byte(`{"code":"OK","data":{"plugins":7}}`), nil)
+	data, _ := value.(map[string]any)
 	if err != nil || data["plugins"] != float64(7) {
 		t.Fatalf("data=%+v err=%v", data, err)
 	}
 	if _, err := decodeCLIResponse("composition_status", []byte("failure"), errors.New("exit status 1")); err == nil {
 		t.Fatal("failed CLI process was accepted")
+	}
+	value, err = decodeCLIResponse("window_list", []byte(`{"code":"OK","data":["main"]}`), nil)
+	windows, _ := value.([]any)
+	if err != nil || len(windows) != 1 || windows[0] != "main" {
+		t.Fatalf("windows=%+v err=%v", windows, err)
 	}
 }
