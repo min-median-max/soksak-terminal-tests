@@ -9,6 +9,8 @@ set -eu
 : "${SOKSAK_TEST_WORKSPACE:?}"
 : "${SOKSAK_TEST_IDENTIFIER:?}"
 : "${SOKSAK_TEST_EVIDENCE:?}"
+test -x /bin/bash
+export SHELL=/bin/bash
 
 dbus-run-session -- xvfb-run -a -s "-screen 0 1400x900x24" sh -eu -c '
   printf "\n" | gnome-keyring-daemon --unlock >/tmp/soksak-keyring.env

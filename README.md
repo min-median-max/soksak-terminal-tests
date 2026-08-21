@@ -53,7 +53,7 @@ go test -tags=system ./system
 ```
 
 Inside the Linux system-test image, run the same suite through the D-Bus, Secret Service and Xvfb
-runner. All `SOKSAK_TEST_*` paths must name container paths. Additional arguments are passed to
+runner. The runner declares `/bin/bash` as the login shell. All `SOKSAK_TEST_*` paths must name container paths. Additional arguments are passed to
 `go test`.
 
 ```sh
