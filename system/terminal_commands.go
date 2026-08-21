@@ -104,7 +104,10 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 			return nil, err
 		}
 		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": tail, "timeoutMs": 20000}); err != nil {
-			return nil, err
+			status, statusErr := terminal(cli, plugin, "status", view, nil)
+			read, readErr := terminal(cli, plugin, "read", view, nil)
+			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+			return nil, fmt.Errorf("%s high-output wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, err, status, statusErr, read, readErr, sidecars, sidecarErr)
 		}
 		if err := verifyTerminalNodes(cli, plugin, view); err != nil {
 			return nil, err
