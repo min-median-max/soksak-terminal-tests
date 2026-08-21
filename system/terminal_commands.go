@@ -104,15 +104,11 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 }
 
 func resizeWindow(cli CLI, width, height int) error {
-	receipt, err := cli.Call("window.resizeSequence", map[string]any{
-		"sizes":      []map[string]int{{"w": width, "h": height}},
-		"intervalMs": 0,
-	})
+	receipt, err := cli.Call("window.resize", map[string]any{"w": width, "h": height})
 	if err != nil {
 		return err
 	}
-	measurement, _ := receipt["measurement"].(map[string]any)
-	if measurement["passed"] != true {
+	if receipt["observed"] != true {
 		return fmt.Errorf("window resize to %dx%d has no complete observation: %+v", width, height, receipt)
 	}
 	return nil
