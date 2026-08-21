@@ -37,7 +37,8 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "timeoutMs": 8000}); err != nil {
 			status, statusErr := terminal(cli, plugin, "status", view, nil)
 			read, readErr := terminal(cli, plugin, "read", view, nil)
-			return nil, fmt.Errorf("%s live wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v", plugin, err, status, statusErr, read, readErr)
+			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+			return nil, fmt.Errorf("%s live wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, err, status, statusErr, read, readErr, sidecars, sidecarErr)
 		}
 		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "printf '%s\n' " + marker + "\r"}); err != nil {
 			return nil, err
