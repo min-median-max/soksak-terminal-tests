@@ -1,6 +1,7 @@
 package system
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -140,7 +141,22 @@ func (lifecycle *Lifecycle) AwaitWindow() error {
 		return fmt.Errorf("workspace window is not known")
 	}
 	_, err := lifecycle.client(lifecycle.window).Call("app.boot.wait", map[string]any{"timeoutMs": 45000})
-	return err
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%w; recent activity: %s", err, lifecycle.recentActivity())
+}
+
+func (lifecycle *Lifecycle) recentActivity() string {
+	value, err := lifecycle.client("main").CallValue("activity_recent", map[string]any{"limit": 20})
+	if err != nil {
+		return err.Error()
+	}
+	body, err := json.Marshal(value)
+	if err != nil {
+		return err.Error()
+	}
+	return string(body)
 }
 
 func (lifecycle *Lifecycle) Shutdown() error {
