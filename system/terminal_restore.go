@@ -117,7 +117,7 @@ func detachedMarkerCommand(index int, scheduled string) string {
 func countExactLine(text, wanted string) int {
 	count := 0
 	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
-		if strings.TrimSuffix(line, "\r") == wanted {
+		if strings.TrimSpace(line) == wanted {
 			count++
 		}
 	}
