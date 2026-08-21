@@ -19,19 +19,33 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 	if err := os.MkdirAll(cli.EvidenceDir, 0o700); err != nil {
 		return nil, err
 	}
-	if err := resizeWindow(cli, 1400, 900); err != nil {
-		return nil, err
-	}
 	results := make([]TerminalResult, 0, len(TerminalPlugins))
+	terminalPane := ""
 	for index, plugin := range TerminalPlugins {
 		engine := strings.TrimPrefix(plugin, "soksak-plugin-terminal-")
-		opened, err := cli.Call("tab.open", map[string]any{"program": "terminal-" + engine})
+		openParams := map[string]any{"program": "terminal-" + engine}
+		if terminalPane != "" {
+			openParams["pane"] = terminalPane
+		}
+		opened, err := cli.Call("tab.open", openParams)
 		if err != nil {
 			return nil, err
 		}
 		view, _ := opened["tabId"].(string)
 		if view == "" {
 			return nil, fmt.Errorf("%s opened no tab", plugin)
+		}
+		if terminalPane == "" {
+			terminalPane, _ = opened["paneId"].(string)
+			if terminalPane == "" {
+				return nil, fmt.Errorf("%s opened no pane", plugin)
+			}
+			if _, err := cli.Call("pane.split", map[string]any{"pane": terminalPane, "side": "right"}); err != nil {
+				return nil, err
+			}
+		}
+		if err := resizePane(cli, terminalPane, 0.75); err != nil {
+			return nil, err
 		}
 		marker := fmt.Sprintf("SOKSAK_SYSTEM_%d_%s_🙂_é", index, engine)
 		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "timeoutMs": 8000}); err != nil {
@@ -56,7 +70,7 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if wide < 1 {
 			return nil, fmt.Errorf("%s reported no columns: %+v", plugin, ready)
 		}
-		if err := resizeWindow(cli, 1000, 618); err != nil {
+		if err := resizePane(cli, terminalPane, 0.45); err != nil {
 			return nil, err
 		}
 		resizeMarker := marker + "_RESIZED"
@@ -71,7 +85,7 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if narrow < 1 || narrow >= wide {
 			return nil, fmt.Errorf("%s columns did not decrease: %.0f -> %.0f", plugin, wide, narrow)
 		}
-		if err := resizeWindow(cli, 1400, 900); err != nil {
+		if err := resizePane(cli, terminalPane, 0.75); err != nil {
 			return nil, err
 		}
 		read, err := terminal(cli, plugin, "read", view, nil)
@@ -103,13 +117,17 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 	return results, nil
 }
 
-func resizeWindow(cli CLI, width, height int) error {
-	receipt, err := cli.Call("window.resize", map[string]any{"w": width, "h": height})
+func resizePane(cli CLI, pane string, ratio float64) error {
+	receipt, err := cli.Call("pane.resize", map[string]any{"pane": pane, "edge": "right", "ratio": ratio})
 	if err != nil {
 		return err
 	}
-	if receipt["observed"] != true {
-		return fmt.Errorf("window resize to %dx%d has no complete observation: %+v", width, height, receipt)
+	if receipt["paneId"] != pane {
+		return fmt.Errorf("pane resize targeted %s and returned %+v", pane, receipt)
+	}
+	_, err = cli.Call("ui.layout.wait-settled", map[string]any{"timeoutMs": 8000})
+	if err != nil {
+		return err
 	}
 	return nil
 }
