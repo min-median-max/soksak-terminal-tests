@@ -46,6 +46,9 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 	}
 	cli = lifecycle.Client()
 	for _, view := range restore {
+		if _, err := cli.Call("tab.mount.wait", map[string]any{"tab": view.View, "timeoutMs": 20000}); err != nil {
+			return err
+		}
 		warm, err := terminal(cli, view.Plugin, "wait", view.View, map[string]any{
 			"phase": "live", "contains": view.Marker, "timeoutMs": 20000,
 		})
@@ -87,6 +90,9 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 	}
 	cli = lifecycle.Client()
 	for _, view := range restore {
+		if _, err := cli.Call("tab.mount.wait", map[string]any{"tab": view.View, "timeoutMs": 20000}); err != nil {
+			return err
+		}
 		archived, err := terminal(cli, view.Plugin, "wait", view.View, map[string]any{
 			"phase": "archived", "contains": view.Marker, "timeoutMs": 20000,
 		})
