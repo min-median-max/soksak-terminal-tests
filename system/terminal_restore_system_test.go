@@ -2,19 +2,10 @@
 
 package system
 
-import (
-	"os"
-	"testing"
-)
+import "testing"
 
 func TestInstalledTerminalWarmAndArchivedRestore(t *testing.T) {
-	config := LifecycleConfig{
-		App: os.Getenv("SOKSAK_TEST_APP"), CLI: os.Getenv("SOKSAK_TEST_CLI"),
-		Socket: os.Getenv("SOKSAK_TEST_SOCKET"), Home: os.Getenv("SOKSAK_TEST_HOME"),
-		Runtime: os.Getenv("SOKSAK_TEST_RUNTIME"), Workspace: os.Getenv("SOKSAK_TEST_WORKSPACE"),
-		EvidenceDir: os.Getenv("SOKSAK_TEST_EVIDENCE"), Identifier: os.Getenv("SOKSAK_TEST_IDENTIFIER"),
-	}
-	lifecycle, err := NewLifecycle(config)
+	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment())
 	if err != nil {
 		t.Fatal(err)
 	}
