@@ -42,7 +42,9 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		}
 		ready, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": marker, "timeoutMs": 8000})
 		if err != nil {
-			return nil, err
+			status, statusErr := terminal(cli, plugin, "status", view, nil)
+			read, readErr := terminal(cli, plugin, "read", view, nil)
+			return nil, fmt.Errorf("%s marker wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v", plugin, err, status, statusErr, read, readErr)
 		}
 		if ready["fidelity"] != "complete" {
 			return nil, fmt.Errorf("%s reported incomplete fidelity: %+v", plugin, ready)
