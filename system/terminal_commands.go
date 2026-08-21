@@ -35,7 +35,9 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		}
 		marker := fmt.Sprintf("SOKSAK_SYSTEM_%d_%s_🙂_é", index, engine)
 		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "timeoutMs": 8000}); err != nil {
-			return nil, err
+			status, statusErr := terminal(cli, plugin, "status", view, nil)
+			read, readErr := terminal(cli, plugin, "read", view, nil)
+			return nil, fmt.Errorf("%s live wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v", plugin, err, status, statusErr, read, readErr)
 		}
 		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "printf '%s\n' " + marker + "\r"}); err != nil {
 			return nil, err
