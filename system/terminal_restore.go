@@ -115,13 +115,7 @@ func detachedMarkerCommand(index int, scheduled string) string {
 }
 
 func countExactLine(text, wanted string) int {
-	count := 0
-	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
-		if strings.TrimSpace(line) == wanted {
-			count++
-		}
-	}
-	return count
+	return strings.Count(text, wanted)
 }
 
 func closePaneSession(cli CLI, pane string) error {

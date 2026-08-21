@@ -31,8 +31,8 @@ func TestLifecycleRejectsUnsupportedControlSocketPath(t *testing.T) {
 }
 
 func TestCountExactLineIgnoresShellEchoAndMarkerPrefixes(t *testing.T) {
-	text := "printf MARKER\nMARKER_SCHEDULED\n  MARKER   \njob done: MARKER\n"
-	if count := countExactLine(text, "MARKER"); count != 1 {
+	text := "prefix=SOKSAK_DETACHED_\nSOKSAK_SCHEDULED_7\nprompt SOKSAK_DETACHED_7\njob done: ${prefix}7\n"
+	if count := countExactLine(text, "SOKSAK_DETACHED_7"); count != 1 {
 		t.Fatalf("count=%d", count)
 	}
 }
