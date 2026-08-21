@@ -24,9 +24,9 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 			return fmt.Errorf("%s: %w", view.Plugin, err)
 		}
 		marker := fmt.Sprintf("SOKSAK_DETACHED_%d", index)
-		scheduled := marker + "_SCHEDULED"
+		scheduled := fmt.Sprintf("SOKSAK_SCHEDULED_%d", index)
 		if _, err := terminal(cli, view.Plugin, "send", view.View, map[string]any{
-			"data": "(sleep 10; printf '%s\\n' " + marker + ") & printf '%s\\n' " + scheduled + "\r",
+			"data": detachedMarkerCommand(index, scheduled),
 		}); err != nil {
 			return err
 		}
@@ -108,6 +108,10 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 		}
 	}
 	return nil
+}
+
+func detachedMarkerCommand(index int, scheduled string) string {
+	return fmt.Sprintf("prefix=SOKSAK_DETACHED_; (sleep 10; printf '%%s\\n' \"${prefix}%d\") & printf '%%s\\n' %s\r", index, scheduled)
 }
 
 func countExactLine(text, wanted string) int {
