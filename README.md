@@ -25,7 +25,12 @@ The public-command gate also requires a running installed application:
 ```sh
 SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json \
 SOKSAK_TEST_CLI=/absolute/path/to/sok \
+SOKSAK_TEST_APP=/absolute/path/to/soksak \
 SOKSAK_TEST_SOCKET=/absolute/path/to/control.sock \
+SOKSAK_TEST_HOME=/absolute/path/to/identity-home \
+SOKSAK_TEST_RUNTIME=/absolute/path/to/runtime \
+SOKSAK_TEST_WORKSPACE=/absolute/path/to/workspace \
+SOKSAK_TEST_IDENTIFIER=com.soksak.systemtest \
 SOKSAK_TEST_WINDOW=w-workspace \
 SOKSAK_TEST_EVIDENCE=/absolute/path/to/evidence \
 go test -tags=system ./system

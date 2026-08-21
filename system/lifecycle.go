@@ -1,0 +1,179 @@
+package system
+
+import (
+	"fmt"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+type LifecycleConfig struct {
+	App         string
+	CLI         string
+	Socket      string
+	Home        string
+	Runtime     string
+	Workspace   string
+	EvidenceDir string
+	Identifier  string
+}
+
+type Lifecycle struct {
+	config LifecycleConfig
+	cmd    *exec.Cmd
+	stdin  io.WriteCloser
+	log    *os.File
+	window string
+}
+
+func NewLifecycle(config LifecycleConfig) (*Lifecycle, error) {
+	for name, path := range map[string]string{
+		"app": config.App, "CLI": config.CLI, "socket": config.Socket, "home": config.Home,
+		"runtime": config.Runtime, "workspace": config.Workspace, "evidence": config.EvidenceDir,
+	} {
+		if !filepath.IsAbs(path) {
+			return nil, fmt.Errorf("%s path must be absolute: %s", name, path)
+		}
+	}
+	if config.Identifier == "" {
+		return nil, fmt.Errorf("identifier is required")
+	}
+	for _, path := range []string{config.Home, config.Runtime, config.EvidenceDir} {
+		if err := os.MkdirAll(path, 0o700); err != nil {
+			return nil, err
+		}
+	}
+	return &Lifecycle{config: config}, nil
+}
+
+func (lifecycle *Lifecycle) Start() error {
+	if lifecycle.cmd != nil {
+		return fmt.Errorf("application is already running")
+	}
+	log, err := os.OpenFile(filepath.Join(lifecycle.config.EvidenceDir, "application.log"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(lifecycle.config.App)
+	cmd.Env = append(os.Environ(),
+		"SOKSAK_HOME="+lifecycle.config.Home,
+		"SOKSAK_IDENTIFIER="+lifecycle.config.Identifier,
+		"SOKSAK_RUNTIME="+lifecycle.config.Runtime,
+		"SOKSAK_UNATTENDED=1",
+	)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		_ = log.Close()
+		return err
+	}
+	cmd.Stdout, cmd.Stderr = log, log
+	if err := cmd.Start(); err != nil {
+		_ = log.Close()
+		return err
+	}
+	lifecycle.cmd, lifecycle.stdin, lifecycle.log = cmd, stdin, log
+	deadline := time.Now().Add(45 * time.Second)
+	for time.Now().Before(deadline) {
+		_, err := lifecycle.client("main").Call("window.list", map[string]any{})
+		if err == nil {
+			return nil
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	return fmt.Errorf("application did not answer within 45 seconds: %s", lifecycle.lastLog())
+}
+
+func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
+	data, err := lifecycle.client("main").Call("window.open", map[string]any{
+		"root": lifecycle.config.Workspace, "focus": false,
+	})
+	if err != nil {
+		return "", err
+	}
+	window, _ := data["label"].(string)
+	if window == "" {
+		return "", fmt.Errorf("window.open returned no label")
+	}
+	lifecycle.window = window
+	return window, lifecycle.AwaitWindow()
+}
+
+func (lifecycle *Lifecycle) AwaitWindow() error {
+	if lifecycle.window == "" {
+		return fmt.Errorf("workspace window is not known")
+	}
+	_, err := lifecycle.client(lifecycle.window).Call("app.boot.wait", map[string]any{"timeoutMs": 45000})
+	return err
+}
+
+func (lifecycle *Lifecycle) Shutdown() error {
+	if lifecycle.cmd == nil {
+		return nil
+	}
+	window := lifecycle.window
+	if window == "" {
+		window = "main"
+	}
+	_, commandErr := lifecycle.client(window).Call("app.shutdown.commit", map[string]any{})
+	if lifecycle.stdin != nil {
+		_ = lifecycle.stdin.Close()
+		lifecycle.stdin = nil
+	}
+	done := make(chan error, 1)
+	go func() { done <- lifecycle.cmd.Wait() }()
+	select {
+	case waitErr := <-done:
+		lifecycle.cmd = nil
+		_ = lifecycle.log.Close()
+		lifecycle.log = nil
+		if commandErr != nil {
+			return commandErr
+		}
+		return waitErr
+	case <-time.After(20 * time.Second):
+		_ = lifecycle.cmd.Process.Kill()
+		<-done
+		lifecycle.cmd = nil
+		_ = lifecycle.log.Close()
+		lifecycle.log = nil
+		return fmt.Errorf("application did not stop within 20 seconds: %v: %s", commandErr, lifecycle.lastLog())
+	}
+}
+
+func (lifecycle *Lifecycle) Close() {
+	if lifecycle.cmd == nil {
+		return
+	}
+	_ = lifecycle.cmd.Process.Kill()
+	_, _ = lifecycle.cmd.Process.Wait()
+	lifecycle.cmd = nil
+	if lifecycle.stdin != nil {
+		_ = lifecycle.stdin.Close()
+	}
+	if lifecycle.log != nil {
+		_ = lifecycle.log.Close()
+	}
+}
+
+func (lifecycle *Lifecycle) Client() CLI {
+	return lifecycle.client(lifecycle.window)
+}
+
+func (lifecycle *Lifecycle) client(window string) CLI {
+	return CLI{Path: lifecycle.config.CLI, Socket: lifecycle.config.Socket, Window: window, EvidenceDir: lifecycle.config.EvidenceDir}
+}
+
+func (lifecycle *Lifecycle) lastLog() string {
+	body, err := os.ReadFile(filepath.Join(lifecycle.config.EvidenceDir, "application.log"))
+	if err != nil {
+		return ""
+	}
+	lines := strings.Split(strings.TrimSpace(string(body)), "\n")
+	if len(lines) > 40 {
+		lines = lines[len(lines)-40:]
+	}
+	return strings.Join(lines, "\n")
+}
