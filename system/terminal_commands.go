@@ -56,7 +56,7 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if wide < 1 {
 			return nil, fmt.Errorf("%s reported no columns: %+v", plugin, ready)
 		}
-		if err := resizeWindow(cli, 900, 650); err != nil {
+		if err := resizeWindow(cli, 1000, 618); err != nil {
 			return nil, err
 		}
 		resizeMarker := marker + "_RESIZED"
