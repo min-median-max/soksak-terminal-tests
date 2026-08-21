@@ -19,3 +19,13 @@ skips missing input:
 ```sh
 SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json go test -tags=system ./system
 ```
+
+The public-command gate also requires a running installed application:
+
+```sh
+SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json \
+SOKSAK_TEST_CLI=/absolute/path/to/sok \
+SOKSAK_TEST_SOCKET=/absolute/path/to/control.sock \
+SOKSAK_TEST_WINDOW=w-workspace \
+go test -tags=system ./system
+```
