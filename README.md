@@ -6,9 +6,16 @@ Non-product quality repository for terminal implementations used by Soksak.
 - system runs black-box recovery scenarios against an already installed Soksak settings
   composition.
 
-This repository is not an installable Soksak unit and is never listed in soksak-plugin-registry. It
+This repository is not installable software and is never listed in soksak-plugin-registry. It
 contains no plugin, sidecar or kit implementation. It does not build another repository's source
 tree. Inputs are installed artifacts, public commands, contract reports and benchmark interfaces.
 
 Each plugin and sidecar repository remains responsible for its own conformance and release gates.
 This repository owns only cross-provider comparison and installed-composition system behavior.
+
+The default test suite validates the harness. The installed inventory gate is explicit and never
+skips missing input:
+
+```sh
+SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json go test -tags=system ./system
+```

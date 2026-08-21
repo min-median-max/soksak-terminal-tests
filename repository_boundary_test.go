@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestRepositoryDoesNotExecuteUnitSources(t *testing.T) {
+func TestRepositoryDoesNotExecuteOwnerSources(t *testing.T) {
 	root, err := os.Getwd()
 	if err != nil {
 		t.Fatal(err)
