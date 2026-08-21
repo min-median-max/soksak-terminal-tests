@@ -13,6 +13,13 @@ tree. Inputs are installed artifacts, public commands, contract reports and benc
 Each plugin and sidecar repository remains responsible for its own conformance and release gates.
 This repository owns only cross-provider comparison and installed-composition system behavior.
 
+Provider repositories produce versioned `*.bench.json` reports. This repository reads those
+reports and never runs provider source:
+
+```sh
+SOKSAK_BENCH_REPORTS=/absolute/path/to/reports go test -tags=benchmark ./benchmark -v
+```
+
 The default test suite validates the harness. The installed inventory gate is explicit and never
 skips missing input:
 
