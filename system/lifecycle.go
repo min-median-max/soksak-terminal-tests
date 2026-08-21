@@ -133,6 +133,9 @@ func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
 		return "", fmt.Errorf("window.open returned no label")
 	}
 	lifecycle.window = window
+	if _, err := lifecycle.client(window).Call("window_renderer_wait", map[string]any{"targetWindow": window, "timeoutMs": 45000}); err != nil {
+		return "", err
+	}
 	return window, lifecycle.AwaitWindow()
 }
 
