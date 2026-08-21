@@ -2,6 +2,8 @@ package system
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -11,6 +13,15 @@ type TerminalResult struct {
 }
 
 func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
+	if cli.EvidenceDir == "" || !filepath.IsAbs(cli.EvidenceDir) {
+		return nil, fmt.Errorf("evidence directory must be absolute")
+	}
+	if err := os.MkdirAll(cli.EvidenceDir, 0o700); err != nil {
+		return nil, err
+	}
+	if _, err := cli.Call("window.resize", map[string]any{"w": 1400, "h": 900}); err != nil {
+		return nil, err
+	}
 	results := make([]TerminalResult, 0, len(TerminalPlugins))
 	for index, plugin := range TerminalPlugins {
 		engine := strings.TrimPrefix(plugin, "soksak-plugin-terminal-")
@@ -36,6 +47,28 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if ready["fidelity"] != "complete" {
 			return nil, fmt.Errorf("%s reported incomplete fidelity: %+v", plugin, ready)
 		}
+		wide, _ := ready["cols"].(float64)
+		if wide < 1 {
+			return nil, fmt.Errorf("%s reported no columns: %+v", plugin, ready)
+		}
+		if _, err := cli.Call("window.resize", map[string]any{"w": 900, "h": 650}); err != nil {
+			return nil, err
+		}
+		resizeMarker := marker + "_RESIZED"
+		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "printf '%s\n' " + resizeMarker + "\r"}); err != nil {
+			return nil, err
+		}
+		resized, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": resizeMarker, "timeoutMs": 8000})
+		if err != nil {
+			return nil, err
+		}
+		narrow, _ := resized["cols"].(float64)
+		if narrow < 1 || narrow >= wide {
+			return nil, fmt.Errorf("%s columns did not decrease: %.0f -> %.0f", plugin, wide, narrow)
+		}
+		if _, err := cli.Call("window.resize", map[string]any{"w": 1400, "h": 900}); err != nil {
+			return nil, err
+		}
 		read, err := terminal(cli, plugin, "read", view, nil)
 		if err != nil || !strings.Contains(fmt.Sprint(read["text"]), marker) {
 			return nil, fmt.Errorf("%s did not read marker: %v %+v", plugin, err, read)
@@ -47,12 +80,45 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if _, err := terminal(cli, plugin, "status", view, nil); err != nil {
 			return nil, err
 		}
+		tail := fmt.Sprintf("SOKSAK_HIGH_OUTPUT_TAIL_%d", index)
+		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "yes X | head -c 262144; printf '\\n%s\\n' " + tail + "\r"}); err != nil {
+			return nil, err
+		}
+		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": tail, "timeoutMs": 20000}); err != nil {
+			return nil, err
+		}
 		if err := verifyTerminalNodes(cli, plugin, view); err != nil {
+			return nil, err
+		}
+		if err := captureTerminal(cli, plugin); err != nil {
 			return nil, err
 		}
 		results = append(results, TerminalResult{Plugin: plugin, View: view})
 	}
 	return results, nil
+}
+
+func captureTerminal(cli CLI, plugin string) error {
+	image := filepath.Join(cli.EvidenceDir, plugin+".png")
+	recording := filepath.Join(cli.EvidenceDir, plugin+"-recording")
+	if err := os.RemoveAll(recording); err != nil {
+		return err
+	}
+	if _, err := cli.Call("window.snapshot", map[string]any{"path": image}); err != nil {
+		return err
+	}
+	if _, err := cli.Call("window.record", map[string]any{"dir": recording, "frames": 6, "intervalMs": 16}); err != nil {
+		return err
+	}
+	info, err := os.Stat(image)
+	if err != nil || info.Size() == 0 {
+		return fmt.Errorf("%s capture was not written: %v", plugin, err)
+	}
+	frames, err := filepath.Glob(filepath.Join(recording, "f*.png"))
+	if err != nil || len(frames) != 6 {
+		return fmt.Errorf("%s recording has %d frames: %v", plugin, len(frames), err)
+	}
+	return nil
 }
 
 func terminal(cli CLI, plugin, command, view string, params map[string]any) (map[string]any, error) {

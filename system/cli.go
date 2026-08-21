@@ -8,9 +8,10 @@ import (
 )
 
 type CLI struct {
-	Path   string
-	Socket string
-	Window string
+	Path        string
+	Socket      string
+	Window      string
+	EvidenceDir string
 }
 
 type response struct {

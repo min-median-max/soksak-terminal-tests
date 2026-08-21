@@ -27,5 +27,6 @@ SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json \
 SOKSAK_TEST_CLI=/absolute/path/to/sok \
 SOKSAK_TEST_SOCKET=/absolute/path/to/control.sock \
 SOKSAK_TEST_WINDOW=w-workspace \
+SOKSAK_TEST_EVIDENCE=/absolute/path/to/evidence \
 go test -tags=system ./system
 ```
