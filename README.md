@@ -51,3 +51,11 @@ SOKSAK_TEST_WINDOW=w-workspace \
 SOKSAK_TEST_EVIDENCE=/absolute/path/to/evidence \
 go test -tags=system ./system
 ```
+
+Inside the Linux system-test image, run the same suite through the D-Bus, Secret Service and Xvfb
+runner. All `SOKSAK_TEST_*` paths must name container paths. Additional arguments are passed to
+`go test`.
+
+```sh
+scripts/run-linux-system.sh -run TestInstalledTerminalCommands -v
+```
