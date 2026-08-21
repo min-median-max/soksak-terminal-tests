@@ -32,4 +32,7 @@ func TestInstalledTerminalWarmAndArchivedRestore(t *testing.T) {
 	if err := VerifyWarmAndArchivedRestore(lifecycle, views); err != nil {
 		t.Fatal(err)
 	}
+	if err := VerifyInstalledUI(lifecycle.Client()); err != nil {
+		t.Fatal(err)
+	}
 }

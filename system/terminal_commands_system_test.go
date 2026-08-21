@@ -16,4 +16,7 @@ func TestInstalledTerminalCommands(t *testing.T) {
 	if len(results) != 7 {
 		t.Fatalf("verified %d terminal plugins", len(results))
 	}
+	if err := VerifyInstalledUI(cli); err != nil {
+		t.Fatal(err)
+	}
 }
