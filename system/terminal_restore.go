@@ -115,7 +115,7 @@ func countExactLine(text, wanted string) int {
 }
 
 func closePaneSession(cli CLI, pane string) error {
-	held, err := sidecarRequest(cli, "pty", "pane", "pty.pane", map[string]any{
+	held, err := sidecarRequest(cli, "soksak-sidecar-pty", "pane", "pty.pane", map[string]any{
 		"request": map[string]any{"paneId": pane},
 	})
 	if err != nil {
@@ -127,7 +127,7 @@ func closePaneSession(cli CLI, pane string) error {
 	if session < 1 {
 		return fmt.Errorf("PTY has no session for pane %s: %+v", pane, held)
 	}
-	_, err = sidecarRequest(cli, "pty", "close", "pty.close", map[string]any{
+	_, err = sidecarRequest(cli, "soksak-sidecar-pty", "close", "pty.close", map[string]any{
 		"request": map[string]any{"session": uint64(session)},
 	})
 	return err
