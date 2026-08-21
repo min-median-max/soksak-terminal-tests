@@ -79,6 +79,7 @@ func (lifecycle *Lifecycle) Start() error {
 		return err
 	}
 	lifecycle.cmd, lifecycle.stdin, lifecycle.log = cmd, stdin, log
+	expectedWindow := lifecycle.window
 	deadline := time.Now().Add(45 * time.Second)
 	var readinessErr error
 	for time.Now().Before(deadline) {
@@ -87,7 +88,10 @@ func (lifecycle *Lifecycle) Start() error {
 			windows, _ := value.([]any)
 			for _, candidate := range windows {
 				window, _ := candidate.(string)
-				if window == "" {
+				if window == "" || (expectedWindow != "" && window != expectedWindow) {
+					continue
+				}
+				if _, readinessErr = lifecycle.client(window).Call("window_renderer_wait", map[string]any{"targetWindow": window, "timeoutMs": 45000}); readinessErr != nil {
 					continue
 				}
 				_, readinessErr = lifecycle.client(window).Call("app.boot.wait", map[string]any{"timeoutMs": 45000})
