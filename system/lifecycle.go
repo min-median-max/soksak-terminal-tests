@@ -149,6 +149,9 @@ func (lifecycle *Lifecycle) AwaitWindow() error {
 	}
 	_, err := lifecycle.client(lifecycle.window).Call("app.boot.wait", map[string]any{"timeoutMs": 45000})
 	if err == nil {
+		_, err = lifecycle.client(lifecycle.window).Call("plugin.boot.wait", map[string]any{"timeoutMs": 45000})
+	}
+	if err == nil {
 		return nil
 	}
 	return fmt.Errorf("%w; recent activity: %s", err, lifecycle.recentActivity())
