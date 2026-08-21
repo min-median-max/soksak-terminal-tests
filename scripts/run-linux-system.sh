@@ -14,6 +14,7 @@ export SHELL=/bin/bash
 
 dbus-run-session -- xvfb-run -a -s "-screen 0 1400x900x24" sh -eu -c '
   printf "\n" | gnome-keyring-daemon --unlock >/tmp/soksak-keyring.env
+  openbox >/tmp/soksak-openbox.log 2>&1 &
   export GDK_BACKEND=x11
   export GSK_RENDERER=cairo
   export GTK_A11Y=none
