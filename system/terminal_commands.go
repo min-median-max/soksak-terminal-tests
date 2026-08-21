@@ -19,7 +19,7 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 	if err := os.MkdirAll(cli.EvidenceDir, 0o700); err != nil {
 		return nil, err
 	}
-	if _, err := cli.Call("window.resize", map[string]any{"w": 1400, "h": 900}); err != nil {
+	if err := resizeWindow(cli, 1400, 900); err != nil {
 		return nil, err
 	}
 	results := make([]TerminalResult, 0, len(TerminalPlugins))
@@ -56,7 +56,7 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if wide < 1 {
 			return nil, fmt.Errorf("%s reported no columns: %+v", plugin, ready)
 		}
-		if _, err := cli.Call("window.resize", map[string]any{"w": 900, "h": 650}); err != nil {
+		if err := resizeWindow(cli, 900, 650); err != nil {
 			return nil, err
 		}
 		resizeMarker := marker + "_RESIZED"
@@ -71,7 +71,7 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		if narrow < 1 || narrow >= wide {
 			return nil, fmt.Errorf("%s columns did not decrease: %.0f -> %.0f", plugin, wide, narrow)
 		}
-		if _, err := cli.Call("window.resize", map[string]any{"w": 1400, "h": 900}); err != nil {
+		if err := resizeWindow(cli, 1400, 900); err != nil {
 			return nil, err
 		}
 		read, err := terminal(cli, plugin, "read", view, nil)
@@ -101,6 +101,21 @@ func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
 		results = append(results, TerminalResult{Plugin: plugin, View: view})
 	}
 	return results, nil
+}
+
+func resizeWindow(cli CLI, width, height int) error {
+	receipt, err := cli.Call("window.resizeSequence", map[string]any{
+		"sizes":      []map[string]int{{"w": width, "h": height}},
+		"intervalMs": 0,
+	})
+	if err != nil {
+		return err
+	}
+	measurement, _ := receipt["measurement"].(map[string]any)
+	if measurement["passed"] != true {
+		return fmt.Errorf("window resize to %dx%d has no complete observation: %+v", width, height, receipt)
+	}
+	return nil
 }
 
 func captureTerminal(cli CLI, plugin string) error {
