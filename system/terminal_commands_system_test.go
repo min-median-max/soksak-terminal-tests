@@ -32,7 +32,7 @@ func TestInstalledTerminalCommands(t *testing.T) {
 	if err := VerifyInstalledUI(lifecycle.Client()); err != nil {
 		t.Fatal(err)
 	}
-	if err := lifecycle.Shutdown(); err != nil {
+	if err := lifecycle.Finish(); err != nil {
 		t.Fatal(err)
 	}
 }

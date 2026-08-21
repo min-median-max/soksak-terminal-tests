@@ -177,10 +177,16 @@ func (lifecycle *Lifecycle) Shutdown() error {
 	}
 }
 
+func (lifecycle *Lifecycle) Finish() error {
+	lifecycle.stopTestSidecars()
+	return lifecycle.Shutdown()
+}
+
 func (lifecycle *Lifecycle) Close() {
 	if lifecycle.cmd == nil {
 		return
 	}
+	lifecycle.stopTestSidecars()
 	_ = lifecycle.cmd.Process.Kill()
 	_, _ = lifecycle.cmd.Process.Wait()
 	lifecycle.cmd = nil
@@ -189,6 +195,24 @@ func (lifecycle *Lifecycle) Close() {
 	}
 	if lifecycle.log != nil {
 		_ = lifecycle.log.Close()
+	}
+}
+
+func (lifecycle *Lifecycle) stopTestSidecars() {
+	value, err := lifecycle.client("main").Call("sidecar_status", map[string]any{})
+	if err != nil {
+		return
+	}
+	started, _ := value["open"].([]any)
+	for _, item := range started {
+		open, _ := item.(map[string]any)
+		name, _ := open["Name"].(string)
+		if name == "" {
+			name, _ = open["name"].(string)
+		}
+		if name != "" {
+			_, _ = lifecycle.client("main").Call("sidecar_stop", map[string]any{"name": name})
+		}
 	}
 }
 
