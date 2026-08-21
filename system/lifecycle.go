@@ -79,14 +79,15 @@ func (lifecycle *Lifecycle) Start() error {
 	}
 	lifecycle.cmd, lifecycle.stdin, lifecycle.log = cmd, stdin, log
 	deadline := time.Now().Add(45 * time.Second)
+	var readinessErr error
 	for time.Now().Before(deadline) {
-		_, err := lifecycle.client("main").Call("composition_status", map[string]any{})
-		if err == nil {
+		_, readinessErr = lifecycle.client("main").Call("composition_status", map[string]any{})
+		if readinessErr == nil {
 			return nil
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
-	return fmt.Errorf("application did not answer within 45 seconds: %s", lifecycle.lastLog())
+	return fmt.Errorf("application did not answer within 45 seconds: %v: %s", readinessErr, lifecycle.lastLog())
 }
 
 func (lifecycle *Lifecycle) PrepareHome(settingsPath string) error {

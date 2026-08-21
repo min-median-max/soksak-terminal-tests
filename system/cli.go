@@ -15,10 +15,8 @@ type CLI struct {
 }
 
 type response struct {
-	OK      bool           `json:"ok"`
-	Code    string         `json:"code"`
-	Message string         `json:"message"`
-	Data    map[string]any `json:"data"`
+	Code string         `json:"code"`
+	Data map[string]any `json:"data"`
 }
 
 func (cli CLI) Call(command string, params map[string]any) (map[string]any, error) {
@@ -43,12 +41,19 @@ func (cli CLI) Call(command string, params map[string]any) (map[string]any, erro
 	}
 	args = append(args, command, string(body))
 	output, runErr := exec.Command(cli.Path, args...).CombinedOutput()
+	return decodeCLIResponse(command, output, runErr)
+}
+
+func decodeCLIResponse(command string, output []byte, runErr error) (map[string]any, error) {
+	if runErr != nil {
+		return nil, fmt.Errorf("%s failed: %w: %s", command, runErr, output)
+	}
 	var answer response
 	if err := json.Unmarshal(output, &answer); err != nil {
 		return nil, fmt.Errorf("%s returned invalid JSON: %w: %s", command, err, output)
 	}
-	if runErr != nil || !answer.OK {
-		return nil, fmt.Errorf("%s failed (%s): %s", command, answer.Code, answer.Message)
+	if answer.Code != "OK" || answer.Data == nil {
+		return nil, fmt.Errorf("%s returned an invalid success envelope: %s", command, output)
 	}
 	return answer.Data, nil
 }
