@@ -2,14 +2,20 @@
 
 package system
 
-import "testing"
+import (
+	"os"
+	"testing"
+)
 
 func TestInstalledTerminalCommands(t *testing.T) {
-	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment())
+	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment(t, "commands"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(lifecycle.Close)
+	if err := lifecycle.PrepareHome(os.Getenv("SOKSAK_TEST_SETTINGS")); err != nil {
+		t.Fatal(err)
+	}
 	if err := lifecycle.Start(); err != nil {
 		t.Fatal(err)
 	}

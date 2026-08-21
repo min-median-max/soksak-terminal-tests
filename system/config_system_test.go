@@ -2,13 +2,19 @@
 
 package system
 
-import "os"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
-func lifecycleConfigFromEnvironment() LifecycleConfig {
+func lifecycleConfigFromEnvironment(t *testing.T, scenario string) LifecycleConfig {
+	t.Helper()
+	root := t.TempDir()
 	return LifecycleConfig{
 		App: os.Getenv("SOKSAK_TEST_APP"), CLI: os.Getenv("SOKSAK_TEST_CLI"),
-		Socket: os.Getenv("SOKSAK_TEST_SOCKET"), Home: os.Getenv("SOKSAK_TEST_HOME"),
-		Runtime: os.Getenv("SOKSAK_TEST_RUNTIME"), Workspace: os.Getenv("SOKSAK_TEST_WORKSPACE"),
-		EvidenceDir: os.Getenv("SOKSAK_TEST_EVIDENCE"), Identifier: os.Getenv("SOKSAK_TEST_IDENTIFIER"),
+		Socket: filepath.Join(os.Getenv("SOKSAK_TEST_RUNTIME"), scenario+".sock"), Home: filepath.Join(root, "home"),
+		Runtime: os.Getenv("SOKSAK_TEST_RUNTIME"), Workspace: filepath.Join(root, "workspace"),
+		EvidenceDir: filepath.Join(os.Getenv("SOKSAK_TEST_EVIDENCE"), scenario), Identifier: os.Getenv("SOKSAK_TEST_IDENTIFIER") + "." + scenario,
 	}
 }

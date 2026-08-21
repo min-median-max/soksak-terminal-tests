@@ -80,13 +80,27 @@ func (lifecycle *Lifecycle) Start() error {
 	lifecycle.cmd, lifecycle.stdin, lifecycle.log = cmd, stdin, log
 	deadline := time.Now().Add(45 * time.Second)
 	for time.Now().Before(deadline) {
-		_, err := lifecycle.client("main").Call("window.list", map[string]any{})
+		_, err := lifecycle.client("main").Call("composition_status", map[string]any{})
 		if err == nil {
 			return nil
 		}
 		time.Sleep(250 * time.Millisecond)
 	}
 	return fmt.Errorf("application did not answer within 45 seconds: %s", lifecycle.lastLog())
+}
+
+func (lifecycle *Lifecycle) PrepareHome(settingsPath string) error {
+	if !filepath.IsAbs(settingsPath) {
+		return fmt.Errorf("settings path must be absolute: %s", settingsPath)
+	}
+	body, err := os.ReadFile(settingsPath)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(lifecycle.config.Home, 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(lifecycle.config.Home, "settings.json"), body, 0o600)
 }
 
 func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
