@@ -29,3 +29,10 @@ func TestLifecycleRejectsUnsupportedControlSocketPath(t *testing.T) {
 		t.Fatal("unsupported control socket path was accepted")
 	}
 }
+
+func TestCountExactLineIgnoresShellEchoAndMarkerPrefixes(t *testing.T) {
+	text := "printf MARKER\nMARKER_SCHEDULED\nMARKER\njob done: MARKER\n"
+	if count := countExactLine(text, "MARKER"); count != 1 {
+		t.Fatalf("count=%d", count)
+	}
+}

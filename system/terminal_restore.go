@@ -26,7 +26,7 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 		marker := fmt.Sprintf("SOKSAK_DETACHED_%d", index)
 		scheduled := marker + "_SCHEDULED"
 		if _, err := terminal(cli, view.Plugin, "send", view.View, map[string]any{
-			"data": "(sleep 10; printf '%s\n' " + marker + ") & printf '%s\n' " + scheduled + "\r",
+			"data": "(sleep 10; printf '%s\\n' " + marker + ") & printf '%s\\n' " + scheduled + "\r",
 		}); err != nil {
 			return err
 		}
@@ -64,7 +64,7 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 			return fmt.Errorf("%s shell PID changed: %d -> %d: %v", view.Plugin, view.ShellPID, pid, err)
 		}
 		read, err := terminal(cli, view.Plugin, "read", view.View, nil)
-		if err != nil || strings.Count(fmt.Sprint(read["text"]), view.Marker) != 1 {
+		if err != nil || countExactLine(fmt.Sprint(read["text"]), view.Marker) != 1 {
 			return fmt.Errorf("%s detached marker is not present exactly once: %v %+v", view.Plugin, err, read)
 		}
 		archived, err := terminal(cli, view.Plugin, "archive", view.View, nil)
@@ -102,6 +102,16 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 		}
 	}
 	return nil
+}
+
+func countExactLine(text, wanted string) int {
+	count := 0
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		if strings.TrimSuffix(line, "\r") == wanted {
+			count++
+		}
+	}
+	return count
 }
 
 func closePaneSession(cli CLI, pane string) error {
