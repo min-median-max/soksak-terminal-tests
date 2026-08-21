@@ -44,7 +44,7 @@ func NewLifecycle(config LifecycleConfig) (*Lifecycle, error) {
 	if err := validateControlAddress(config.Socket); err != nil {
 		return nil, err
 	}
-	for _, path := range []string{config.Home, config.Runtime, config.EvidenceDir} {
+	for _, path := range []string{config.Home, config.Runtime, config.Workspace, config.EvidenceDir} {
 		if err := os.MkdirAll(path, 0o700); err != nil {
 			return nil, err
 		}
