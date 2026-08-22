@@ -13,3 +13,7 @@ func validateControlAddress(path string) error {
 	}
 	return nil
 }
+
+func controlAddress(_ string, identifier string) string {
+	return `\\.\pipe\` + identifier
+}

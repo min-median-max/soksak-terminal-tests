@@ -2,7 +2,10 @@
 
 package system
 
-import "fmt"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 const portableUnixSocketPathLimit = 104
 
@@ -11,4 +14,8 @@ func validateControlAddress(path string) error {
 		return fmt.Errorf("control socket path is %d bytes; maximum is %d: %s", len(path), portableUnixSocketPathLimit-1, path)
 	}
 	return nil
+}
+
+func controlAddress(runtime, identifier string) string {
+	return filepath.Join(runtime, identifier+".sock")
 }
