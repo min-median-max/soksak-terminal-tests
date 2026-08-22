@@ -161,11 +161,19 @@ func sidecarRequest(cli CLI, name, id, command string, args map[string]any) (map
 		return nil, err
 	}
 	response, _ := data["response"].(map[string]any)
+	return sidecarPayload(name, command, response)
+}
+
+func sidecarPayload(name, command string, response map[string]any) (map[string]any, error) {
 	if response["ok"] != true {
 		return nil, fmt.Errorf("%s refused %s: %+v", name, command, response)
 	}
 	result, _ := response["result"].(map[string]any)
-	return result, nil
+	data, _ := result["data"].(map[string]any)
+	if data == nil {
+		return nil, fmt.Errorf("%s returned no contract payload for %s: %+v", name, command, response)
+	}
+	return data, nil
 }
 
 func ptyStatus(cli CLI) (map[string]any, error) {

@@ -14,3 +14,17 @@ func TestShellPIDReadsThePTYStatusContract(t *testing.T) {
 		t.Fatalf("pid=%d err=%v", pid, err)
 	}
 }
+
+func TestSidecarResponseUsesTheContractPayload(t *testing.T) {
+	response := map[string]any{
+		"ok": true,
+		"result": map[string]any{
+			"code": "OK",
+			"data": map[string]any{"sessions": []any{map[string]any{"shellPid": float64(42)}}},
+		},
+	}
+	payload, err := sidecarPayload("pty", "pty.status", response)
+	if err != nil || payload["sessions"] == nil || payload["code"] != nil {
+		t.Fatalf("payload=%+v err=%v", payload, err)
+	}
+}
