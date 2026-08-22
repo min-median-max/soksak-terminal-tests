@@ -37,6 +37,17 @@ func TestTerminalInventoryRejectsMissingPTYAndProviderSelection(t *testing.T) {
 	}
 }
 
+func TestTerminalInventoryAcceptsValidatedComponentPatchVersions(t *testing.T) {
+	profile, _ := fleet.ForPlatform("windows")
+	settings, installed := inventoryFixture(t, profile)
+	plugin := installed.Plugins["soksak-plugin-terminal-ghostty"]
+	plugin.Version = "0.0.2"
+	installed.Plugins["soksak-plugin-terminal-ghostty"] = plugin
+	if err := ValidateTerminalInventory(profile, settings, installed); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func inventoryFixture(t *testing.T, profile fleet.Profile) (platformspec.Settings, platformspec.Installed) {
 	t.Helper()
 	root := t.TempDir()

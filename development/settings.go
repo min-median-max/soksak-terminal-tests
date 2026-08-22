@@ -69,7 +69,7 @@ func PrepareState(input Input) (StatePaths, error) {
 		if !ok {
 			return StatePaths{}, fmt.Errorf("missing plugin artifact: %s", provider.ID)
 		}
-		digest, err := validatePlugin(artifact, provider.ID)
+		digest, componentVersion, err := validatePlugin(artifact, provider.ID)
 		if err != nil {
 			return StatePaths{}, err
 		}
@@ -77,7 +77,7 @@ func PrepareState(input Input) (StatePaths, error) {
 			Enabled: true, Development: &platformspec.Development{Path: artifact.Path},
 			Providers: map[string]string{"pty": "soksak-sidecar-pty", provider.Requirement: provider.Sidecar},
 		}
-		installed.Plugins[provider.ID] = installedComponent(artifact, digest, false)
+		installed.Plugins[provider.ID] = installedComponent(artifact, digest, componentVersion, false)
 	}
 	if len(input.Plugins) != len(profile.Plugins) {
 		return StatePaths{}, fmt.Errorf("plugins must contain exactly %d entries", len(profile.Plugins))
@@ -91,12 +91,12 @@ func PrepareState(input Input) (StatePaths, error) {
 		if artifact.Target != profile.Target {
 			return StatePaths{}, fmt.Errorf("%s target is %s, want %s", id, artifact.Target, profile.Target)
 		}
-		digest, err := validateSidecar(artifact, id)
+		digest, componentVersion, err := validateSidecar(artifact, id)
 		if err != nil {
 			return StatePaths{}, err
 		}
 		settings.Sidecars[id] = platformspec.ComponentPreference{Development: &platformspec.Development{Path: artifact.Path}}
-		installed.Sidecars[id] = installedComponent(artifact, digest, true)
+		installed.Sidecars[id] = installedComponent(artifact, digest, componentVersion, true)
 	}
 	if len(input.Sidecars) != len(sidecarIDs) {
 		return StatePaths{}, fmt.Errorf("sidecars must contain exactly %d entries", len(sidecarIDs))
@@ -131,52 +131,53 @@ func PrepareState(input Input) (StatePaths, error) {
 	return StatePaths{Settings: finalSettings, Installed: finalInstalled}, nil
 }
 
-func installedComponent(input ArtifactInput, manifestDigest string, sidecar bool) platformspec.InstalledComponent {
+func installedComponent(input ArtifactInput, manifestDigest, componentVersion string, sidecar bool) platformspec.InstalledComponent {
 	target := ""
 	if sidecar {
 		target = input.Target
 	}
 	return platformspec.InstalledComponent{
-		Version: version, Path: input.Path, RegistryID: "system-test", Repository: input.Repository,
+		Version: componentVersion, Path: input.Path, RegistryID: "system-test", Repository: input.Repository,
 		SourceCommit: input.Commit, ManifestSHA256: manifestDigest, ArtifactSHA256: input.ArtifactSHA256, Target: target,
 	}
 }
 
-func validatePlugin(input ArtifactInput, id string) (string, error) {
+func validatePlugin(input ArtifactInput, id string) (string, string, error) {
 	body, digest, err := readManifest(input, "plugin.json")
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", id, err)
+		return "", "", fmt.Errorf("%s: %w", id, err)
 	}
 	var identity struct {
 		ID      string `json:"id"`
 		Version string `json:"version"`
 	}
 	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&identity); err != nil {
-		return "", err
+		return "", "", err
 	}
-	if identity.ID != id || identity.Version != version {
-		return "", fmt.Errorf("%s manifest identity is %s@%s", id, identity.ID, identity.Version)
+	validVersion, versionErr := platformspec.DependencyRequirementSatisfied(identity.Version, identity.Version)
+	if identity.ID != id || versionErr != nil || !validVersion {
+		return "", "", fmt.Errorf("%s manifest identity is %s@%s", id, identity.ID, identity.Version)
 	}
-	return digest, nil
+	return digest, identity.Version, nil
 }
 
-func validateSidecar(input ArtifactInput, id string) (string, error) {
+func validateSidecar(input ArtifactInput, id string) (string, string, error) {
 	body, digest, err := readManifest(input, "sidecar.json")
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", id, err)
+		return "", "", fmt.Errorf("%s: %w", id, err)
 	}
 	manifest, err := platformspec.ParseSidecarManifest(body)
 	if err != nil || manifest.ID != id {
-		return "", fmt.Errorf("%s has an invalid sidecar manifest: %v", id, err)
+		return "", "", fmt.Errorf("%s has an invalid sidecar manifest: %v", id, err)
 	}
 	process, err := os.Lstat(filepath.Join(input.Path, filepath.FromSlash(manifest.Process)))
 	if err != nil || !process.Mode().IsRegular() {
-		return "", fmt.Errorf("%s process is not a regular file: %v", id, err)
+		return "", "", fmt.Errorf("%s process is not a regular file: %v", id, err)
 	}
 	if input.Target == "" {
-		return "", fmt.Errorf("%s target is required", id)
+		return "", "", fmt.Errorf("%s target is required", id)
 	}
-	return digest, nil
+	return digest, manifest.Version, nil
 }
 
 func readManifest(input ArtifactInput, name string) ([]byte, string, error) {

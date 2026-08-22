@@ -73,6 +73,24 @@ func TestPrepareStateUsesTheExactWindowsFleet(t *testing.T) {
 	}
 }
 
+func TestPrepareStateRecordsManifestPatchVersions(t *testing.T) {
+	input := fixtureInputForPlatform(t, "windows")
+	id := "soksak-plugin-terminal-ghostty"
+	writeJSON(t, filepath.Join(input.Plugins[id].Path, "plugin.json"), map[string]any{"id": id, "version": "0.0.2"})
+	paths, err := PrepareState(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := os.ReadFile(paths.Installed)
+	installed, err := platformspec.ParseInstalled(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if installed.Plugins[id].Version != "0.0.2" {
+		t.Fatalf("installed version=%s", installed.Plugins[id].Version)
+	}
+}
+
 func TestPrepareStateIsDeterministic(t *testing.T) {
 	input := fixtureInput(t)
 	paths, err := PrepareState(input)

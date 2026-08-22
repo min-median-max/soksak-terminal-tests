@@ -36,7 +36,7 @@ func ValidateTerminalInventory(profile fleet.Profile, settings platformspec.Sett
 	for _, plugin := range profile.Plugins {
 		preference, ok := settings.Plugins[plugin.ID]
 		component, installedOK := installed.Plugins[plugin.ID]
-		if !ok || !preference.Enabled || !installedOK || component.Version != "0.0.1" || !filepath.IsAbs(component.Path) {
+		if !ok || !preference.Enabled || !installedOK || !filepath.IsAbs(component.Path) {
 			return fmt.Errorf("plugin is not active and installed: %s", plugin.ID)
 		}
 		if preference.Providers["pty"] != "soksak-sidecar-pty" {
@@ -49,7 +49,7 @@ func ValidateTerminalInventory(profile fleet.Profile, settings platformspec.Sett
 	}
 	for _, id := range sidecars {
 		component, ok := installed.Sidecars[id]
-		if !ok || component.Version != "0.0.1" || component.Target != profile.Target || !filepath.IsAbs(component.Path) {
+		if !ok || component.Target != profile.Target || !filepath.IsAbs(component.Path) {
 			return fmt.Errorf("sidecar is not installed: %s", id)
 		}
 	}
