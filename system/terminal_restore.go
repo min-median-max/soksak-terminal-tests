@@ -17,7 +17,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 	cli := lifecycle.Client()
 	restore := make([]RestoreView, 0, len(views))
 	for index, view := range views {
-		status, err := terminal(cli, view.Plugin, "status", view.View, nil)
+		status, err := ptyStatus(cli)
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if warm["recoveryOutcome"] != "continued" || warm["fidelity"] != "complete" {
 			return fmt.Errorf("%s warm restore is incomplete: %+v", view.Plugin, warm)
 		}
-		status, err := terminal(cli, view.Plugin, "status", view.View, nil)
+		status, err := ptyStatus(cli)
 		if err != nil {
 			return err
 		}
@@ -168,10 +168,12 @@ func sidecarRequest(cli CLI, name, id, command string, args map[string]any) (map
 	return result, nil
 }
 
+func ptyStatus(cli CLI) (map[string]any, error) {
+	return sidecarRequest(cli, "soksak-sidecar-pty", "status", "pty.status", map[string]any{})
+}
+
 func shellPID(status map[string]any, pane string) (uint32, error) {
-	source, _ := status["source"].(map[string]any)
-	pty, _ := source["pty"].(map[string]any)
-	sessions, _ := pty["sessions"].([]any)
+	sessions, _ := status["sessions"].([]any)
 	for _, value := range sessions {
 		session, _ := value.(map[string]any)
 		if session["paneId"] != pane {
