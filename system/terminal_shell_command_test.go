@@ -44,6 +44,34 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 	}
 }
 
+func TestDetachedMarkerCommandsUseThePlatformShell(t *testing.T) {
+	windows, err := detachedMarkerCommand("windows", "SOKSAK_DETACHED_7", "SOKSAK_SCHEDULED_7")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(windows, `start "" /b powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand `) {
+		t.Fatalf("Windows detached command = %q", windows)
+	}
+	background := strings.Split(windows, " & echo ")[0]
+	fields := strings.Fields(background)
+	script := decodePowerShellForTest(t, fields[len(fields)-1])
+	for _, required := range []string{"Start-Sleep -Seconds 10", "Write-Output 'SOKSAK_DETACHED_7'"} {
+		if !strings.Contains(script, required) {
+			t.Errorf("Windows detached script omits %q: %s", required, script)
+		}
+	}
+	if !strings.HasSuffix(windows, " & echo SOKSAK_SCHEDULED_7\r") || strings.Contains(windows, "sleep 10") {
+		t.Fatalf("Windows detached command mixes shell syntax: %s", windows)
+	}
+	unix, err := detachedMarkerCommand("linux", "SOKSAK_DETACHED_7", "SOKSAK_SCHEDULED_7")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(unix, "(sleep 10; printf") || strings.Contains(unix, "SOKSAK_DETACHED_7") {
+		t.Fatalf("Linux detached command = %q", unix)
+	}
+}
+
 func decodePowerShellForTest(t *testing.T, encoded string) string {
 	t.Helper()
 	body, err := base64.StdEncoding.DecodeString(encoded)

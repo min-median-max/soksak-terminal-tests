@@ -3,6 +3,7 @@ package system
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"unicode/utf16"
 )
 
@@ -24,6 +25,24 @@ func terminalHighOutputCommand(platform, marker string) (string, error) {
 		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
 	case "darwin", "linux":
 		return "yes X | head -c 262144; printf '\\n%s\\n' " + marker, nil
+	default:
+		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
+	}
+}
+
+func detachedMarkerCommand(platform, marker, scheduled string) (string, error) {
+	switch platform {
+	case "windows":
+		script := "Start-Sleep -Seconds 10; Write-Output '" + marker + "'"
+		return `start "" /b powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ` +
+			encodePowerShell(script) + " & echo " + scheduled + "\r", nil
+	case "darwin", "linux":
+		cut := strings.LastIndex(marker, "_") + 1
+		if cut < 1 || cut >= len(marker) {
+			return "", fmt.Errorf("detached marker has no suffix: %s", marker)
+		}
+		return "prefix=" + marker[:cut] + "; (sleep 10; printf '%s\n' \"${prefix}" + marker[cut:] +
+			"\") & printf '%s\n' " + scheduled + "\r", nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}

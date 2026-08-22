@@ -39,8 +39,13 @@ func TestCountExactLineIgnoresShellEchoAndMarkerPrefixes(t *testing.T) {
 
 func TestDetachedMarkerCommandDoesNotContainTheWaitedMarker(t *testing.T) {
 	const marker = "SOKSAK_DETACHED_7"
-	command := detachedMarkerCommand(7, "SOKSAK_SCHEDULED_7")
-	if strings.Contains(command, marker) {
-		t.Fatalf("command echo contains waited marker: %s", command)
+	for _, platform := range []string{"windows", "darwin", "linux"} {
+		command, err := detachedMarkerCommand(platform, marker, "SOKSAK_SCHEDULED_7")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(command, marker) {
+			t.Fatalf("%s command echo contains waited marker: %s", platform, command)
+		}
 	}
 }
