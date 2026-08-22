@@ -9,9 +9,9 @@
   ],
   "sidecars": [
     { "id": "soksak-sidecar-pty", "version": "0.0.2" },
-    { "id": "soksak-sidecar-terminal-alacritty", "version": "0.0.5" },
-    { "id": "soksak-sidecar-terminal-ghostty", "version": "0.0.5" },
-    { "id": "soksak-sidecar-terminal-vt100", "version": "0.0.5" },
-    { "id": "soksak-sidecar-terminal-wezterm", "version": "0.0.5" }
+    { "id": "soksak-sidecar-terminal-alacritty", "version": "0.0.7" },
+    { "id": "soksak-sidecar-terminal-ghostty", "version": "0.0.7" },
+    { "id": "soksak-sidecar-terminal-vt100", "version": "0.0.7" },
+    { "id": "soksak-sidecar-terminal-wezterm", "version": "0.0.7" }
   ]
 }
