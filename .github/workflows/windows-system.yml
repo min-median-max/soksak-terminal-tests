@@ -8,14 +8,22 @@ jobs:
   system:
     runs-on: windows-2025
     timeout-minutes: 45
-    env: { SOKSAK_TEST_PLATFORM: windows, GH_TOKEN: "${{ github.token }}" }
+    env:
+      SOKSAK_TEST_PLATFORM: windows
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { repository: min-median-max/soksak-terminal-tests, ref: ${{ github.workflow_sha }}, path: tests }
+        with:
+          repository: min-median-max/soksak-terminal-tests
+          ref: ${{ github.workflow_sha }}
+          path: tests
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
-        with: { go-version: "1.25.0" }
+        with:
+          go-version: "1.25.0"
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with: { name: core-windows-artifact, path: core }
+        with:
+          name: core-windows-artifact
+          path: core
       - shell: pwsh
         run: |
           tests/scripts/install-windows-fleet.ps1 -Stage (Join-Path $env:GITHUB_WORKSPACE "stage")
@@ -37,4 +45,7 @@ jobs:
           go test -C tests -count=1 -tags=system ./system -run '^TestInstalledTerminalWarmAndArchivedRestore$' -v
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
-        with: { name: windows-terminal-system-evidence, path: stage/evidence, if-no-files-found: error }
+        with:
+          name: windows-terminal-system-evidence
+          path: stage/evidence
+          if-no-files-found: error
