@@ -32,4 +32,16 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 			t.Errorf("executes owner source: %s", v)
 		}
 	}
+	installer, err := os.ReadFile("scripts/install-windows-fleet.ps1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(installer), "gh run download") {
+		t.Fatal("Windows fleet installs a workflow artifact instead of an immutable release")
+	}
+	for _, release := range []string{`"soksak-sidecar-pty"="v0.0.1"`, `"soksak-sidecar-terminal-alacritty"="v0.0.5"`, `"soksak-sidecar-terminal-ghostty"="v0.0.5"`, `"soksak-sidecar-terminal-vt100"="v0.0.5"`, `"soksak-sidecar-terminal-wezterm"="v0.0.5"`} {
+		if !strings.Contains(string(installer), release) {
+			t.Errorf("Windows installer is missing %s", release)
+		}
+	}
 }
