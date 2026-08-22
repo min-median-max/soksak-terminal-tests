@@ -27,6 +27,9 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 			t.Errorf("missing %s", v)
 		}
 	}
+	if !strings.Contains(s, "New-Item -ItemType Directory -Force stage/evidence") {
+		t.Error("Windows workflow does not create the evidence directory before fleet installation")
+	}
 	for _, v := range []string{"github.workflow_sha", "soksak-" + "plugins", "soksak-" + "sidecars", "git clone", "cargo build"} {
 		if strings.Contains(s, v) {
 			t.Errorf("executes owner source: %s", v)
@@ -39,9 +42,7 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 	if strings.Contains(string(installer), "gh run download") {
 		t.Fatal("Windows fleet installs a workflow artifact instead of an immutable release")
 	}
-	for _, release := range []string{`"soksak-sidecar-pty"="v0.0.1"`, `"soksak-sidecar-terminal-alacritty"="v0.0.5"`, `"soksak-sidecar-terminal-ghostty"="v0.0.5"`, `"soksak-sidecar-terminal-vt100"="v0.0.5"`, `"soksak-sidecar-terminal-wezterm"="v0.0.5"`} {
-		if !strings.Contains(string(installer), release) {
-			t.Errorf("Windows installer is missing %s", release)
-		}
+	if !strings.Contains(string(installer), `../release/windows-fleet.json`) {
+		t.Error("Windows installer does not read the verified fleet declaration")
 	}
 }

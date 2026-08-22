@@ -32,6 +32,7 @@ jobs:
           path: core
       - shell: pwsh
         run: |
+          New-Item -ItemType Directory -Force stage/evidence | Out-Null
           tests/scripts/install-windows-fleet.ps1 -Stage (Join-Path $env:GITHUB_WORKSPACE "stage")
           go build -C tests -o ../stage/prepare-development.exe ./cmd/prepare-development
           Get-Content stage/development-input.json -Raw | stage/prepare-development.exe
