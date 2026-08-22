@@ -10,7 +10,7 @@ ENV CARGO_HOME=/usr/local/cargo
 ENV RUSTUP_HOME=/usr/local/rustup
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    ca-certificates clang g++ libxxhash-dev pkg-config \
+    ca-certificates clang g++ git libxxhash-dev pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 ENV CARGO_NET_GIT_FETCH_WITH_CLI=true
