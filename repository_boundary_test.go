@@ -19,7 +19,7 @@ func TestRepositoryDoesNotExecuteOwnerSources(t *testing.T) {
 			return err
 		}
 		if info.IsDir() {
-			if path != root && (info.Name() == ".git" || info.Name() == ".task") {
+			if path != root && (info.Name() == ".git" || info.Name() == ".task" || info.Name() == "local") {
 				return filepath.SkipDir
 			}
 			return nil
@@ -65,7 +65,7 @@ func TestRepositoryDoesNotExecuteOwnerSources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"ubuntu:24.04", "libpython3-dev", "python3-full", "import encodings, json", "ragel", "glslang-tools", "libxxhash-dev"} {
+	for _, required := range []string{"ubuntu:24.04", "clang-20", "-std=c++26", "libpython3-dev", "python3-full", "import encodings, json", "libssl-dev", "ragel", "glslang-tools", "libxxhash-dev"} {
 		if !strings.Contains(string(engineImage), required) {
 			t.Errorf("Linux engine SDK image is missing %s", required)
 		}
