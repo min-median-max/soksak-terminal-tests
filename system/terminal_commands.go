@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 )
 
 type TerminalResult struct {
@@ -12,16 +14,17 @@ type TerminalResult struct {
 	View   string
 }
 
-func VerifyTerminalCommands(cli CLI) ([]TerminalResult, error) {
+func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, error) {
 	if cli.EvidenceDir == "" || !filepath.IsAbs(cli.EvidenceDir) {
 		return nil, fmt.Errorf("evidence directory must be absolute")
 	}
 	if err := os.MkdirAll(cli.EvidenceDir, 0o700); err != nil {
 		return nil, err
 	}
-	results := make([]TerminalResult, 0, len(TerminalPlugins))
+	results := make([]TerminalResult, 0, len(profile.Plugins))
 	terminalPane := ""
-	for index, plugin := range TerminalPlugins {
+	for index, selected := range profile.Plugins {
+		plugin := selected.ID
 		engine := strings.TrimPrefix(plugin, "soksak-plugin-terminal-")
 		openParams := map[string]any{"program": "terminal-" + engine}
 		if terminalPane != "" {

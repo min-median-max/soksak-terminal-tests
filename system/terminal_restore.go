@@ -3,6 +3,8 @@ package system
 import (
 	"fmt"
 	"strings"
+
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 )
 
 type RestoreView struct {
@@ -11,7 +13,7 @@ type RestoreView struct {
 	Marker   string
 }
 
-func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) error {
+func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, views []TerminalResult) error {
 	cli := lifecycle.Client()
 	restore := make([]RestoreView, 0, len(views))
 	for index, view := range views {
@@ -83,7 +85,7 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 	for _, view := range restore {
 		markers = append(markers, view.Marker)
 	}
-	if err := verifyEncryptedCheckpoints(lifecycle.config.Home, RecoverySidecars, markers, len(restore)); err != nil {
+	if err := verifyEncryptedCheckpoints(lifecycle.config.Home, profile.RecoverySidecars, markers, len(restore)); err != nil {
 		return err
 	}
 	if err := lifecycle.Shutdown(); err != nil {

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
 
@@ -25,6 +26,7 @@ type ArtifactInput struct {
 }
 
 type Input struct {
+	Platform string                   `json:"platform"`
 	Home     string                   `json:"home"`
 	Plugins  map[string]ArtifactInput `json:"plugins"`
 	Sidecars map[string]ArtifactInput `json:"sidecars"`
@@ -33,32 +35,6 @@ type Input struct {
 type StatePaths struct {
 	Settings  string `json:"settings"`
 	Installed string `json:"installed"`
-}
-
-type provider struct {
-	ID          string
-	Requirement string
-	Sidecar     string
-}
-
-var pluginProviders = []provider{
-	{"soksak-plugin-terminal-alacritty", "terminal-alacritty", "soksak-sidecar-terminal-alacritty"},
-	{"soksak-plugin-terminal-ghostty", "terminal-ghostty", "soksak-sidecar-terminal-ghostty"},
-	{"soksak-plugin-terminal-kitty", "terminal-kitty", "soksak-sidecar-terminal-kitty"},
-	{"soksak-plugin-terminal-shitty", "terminal-shitty", "soksak-sidecar-terminal-shitty"},
-	{"soksak-plugin-terminal-vt100", "terminal-vt100", "soksak-sidecar-terminal-vt100"},
-	{"soksak-plugin-terminal-wezterm", "terminal-wezterm", "soksak-sidecar-terminal-wezterm"},
-	{"soksak-plugin-terminal-xterm", "terminal-vt100", "soksak-sidecar-terminal-vt100"},
-}
-
-var sidecarIDs = []string{
-	"soksak-sidecar-pty",
-	"soksak-sidecar-terminal-alacritty",
-	"soksak-sidecar-terminal-ghostty",
-	"soksak-sidecar-terminal-kitty",
-	"soksak-sidecar-terminal-shitty",
-	"soksak-sidecar-terminal-vt100",
-	"soksak-sidecar-terminal-wezterm",
 }
 
 var repositoryPattern = regexp.MustCompile(`^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)
@@ -79,12 +55,16 @@ func DecodeInput(reader io.Reader) (Input, error) {
 }
 
 func PrepareState(input Input) (StatePaths, error) {
+	profile, err := fleet.ForPlatform(input.Platform)
+	if err != nil {
+		return StatePaths{}, err
+	}
 	if err := validateDirectory(input.Home, false); err != nil {
 		return StatePaths{}, fmt.Errorf("home: %w", err)
 	}
 	settings := platformspec.EmptySettings()
 	installed := platformspec.EmptyInstalled()
-	for _, provider := range pluginProviders {
+	for _, provider := range profile.Plugins {
 		artifact, ok := input.Plugins[provider.ID]
 		if !ok {
 			return StatePaths{}, fmt.Errorf("missing plugin artifact: %s", provider.ID)
@@ -99,13 +79,17 @@ func PrepareState(input Input) (StatePaths, error) {
 		}
 		installed.Plugins[provider.ID] = installedComponent(artifact, digest, false)
 	}
-	if len(input.Plugins) != len(pluginProviders) {
-		return StatePaths{}, fmt.Errorf("plugins must contain exactly %d entries", len(pluginProviders))
+	if len(input.Plugins) != len(profile.Plugins) {
+		return StatePaths{}, fmt.Errorf("plugins must contain exactly %d entries", len(profile.Plugins))
 	}
+	sidecarIDs := append([]string{"soksak-sidecar-pty"}, profile.RecoverySidecars...)
 	for _, id := range sidecarIDs {
 		artifact, ok := input.Sidecars[id]
 		if !ok {
 			return StatePaths{}, fmt.Errorf("missing sidecar artifact: %s", id)
+		}
+		if artifact.Target != profile.Target {
+			return StatePaths{}, fmt.Errorf("%s target is %s, want %s", id, artifact.Target, profile.Target)
 		}
 		digest, err := validateSidecar(artifact, id)
 		if err != nil {

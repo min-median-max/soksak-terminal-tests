@@ -8,6 +8,7 @@ import (
 )
 
 func TestInstalledTerminalCommands(t *testing.T) {
+	profile := profileFromEnvironment(t)
 	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment(t, "commands"))
 	if err != nil {
 		t.Fatal(err)
@@ -22,11 +23,11 @@ func TestInstalledTerminalCommands(t *testing.T) {
 	if _, err := lifecycle.OpenWorkspace(); err != nil {
 		t.Fatal(err)
 	}
-	results, err := VerifyTerminalCommands(lifecycle.Client())
+	results, err := VerifyTerminalCommands(profile, lifecycle.Client())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(results) != 7 {
+	if len(results) != len(profile.Plugins) {
 		t.Fatalf("verified %d terminal plugins", len(results))
 	}
 	if err := VerifyInstalledUI(lifecycle.Client()); err != nil {

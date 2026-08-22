@@ -9,7 +9,7 @@ import (
 
 func TestEncryptedCheckpointFilesRejectPlaintextAndInvalidEnvelopes(t *testing.T) {
 	home := t.TempDir()
-	provider := RecoverySidecars[0]
+	provider := "soksak-sidecar-terminal-alacritty"
 	directory := filepath.Join(home, "terminal-checkpoints", provider)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		t.Fatal(err)

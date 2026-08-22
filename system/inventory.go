@@ -4,22 +4,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
-
-var TerminalPlugins = []string{
-	"soksak-plugin-terminal-alacritty", "soksak-plugin-terminal-ghostty",
-	"soksak-plugin-terminal-kitty", "soksak-plugin-terminal-shitty",
-	"soksak-plugin-terminal-vt100", "soksak-plugin-terminal-wezterm",
-	"soksak-plugin-terminal-xterm",
-}
-var RecoverySidecars = []string{
-	"soksak-sidecar-terminal-alacritty", "soksak-sidecar-terminal-ghostty",
-	"soksak-sidecar-terminal-kitty", "soksak-sidecar-terminal-shitty",
-	"soksak-sidecar-terminal-vt100", "soksak-sidecar-terminal-wezterm",
-}
 
 func ReadState(settingsPath string) (platformspec.Settings, platformspec.Installed, error) {
 	if !filepath.IsAbs(settingsPath) || filepath.Base(settingsPath) != platformspec.SettingsFile {
@@ -41,31 +29,33 @@ func ReadState(settingsPath string) (platformspec.Settings, platformspec.Install
 	return settings, installed, err
 }
 
-func ValidateTerminalInventory(settings platformspec.Settings, installed platformspec.Installed) error {
-	for _, id := range TerminalPlugins {
-		preference, ok := settings.Plugins[id]
-		component, installedOK := installed.Plugins[id]
+func ValidateTerminalInventory(profile fleet.Profile, settings platformspec.Settings, installed platformspec.Installed) error {
+	if len(settings.Plugins) != len(profile.Plugins) || len(installed.Plugins) != len(profile.Plugins) {
+		return fmt.Errorf("plugin inventory is not exact for %s", profile.Platform)
+	}
+	for _, plugin := range profile.Plugins {
+		preference, ok := settings.Plugins[plugin.ID]
+		component, installedOK := installed.Plugins[plugin.ID]
 		if !ok || !preference.Enabled || !installedOK || component.Version != "0.0.1" || !filepath.IsAbs(component.Path) {
-			return fmt.Errorf("plugin is not active and installed: %s", id)
+			return fmt.Errorf("plugin is not active and installed: %s", plugin.ID)
 		}
 		if preference.Providers["pty"] != "soksak-sidecar-pty" {
-			return fmt.Errorf("plugin has no PTY provider: %s", id)
+			return fmt.Errorf("plugin has no PTY provider: %s", plugin.ID)
 		}
 	}
-	for _, id := range append([]string{"soksak-sidecar-pty"}, RecoverySidecars...) {
+	sidecars := append([]string{"soksak-sidecar-pty"}, profile.RecoverySidecars...)
+	if len(installed.Sidecars) != len(sidecars) {
+		return fmt.Errorf("sidecar inventory is not exact for %s", profile.Platform)
+	}
+	for _, id := range sidecars {
 		component, ok := installed.Sidecars[id]
-		if !ok || component.Version != "0.0.1" || component.Target == "" || !filepath.IsAbs(component.Path) {
+		if !ok || component.Version != "0.0.1" || component.Target != profile.Target || !filepath.IsAbs(component.Path) {
 			return fmt.Errorf("sidecar is not installed: %s", id)
 		}
 	}
-	for _, id := range TerminalPlugins {
-		engine := strings.TrimPrefix(id, "soksak-plugin-terminal-")
-		provider, requirement := "soksak-sidecar-terminal-"+engine, "terminal-"+engine
-		if engine == "xterm" {
-			provider, requirement = "soksak-sidecar-terminal-vt100", "terminal-vt100"
-		}
-		if settings.Plugins[id].Providers[requirement] != provider {
-			return fmt.Errorf("plugin provider selection is invalid: %s", id)
+	for _, plugin := range profile.Plugins {
+		if settings.Plugins[plugin.ID].Providers[plugin.Requirement] != plugin.Sidecar {
+			return fmt.Errorf("plugin provider selection is invalid: %s", plugin.ID)
 		}
 	}
 	return nil

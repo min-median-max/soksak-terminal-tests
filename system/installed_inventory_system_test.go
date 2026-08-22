@@ -8,6 +8,7 @@ import (
 )
 
 func TestInstalledTerminalInventory(t *testing.T) {
+	profile := profileFromEnvironment(t)
 	path := os.Getenv("SOKSAK_TEST_SETTINGS")
 	if path == "" {
 		t.Fatal("SOKSAK_TEST_SETTINGS must name the installed settings.json")
@@ -16,7 +17,7 @@ func TestInstalledTerminalInventory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateTerminalInventory(settings, installed); err != nil {
+	if err := ValidateTerminalInventory(profile, settings, installed); err != nil {
 		t.Fatal(err)
 	}
 }

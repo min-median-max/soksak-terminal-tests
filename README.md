@@ -14,8 +14,11 @@ Each plugin and sidecar repository remains responsible for its own conformance a
 This repository owns only cross-provider comparison and installed-composition system behavior.
 
 `prepare-development` accepts one JSON object on stdin and atomically writes a development
-`settings.json` and `installed.json`. The input contains an absolute identity-home path plus exact
-artifact path, repository, source commit and digest records for seven plugins and seven sidecars.
+`settings.json` and `installed.json`. The input declares `platform` (`darwin`, `linux`, or `windows`),
+an absolute identity-home path, and exact artifact path, repository, source commit and digest records.
+Darwin and Linux require seven plugins plus PTY and six recovery sidecars. Windows requires the five
+plugins backed by Alacritty, Ghostty, VT100, WezTerm, and Xterm plus PTY and four recovery sidecars;
+Kitty and Shitty are not Windows artifacts.
 It validates every manifest identity, process, target and provenance before replacing both
 canonical files while the test application is stopped. It does not build source code.
 
@@ -41,6 +44,7 @@ The public-command gate also requires a running installed application:
 
 ```sh
 SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json \
+SOKSAK_TEST_PLATFORM=linux \
 SOKSAK_TEST_CLI=/absolute/path/to/sok \
 SOKSAK_TEST_APP=/absolute/path/to/soksak \
 SOKSAK_TEST_SOCKET=/absolute/path/to/control.sock \

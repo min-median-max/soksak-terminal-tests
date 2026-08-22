@@ -6,7 +6,18 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 )
+
+func profileFromEnvironment(t *testing.T) fleet.Profile {
+	t.Helper()
+	profile, err := fleet.ForPlatform(os.Getenv("SOKSAK_TEST_PLATFORM"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return profile
+}
 
 func lifecycleConfigFromEnvironment(t *testing.T, scenario string) LifecycleConfig {
 	t.Helper()

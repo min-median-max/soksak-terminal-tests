@@ -8,6 +8,7 @@ import (
 )
 
 func TestInstalledTerminalWarmAndArchivedRestore(t *testing.T) {
+	profile := profileFromEnvironment(t)
 	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment(t, "restore"))
 	if err != nil {
 		t.Fatal(err)
@@ -22,11 +23,11 @@ func TestInstalledTerminalWarmAndArchivedRestore(t *testing.T) {
 	if _, err := lifecycle.OpenWorkspace(); err != nil {
 		t.Fatal(err)
 	}
-	views, err := VerifyTerminalCommands(lifecycle.Client())
+	views, err := VerifyTerminalCommands(profile, lifecycle.Client())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := VerifyWarmAndArchivedRestore(lifecycle, views); err != nil {
+	if err := VerifyWarmAndArchivedRestore(profile, lifecycle, views); err != nil {
 		t.Fatal(err)
 	}
 	if err := VerifyInstalledUI(lifecycle.Client()); err != nil {

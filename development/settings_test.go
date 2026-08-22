@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
 
@@ -51,6 +52,27 @@ func TestPrepareStateSeparatesSettingsFromInstalledFacts(t *testing.T) {
 	}
 }
 
+func TestPrepareStateUsesTheExactWindowsFleet(t *testing.T) {
+	input := fixtureInputForPlatform(t, "windows")
+	paths, err := PrepareState(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	settingsBody, _ := os.ReadFile(paths.Settings)
+	settings, err := platformspec.ParseSettings(settingsBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(settings.Plugins) != 5 || len(settings.Sidecars) != 5 {
+		t.Fatalf("Windows settings plugins=%d sidecars=%d", len(settings.Plugins), len(settings.Sidecars))
+	}
+	for _, id := range []string{"soksak-plugin-terminal-kitty", "soksak-plugin-terminal-shitty"} {
+		if _, exists := settings.Plugins[id]; exists {
+			t.Fatalf("Windows settings contain unsupported plugin %s", id)
+		}
+	}
+}
+
 func TestPrepareStateIsDeterministic(t *testing.T) {
 	input := fixtureInput(t)
 	paths, err := PrepareState(input)
@@ -79,19 +101,28 @@ func TestPrepareStateRejectsMissingProcessAndUnverifiedProvenance(t *testing.T) 
 		t.Fatal("missing sidecar process was accepted")
 	}
 	input = fixtureInput(t)
-	plugin := input.Plugins[pluginProviders[0].ID]
+	profile, _ := fleet.ForPlatform(input.Platform)
+	plugin := input.Plugins[profile.Plugins[0].ID]
 	plugin.Commit = "main"
-	input.Plugins[pluginProviders[0].ID] = plugin
+	input.Plugins[profile.Plugins[0].ID] = plugin
 	if _, err := PrepareState(input); err == nil {
 		t.Fatal("non-exact source provenance was accepted")
 	}
 }
 
 func fixtureInput(t *testing.T) Input {
+	return fixtureInputForPlatform(t, "linux")
+}
+
+func fixtureInputForPlatform(t *testing.T, platform string) Input {
 	t.Helper()
 	root := t.TempDir()
-	input := Input{Home: filepath.Join(root, "home"), Plugins: map[string]ArtifactInput{}, Sidecars: map[string]ArtifactInput{}}
-	for _, plugin := range pluginProviders {
+	profile, err := fleet.ForPlatform(platform)
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := Input{Platform: platform, Home: filepath.Join(root, "home"), Plugins: map[string]ArtifactInput{}, Sidecars: map[string]ArtifactInput{}}
+	for _, plugin := range profile.Plugins {
 		path := filepath.Join(root, plugin.ID)
 		if err := os.MkdirAll(path, 0o700); err != nil {
 			t.Fatal(err)
@@ -99,7 +130,7 @@ func fixtureInput(t *testing.T) Input {
 		writeJSON(t, filepath.Join(path, "plugin.json"), map[string]any{"id": plugin.ID, "version": version})
 		input.Plugins[plugin.ID] = ArtifactInput{Path: path, Repository: "https://github.com/soksak-ai/" + plugin.ID, Commit: testCommit, ArtifactSHA256: testDigest}
 	}
-	for _, id := range sidecarIDs {
+	for _, id := range append([]string{"soksak-sidecar-pty"}, profile.RecoverySidecars...) {
 		path := filepath.Join(root, id)
 		process := filepath.Join("dist", id)
 		if err := os.MkdirAll(filepath.Join(path, "dist"), 0o700); err != nil {
@@ -109,7 +140,7 @@ func fixtureInput(t *testing.T) Input {
 		if err := os.WriteFile(filepath.Join(path, process), []byte("process"), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		input.Sidecars[id] = ArtifactInput{Path: path, Repository: "https://github.com/soksak-ai/" + id, Commit: testCommit, ArtifactSHA256: testDigest, Target: "x86_64-unknown-linux-gnu"}
+		input.Sidecars[id] = ArtifactInput{Path: path, Repository: "https://github.com/soksak-ai/" + id, Commit: testCommit, ArtifactSHA256: testDigest, Target: profile.Target}
 	}
 	return input
 }
