@@ -84,6 +84,10 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err != nil {
 			return nil, err
 		}
+		resized, err = terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "colsLessThan": wide, "timeoutMs": 8000})
+		if err != nil {
+			return nil, fmt.Errorf("%s resize wait failed: %w", plugin, err)
+		}
 		narrow, _ := resized["cols"].(float64)
 		if narrow < 1 || narrow >= wide {
 			return nil, fmt.Errorf("%s columns did not decrease: %.0f -> %.0f", plugin, wide, narrow)
