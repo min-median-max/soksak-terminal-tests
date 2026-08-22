@@ -205,9 +205,17 @@ func captureTerminal(cli CLI, plugin string) error {
 	if err != nil || info.Size() == 0 {
 		return fmt.Errorf("%s capture was not written: %v", plugin, err)
 	}
+	if err := validateCaptureEvidence(image); err != nil {
+		return fmt.Errorf("%s capture is not drawn: %w", plugin, err)
+	}
 	frames, err := filepath.Glob(filepath.Join(recording, "f*.png"))
 	if err != nil || len(frames) != 6 {
 		return fmt.Errorf("%s recording has %d frames: %v", plugin, len(frames), err)
+	}
+	for _, frame := range frames {
+		if err := validateCaptureEvidence(frame); err != nil {
+			return fmt.Errorf("%s recording frame is not drawn: %w", plugin, err)
+		}
 	}
 	return nil
 }
