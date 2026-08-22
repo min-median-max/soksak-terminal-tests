@@ -12,12 +12,12 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 		t.Fatal(e)
 	}
 	s := string(b)
-	for _, v := range []string{"workflow_call:", "windows-2025", "SOKSAK_TEST_PLATFORM: windows", "TestInstalledTerminalCommands", "TestInstalledTerminalWarmAndArchivedRestore"} {
+	for _, v := range []string{"workflow_call:", "tests_ref:", "ref: ${{ inputs.tests_ref }}", "windows-2025", "SOKSAK_TEST_PLATFORM: windows", "TestInstalledTerminalCommands", "TestInstalledTerminalWarmAndArchivedRestore"} {
 		if !strings.Contains(s, v) {
 			t.Errorf("missing %s", v)
 		}
 	}
-	for _, v := range []string{"soksak-" + "plugins", "soksak-" + "sidecars", "git clone", "cargo build"} {
+	for _, v := range []string{"github.workflow_sha", "soksak-" + "plugins", "soksak-" + "sidecars", "git clone", "cargo build"} {
 		if strings.Contains(s, v) {
 			t.Errorf("executes owner source: %s", v)
 		}

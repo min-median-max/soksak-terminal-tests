@@ -1,6 +1,11 @@
 name: windows-system
 on:
   workflow_call:
+    inputs:
+      tests_ref:
+        description: Exact soksak-terminal-tests commit to execute
+        required: true
+        type: string
 permissions:
   contents: read
   actions: read
@@ -15,7 +20,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: min-median-max/soksak-terminal-tests
-          ref: ${{ github.workflow_sha }}
+          ref: ${{ inputs.tests_ref }}
           path: tests
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with:
