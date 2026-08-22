@@ -25,6 +25,9 @@ func TestResizeEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 		t.Fatalf("failure boundary = %q", got)
 	}
 	evidence.Narrow.ReportedCols = 54
+	if got := evidence.failureBoundary(); got != "plugin-request" {
+		t.Fatalf("failure boundary = %q", got)
+	}
 	evidence.Narrow.Requested = &terminalSize{Cols: 54, Rows: 25}
 	if got := evidence.failureBoundary(); got != "pty-observation" {
 		t.Fatalf("failure boundary = %q", got)

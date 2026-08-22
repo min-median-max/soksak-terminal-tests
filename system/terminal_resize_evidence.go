@@ -52,7 +52,10 @@ func (evidence terminalResizeEvidence) failureBoundary() string {
 	if evidence.Narrow.ReportedCols >= evidence.Wide.ReportedCols {
 		return "plugin-size"
 	}
-	if evidence.Narrow.Requested == nil || evidence.Narrow.PTY == nil ||
+	if evidence.Narrow.Requested == nil {
+		return "plugin-request"
+	}
+	if evidence.Narrow.PTY == nil ||
 		evidence.Narrow.PTY.Cols != evidence.Narrow.Requested.Cols ||
 		evidence.Narrow.PTY.Rows != evidence.Narrow.Requested.Rows {
 		return "pty-observation"
