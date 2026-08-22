@@ -11,7 +11,7 @@ jobs:
     env: { SOKSAK_TEST_PLATFORM: windows, GH_TOKEN: "${{ github.token }}" }
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { repository: min-median-max/soksak-terminal-tests, ref: 49d47f99c835dcc8fb139d76ab3a8ca608ef059c, path: tests }
+        with: { repository: min-median-max/soksak-terminal-tests, ref: ${{ github.workflow_sha }}, path: tests }
       - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
         with: { go-version: "1.25.0" }
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
