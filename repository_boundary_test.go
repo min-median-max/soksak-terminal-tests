@@ -56,7 +56,7 @@ func TestRepositoryDoesNotExecuteOwnerSources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, required := range []string{"rust:1.96-bookworm", "CARGO_NET_GIT_FETCH_WITH_CLI=true", "libxxhash-dev"} {
+	for _, required := range []string{"rust:1.96-bookworm AS rust-toolchain", "ubuntu:24.04", "COPY --from=rust-toolchain", "CARGO_NET_GIT_FETCH_WITH_CLI=true", "rustc 1.96.", "libxxhash-dev"} {
 		if !strings.Contains(string(dockerfile), required) {
 			t.Errorf("Linux sidecar image is missing %s", required)
 		}
