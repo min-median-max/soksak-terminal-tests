@@ -28,3 +28,19 @@ func TestSidecarResponseUsesTheContractPayload(t *testing.T) {
 		t.Fatalf("payload=%+v err=%v", payload, err)
 	}
 }
+
+func TestPaneSessionReadsTheHeldContractPayload(t *testing.T) {
+	held := map[string]any{
+		"paneId": "pane-a", "held": true,
+		"opened": map[string]any{"session": float64(7), "shellPid": float64(42)},
+	}
+	session, err := paneSessionID(held, "pane-a")
+	if err != nil || session != 7 {
+		t.Fatalf("session=%d err=%v", session, err)
+	}
+	for _, invalid := range []map[string]any{{"held": false}, {"held": true}, {"held": true, "opened": map[string]any{"session": float64(0)}}} {
+		if _, err := paneSessionID(invalid, "pane-a"); err == nil {
+			t.Fatalf("accepted invalid held payload: %+v", invalid)
+		}
+	}
+}

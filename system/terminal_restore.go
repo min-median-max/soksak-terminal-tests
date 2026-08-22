@@ -140,16 +140,26 @@ func closePaneSession(cli CLI, pane string) error {
 	if err != nil {
 		return err
 	}
-	data, _ := held["data"].(map[string]any)
-	opened, _ := data["opened"].(map[string]any)
-	session, _ := opened["session"].(float64)
-	if session < 1 {
-		return fmt.Errorf("PTY has no session for pane %s: %+v", pane, held)
+	session, err := paneSessionID(held, pane)
+	if err != nil {
+		return err
 	}
 	_, err = sidecarRequest(cli, "soksak-sidecar-pty", "close", "pty.close", map[string]any{
 		"request": map[string]any{"session": uint64(session)},
 	})
 	return err
+}
+
+func paneSessionID(held map[string]any, pane string) (uint64, error) {
+	if held["held"] != true {
+		return 0, fmt.Errorf("PTY has no session for pane %s: %+v", pane, held)
+	}
+	opened, _ := held["opened"].(map[string]any)
+	session, _ := opened["session"].(float64)
+	if session < 1 || session != float64(uint64(session)) {
+		return 0, fmt.Errorf("PTY has no session for pane %s: %+v", pane, held)
+	}
+	return uint64(session), nil
 }
 
 func sidecarRequest(cli CLI, name, id, command string, args map[string]any) (map[string]any, error) {
