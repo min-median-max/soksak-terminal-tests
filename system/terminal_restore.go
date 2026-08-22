@@ -79,6 +79,13 @@ func VerifyWarmAndArchivedRestore(lifecycle *Lifecycle, views []TerminalResult) 
 			return err
 		}
 	}
+	markers := make([]string, 0, len(restore))
+	for _, view := range restore {
+		markers = append(markers, view.Marker)
+	}
+	if err := verifyEncryptedCheckpoints(lifecycle.config.Home, RecoverySidecars, markers, len(restore)); err != nil {
+		return err
+	}
 	if err := lifecycle.Shutdown(); err != nil {
 		return err
 	}
