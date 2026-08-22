@@ -12,7 +12,17 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 		t.Fatal(e)
 	}
 	s := string(b)
-	for _, v := range []string{"workflow_call:", "tests_ref:", "ref: ${{ inputs.tests_ref }}", "windows-2025", "SOKSAK_TEST_PLATFORM: windows", "TestInstalledTerminalCommands", "TestInstalledTerminalWarmAndArchivedRestore"} {
+	for _, v := range []string{
+		"actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+		"actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e",
+		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
+		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+	} {
+		if !strings.Contains(s, v) {
+			t.Errorf("Windows workflow does not pin Node 24 action %s", v)
+		}
+	}
+	for _, v := range []string{"workflow_call:", "tests_ref:", "ref: ${{ inputs.tests_ref }}", "cache-dependency-path: tests/go.sum", "windows-2025", "SOKSAK_TEST_PLATFORM: windows", "TestInstalledTerminalCommands", "TestInstalledTerminalWarmAndArchivedRestore"} {
 		if !strings.Contains(s, v) {
 			t.Errorf("missing %s", v)
 		}
