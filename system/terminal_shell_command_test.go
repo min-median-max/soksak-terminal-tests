@@ -75,6 +75,19 @@ func TestDetachedMarkerCommandsUseThePlatformShell(t *testing.T) {
 	}
 }
 
+func TestWindowsDelayedMarkerSeparatesFromThePrompt(t *testing.T) {
+	const prompt = `D:\a\soksak\tests\system>`
+	const marker = "SOKSAK_DETACHED_7"
+	withoutLeadingNewline := prompt + marker + "\r\n"
+	if countExactLine(withoutLeadingNewline, marker) != 0 {
+		t.Fatal("a marker attached to the prompt was accepted")
+	}
+	withLeadingNewline := prompt + "\r\n" + marker + "\r\n"
+	if countExactLine(withLeadingNewline, marker) != 1 {
+		t.Fatalf("a separated delayed marker was not accepted: %q", withLeadingNewline)
+	}
+}
+
 func decodePowerShellForTest(t *testing.T, encoded string) string {
 	t.Helper()
 	body, err := base64.StdEncoding.DecodeString(encoded)
