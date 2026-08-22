@@ -24,6 +24,24 @@ func TestResizeEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 	if got := evidence.failureBoundary(); got != "plugin-size" {
 		t.Fatalf("failure boundary = %q", got)
 	}
+	evidence.Narrow.ReportedCols = 54
+	evidence.Narrow.Requested = &terminalSize{Cols: 54, Rows: 25}
+	if got := evidence.failureBoundary(); got != "pty-observation" {
+		t.Fatalf("failure boundary = %q", got)
+	}
+	evidence.Narrow.PTY = &terminalSequencedSize{terminalSize: terminalSize{Cols: 54, Rows: 25}, EventSequence: 7}
+	if got := evidence.failureBoundary(); got != "recovery-observation" {
+		t.Fatalf("failure boundary = %q", got)
+	}
+	evidence.Narrow.Recovery = &terminalSequencedSize{terminalSize: terminalSize{Cols: 54, Rows: 25}, EventSequence: 7}
+	evidence.Narrow.Rendered = &terminalSize{Cols: 90, Rows: 25}
+	if got := evidence.failureBoundary(); got != "rendered-frame" {
+		t.Fatalf("failure boundary = %q", got)
+	}
+	evidence.Narrow.Rendered = &terminalSize{Cols: 54, Rows: 25}
+	if got := evidence.failureBoundary(); got != "" {
+		t.Fatalf("failure boundary = %q", got)
+	}
 	evidence.Narrow.DOM.Width = 720
 	if got := evidence.failureBoundary(); got != "core-layout" {
 		t.Fatalf("failure boundary = %q", got)

@@ -13,11 +13,25 @@ type terminalDOMSize struct {
 	Height float64 `json:"height"`
 }
 
+type terminalSize struct {
+	Cols float64 `json:"cols"`
+	Rows float64 `json:"rows"`
+}
+
+type terminalSequencedSize struct {
+	terminalSize
+	EventSequence float64 `json:"eventSequence"`
+}
+
 type terminalResizeSample struct {
-	DOM          terminalDOMSize `json:"dom"`
-	ReportedCols float64         `json:"reportedCols"`
-	ReportedRows float64         `json:"reportedRows"`
-	Status       map[string]any  `json:"status"`
+	DOM          terminalDOMSize        `json:"dom"`
+	ReportedCols float64                `json:"reportedCols"`
+	ReportedRows float64                `json:"reportedRows"`
+	Requested    *terminalSize          `json:"requested"`
+	PTY          *terminalSequencedSize `json:"pty"`
+	Recovery     *terminalSequencedSize `json:"recovery"`
+	Rendered     *terminalSize          `json:"rendered"`
+	Status       map[string]any         `json:"status"`
 }
 
 type terminalResizeEvidence struct {
@@ -37,6 +51,22 @@ func (evidence terminalResizeEvidence) failureBoundary() string {
 	}
 	if evidence.Narrow.ReportedCols >= evidence.Wide.ReportedCols {
 		return "plugin-size"
+	}
+	if evidence.Narrow.Requested == nil || evidence.Narrow.PTY == nil ||
+		evidence.Narrow.PTY.Cols != evidence.Narrow.Requested.Cols ||
+		evidence.Narrow.PTY.Rows != evidence.Narrow.Requested.Rows {
+		return "pty-observation"
+	}
+	if evidence.Narrow.Recovery == nil ||
+		evidence.Narrow.Recovery.Cols != evidence.Narrow.PTY.Cols ||
+		evidence.Narrow.Recovery.Rows != evidence.Narrow.PTY.Rows ||
+		evidence.Narrow.Recovery.EventSequence != evidence.Narrow.PTY.EventSequence {
+		return "recovery-observation"
+	}
+	if evidence.Narrow.Rendered == nil ||
+		evidence.Narrow.Rendered.Cols != evidence.Narrow.Recovery.Cols ||
+		evidence.Narrow.Rendered.Rows != evidence.Narrow.Recovery.Rows {
+		return "rendered-frame"
 	}
 	return ""
 }
@@ -69,12 +99,39 @@ func measureTerminalResize(cli CLI, plugin, view, address string) (terminalResiz
 	if err != nil {
 		return terminalResizeSample{}, err
 	}
-	cols, _ := status["cols"].(float64)
-	rows, _ := status["rows"].(float64)
+	requested := readTerminalSize(status["requested"])
+	pty := readTerminalSequencedSize(status["pty"])
+	recovery := readTerminalSequencedSize(status["recovery"])
+	rendered := readTerminalSize(status["rendered"])
+	var cols, rows float64
+	if rendered != nil {
+		cols, rows = rendered.Cols, rendered.Rows
+	}
 	return terminalResizeSample{
 		DOM:          terminalDOMSize{Width: width, Height: height},
-		ReportedCols: cols, ReportedRows: rows, Status: status,
+		ReportedCols: cols, ReportedRows: rows, Requested: requested, PTY: pty,
+		Recovery: recovery, Rendered: rendered, Status: status,
 	}, nil
+}
+
+func readTerminalSize(value any) *terminalSize {
+	object, _ := value.(map[string]any)
+	cols, colsOK := object["cols"].(float64)
+	rows, rowsOK := object["rows"].(float64)
+	if !colsOK || !rowsOK || cols <= 0 || rows <= 0 {
+		return nil
+	}
+	return &terminalSize{Cols: cols, Rows: rows}
+}
+
+func readTerminalSequencedSize(value any) *terminalSequencedSize {
+	size := readTerminalSize(value)
+	object, _ := value.(map[string]any)
+	sequence, ok := object["eventSequence"].(float64)
+	if size == nil || !ok || sequence < 0 {
+		return nil
+	}
+	return &terminalSequencedSize{terminalSize: *size, EventSequence: sequence}
 }
 
 func writeTerminalResizeEvidence(directory string, evidence terminalResizeEvidence) error {

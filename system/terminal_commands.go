@@ -115,6 +115,10 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			return nil, fmt.Errorf("%s resize wait failed at %s: %w; evidence=%+v", plugin, evidence.failureBoundary(), err, evidence)
 		}
 		narrow, _ := resized["cols"].(float64)
+		evidence.Narrow, err = measureTerminalResize(cli, plugin, view, address)
+		if err != nil {
+			return nil, err
+		}
 		if narrow < 1 || narrow >= wide {
 			evidence.Failure = fmt.Sprintf("columns did not decrease: %.0f -> %.0f", wide, narrow)
 			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
