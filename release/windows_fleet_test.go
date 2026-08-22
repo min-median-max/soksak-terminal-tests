@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"compress/gzip"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -28,6 +29,21 @@ func TestInspectArchiveRejectsLinks(t *testing.T) {
 	filename := archiveFixtureWithLink(t)
 	if err := inspectArchive(filename, "sidecar", Component{ID: "soksak-sidecar-example", Version: "0.0.1"}); err == nil {
 		t.Fatal("archive link was accepted")
+	}
+}
+
+func TestExtractArchiveWritesOnlyDeclaredRegularFiles(t *testing.T) {
+	archive := archiveFixture(t, map[string][]byte{"plugin.json": []byte("manifest"), "main.js": []byte("first")})
+	destination := filepath.Join(t.TempDir(), "plugin")
+	if err := os.MkdirAll(destination, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := extractArchive(archive, destination); err != nil {
+		t.Fatal(err)
+	}
+	body, err := os.ReadFile(filepath.Join(destination, "main.js"))
+	if err != nil || string(body) != "first" {
+		t.Fatalf("body=%q err=%v", body, err)
 	}
 }
 

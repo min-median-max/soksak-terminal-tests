@@ -30,6 +30,14 @@ type Fleet struct {
 	Sidecars []Component `json:"sidecars"`
 }
 
+type StagedArtifact struct {
+	Path, Repository, Commit, ArtifactSHA256, Target string
+}
+
+type StagedFleet struct {
+	Plugins, Sidecars map[string]StagedArtifact
+}
+
 type artifact struct {
 	Target, URL, SHA256, Format, Manifest string
 	Size                                  int64
@@ -66,38 +74,62 @@ func ReadFleet(filename string) (Fleet, error) {
 }
 
 func Verify(ctx context.Context, client *http.Client, fleet Fleet) error {
+	_, err := verify(ctx, client, fleet, "")
+	return err
+}
+
+func VerifyAndStage(ctx context.Context, client *http.Client, fleet Fleet, stage string) (StagedFleet, error) {
+	if !filepath.IsAbs(stage) {
+		return StagedFleet{}, fmt.Errorf("stage path must be absolute")
+	}
+	if err := os.MkdirAll(stage, 0o700); err != nil {
+		return StagedFleet{}, err
+	}
+	return verify(ctx, client, fleet, stage)
+}
+
+func verify(ctx context.Context, client *http.Client, fleet Fleet, stage string) (StagedFleet, error) {
+	result := StagedFleet{Plugins: map[string]StagedArtifact{}, Sidecars: map[string]StagedArtifact{}}
 	for _, component := range fleet.Plugins {
-		if err := verifyComponent(ctx, client, fleet.Target, "plugin", component); err != nil {
-			return err
+		artifact, err := verifyComponent(ctx, client, fleet.Target, "plugin", component, stage)
+		if err != nil {
+			return StagedFleet{}, err
+		}
+		if artifact != nil {
+			result.Plugins[component.ID] = *artifact
 		}
 	}
 	for _, component := range fleet.Sidecars {
-		if err := verifyComponent(ctx, client, fleet.Target, "sidecar", component); err != nil {
-			return err
+		artifact, err := verifyComponent(ctx, client, fleet.Target, "sidecar", component, stage)
+		if err != nil {
+			return StagedFleet{}, err
+		}
+		if artifact != nil {
+			result.Sidecars[component.ID] = *artifact
 		}
 	}
-	return nil
+	return result, nil
 }
 
-func verifyComponent(ctx context.Context, client *http.Client, target, kind string, component Component) error {
+func verifyComponent(ctx context.Context, client *http.Client, target, kind string, component Component, stage string) (*StagedArtifact, error) {
 	repository := "https://github.com/soksak-ai/" + component.ID
 	releaseURL := repository + "/releases/download/v" + component.Version + "/release.json"
 	body, err := get(ctx, client, releaseURL, 4<<20)
 	if err != nil {
-		return fmt.Errorf("%s: %w", component.ID, err)
+		return nil, fmt.Errorf("%s: %w", component.ID, err)
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(body)))
 	decoder.DisallowUnknownFields()
 	var release releaseDocument
 	if err := decoder.Decode(&release); err != nil {
-		return fmt.Errorf("%s release.json: %w", component.ID, err)
+		return nil, fmt.Errorf("%s release.json: %w", component.ID, err)
 	}
 	identity := release.Plugin
 	if kind == "sidecar" {
 		identity = release.Sidecar
 	}
 	if identity == nil || *identity != component || release.Source.Repository != repository || len(release.Source.Commit) != 40 || len(release.Reports) == 0 {
-		return fmt.Errorf("%s release identity is invalid", component.ID)
+		return nil, fmt.Errorf("%s release identity is invalid", component.ID)
 	}
 	wantedTarget := "any"
 	if kind == "sidecar" {
@@ -110,17 +142,33 @@ func verifyComponent(ctx context.Context, client *http.Client, target, kind stri
 		}
 	}
 	if selected == nil || selected.Size <= 0 || len(selected.SHA256) != 64 || selected.Manifest != kind+".json" {
-		return fmt.Errorf("%s has no valid %s artifact", component.ID, wantedTarget)
+		return nil, fmt.Errorf("%s has no valid %s artifact", component.ID, wantedTarget)
 	}
 	if !strings.HasPrefix(selected.URL, repository+"/releases/download/v"+component.Version+"/") {
-		return fmt.Errorf("%s artifact URL is outside its release", component.ID)
+		return nil, fmt.Errorf("%s artifact URL is outside its release", component.ID)
 	}
 	archive, err := download(ctx, client, selected.URL, selected.Size, selected.SHA256)
 	if err != nil {
-		return fmt.Errorf("%s: %w", component.ID, err)
+		return nil, fmt.Errorf("%s: %w", component.ID, err)
 	}
 	defer os.Remove(archive)
-	return inspectArchive(archive, kind, component)
+	if err := inspectArchive(archive, kind, component); err != nil {
+		return nil, err
+	}
+	if stage == "" {
+		return nil, nil
+	}
+	destination := filepath.Join(stage, kind+"s", component.ID)
+	if err := os.RemoveAll(destination); err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(destination, 0o700); err != nil {
+		return nil, err
+	}
+	if err := extractArchive(archive, destination); err != nil {
+		return nil, err
+	}
+	return &StagedArtifact{Path: destination, Repository: release.Source.Repository, Commit: release.Source.Commit, ArtifactSHA256: selected.SHA256, Target: wantedTarget}, nil
 }
 
 func get(ctx context.Context, client *http.Client, address string, limit int64) ([]byte, error) {
@@ -228,4 +276,61 @@ func inspectArchive(filename, kind string, component Component) error {
 		return fmt.Errorf("%s Windows process does not match its archive: %v", component.ID, err)
 	}
 	return nil
+}
+
+func extractArchive(filename, destination string) error {
+	file, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return err
+	}
+	defer gzipReader.Close()
+	reader := tar.NewReader(gzipReader)
+	for {
+		header, err := reader.Next()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		rawName := filepath.ToSlash(header.Name)
+		name := strings.TrimPrefix(rawName, "./")
+		if name == "" || header.Typeflag == tar.TypeDir {
+			continue
+		}
+		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA {
+			return fmt.Errorf("unsafe archive entry %q", header.Name)
+		}
+		if strings.HasPrefix(rawName, "/") || strings.Contains("/"+name+"/", "/../") {
+			return fmt.Errorf("unsafe archive path %q", header.Name)
+		}
+		output := filepath.Join(destination, filepath.FromSlash(name))
+		if !strings.HasPrefix(output, destination+string(filepath.Separator)) {
+			return fmt.Errorf("archive path escapes destination")
+		}
+		if err := os.MkdirAll(filepath.Dir(output), 0o700); err != nil {
+			return err
+		}
+		mode := os.FileMode(0o600)
+		if header.Mode&0o111 != 0 {
+			mode = 0o700
+		}
+		writer, err := os.OpenFile(output, os.O_CREATE|os.O_EXCL|os.O_WRONLY, mode)
+		if err != nil {
+			return err
+		}
+		_, copyErr := io.Copy(writer, io.LimitReader(reader, header.Size))
+		closeErr := writer.Close()
+		if copyErr != nil {
+			return copyErr
+		}
+		if closeErr != nil {
+			return closeErr
+		}
+	}
 }
