@@ -62,6 +62,11 @@ the requested PTY size, PTY observation and event sequence, recovery observation
 sequence, and rendered frame size. Failure names the first boundary that did not advance. A plain
 timeout without this record is not a verdict.
 
+System commands are generated for the declared target shell. Windows uses `cmd.exe` commands and
+UTF-16LE PowerShell `-EncodedCommand` payloads; Darwin and Linux use POSIX shell syntax. Restore
+markers are scheduled without placing the awaited marker literal in the echoed command, and the
+test reads PTY process identity only from the public `pty.status` contract.
+
 The macOS Docker runner verifies Windows cross-build outputs and immutable release inputs. It does
 not run WebView2, ConPTY or Windows named pipes. Those runtime boundaries are decided only by the
 installed system suite on GitHub's `windows-2025` runner.
