@@ -89,3 +89,18 @@ func TestRepositoryUsesCanonicalSettingsAndInstalledState(t *testing.T) {
 		}
 	}
 }
+
+func TestWindowsReleaseFleetHasOneDeclaration(t *testing.T) {
+	for _, path := range []string{"release/windows-fleet.json", "release/windows_fleet.go", "cmd/verify-windows-fleet/main.go"} {
+		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
+			t.Errorf("missing Windows release verification file %s: %v", path, err)
+		}
+	}
+	installer, err := os.ReadFile("scripts/install-windows-fleet.ps1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(installer), "release/windows-fleet.json") {
+		t.Fatal("Windows installer does not read the release fleet declaration")
+	}
+}

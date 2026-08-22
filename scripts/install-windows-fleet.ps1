@@ -1,15 +1,9 @@
 param([Parameter(Mandatory=$true)][string]$Stage)
 $ErrorActionPreference = "Stop"
-$target = "x86_64-pc-windows-msvc"
-$plugins = [ordered]@{
-  "soksak-plugin-terminal-alacritty"="v0.0.1"; "soksak-plugin-terminal-ghostty"="v0.0.2";
-  "soksak-plugin-terminal-vt100"="v0.0.1"; "soksak-plugin-terminal-wezterm"="v0.0.1"; "soksak-plugin-terminal-xterm"="v0.0.3"
-}
-$sidecars = [ordered]@{
-  "soksak-sidecar-pty"="v0.0.1";
-  "soksak-sidecar-terminal-alacritty"="v0.0.5"; "soksak-sidecar-terminal-ghostty"="v0.0.5";
-  "soksak-sidecar-terminal-vt100"="v0.0.5"; "soksak-sidecar-terminal-wezterm"="v0.0.5"
-}
+$fleet=Get-Content (Join-Path $PSScriptRoot "../release/windows-fleet.json") -Raw | ConvertFrom-Json
+$target=$fleet.target
+$plugins=[ordered]@{}; foreach($component in $fleet.plugins){$plugins[$component.id]="v$($component.version)"}
+$sidecars=[ordered]@{}; foreach($component in $fleet.sidecars){$sidecars[$component.id]="v$($component.version)"}
 New-Item -ItemType Directory -Force $Stage | Out-Null
 $pluginInput=@{}
 foreach($id in $plugins.Keys){
