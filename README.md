@@ -3,15 +3,14 @@
 Non-product quality repository for terminal implementations used by Soksak.
 
 - benchmark compares provider throughput, RSS and loss against measured daemon demand.
-- system runs black-box recovery scenarios against an already installed Soksak settings
-  composition.
+- system runs black-box recovery scenarios against installed Soksak settings.
 
 This repository is not installable software and is never listed in soksak-plugin-registry. It
 contains no plugin, sidecar or kit implementation. It does not build another repository's source
 tree. Inputs are installed artifacts, public commands, contract reports and benchmark interfaces.
 
 Each plugin and sidecar repository remains responsible for its own conformance and release gates.
-This repository owns only cross-provider comparison and installed-composition system behavior.
+This repository owns only cross-provider comparison and installed-system behavior.
 
 `prepare-development` accepts one JSON object on stdin and atomically writes a development
 `settings.json` and `installed.json`. The input declares `platform` (`darwin`, `linux`, or `windows`),
@@ -56,6 +55,16 @@ SOKSAK_TEST_WINDOW=w-workspace \
 SOKSAK_TEST_EVIDENCE=/absolute/path/to/evidence \
 go test -tags=system ./system
 ```
+
+Every terminal resize writes `<plugin-id>-resize.json` under `SOKSAK_TEST_EVIDENCE`. The record
+contains the pane resize receipt, the exposed terminal root's wide and narrow CSS-pixel rectangles,
+the requested PTY size, PTY observation and event sequence, recovery observation and event
+sequence, and rendered frame size. Failure names the first boundary that did not advance. A plain
+timeout without this record is not a verdict.
+
+The macOS Docker runner verifies Windows cross-build outputs and immutable release inputs. It does
+not run WebView2, ConPTY or Windows named pipes. Those runtime boundaries are decided only by the
+installed system suite on GitHub's `windows-2025` runner.
 
 Inside the Linux system-test image, run the same suite through the D-Bus, Secret Service and Xvfb
 runner. The runner declares `/bin/bash` as the login shell. All `SOKSAK_TEST_*` paths must name container paths. Additional arguments are passed to
