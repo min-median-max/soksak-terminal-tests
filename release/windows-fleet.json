@@ -5,7 +5,7 @@
     { "id": "soksak-plugin-terminal-ghostty", "version": "0.0.7" },
     { "id": "soksak-plugin-terminal-vt100", "version": "0.0.6" },
     { "id": "soksak-plugin-terminal-wezterm", "version": "0.0.6" },
-    { "id": "soksak-plugin-terminal-xterm", "version": "0.0.8" }
+    { "id": "soksak-plugin-terminal-xterm", "version": "0.0.9" }
   ],
   "sidecars": [
     { "id": "soksak-sidecar-pty", "version": "0.0.4" },
