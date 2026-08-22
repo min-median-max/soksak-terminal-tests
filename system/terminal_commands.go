@@ -47,7 +47,7 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 				return nil, err
 			}
 		}
-		if err := resizePane(cli, terminalPane, 0.75); err != nil {
+		if _, err := resizePane(cli, terminalPane, 0.75); err != nil {
 			return nil, err
 		}
 		marker := fmt.Sprintf("SOKSAK_SYSTEM_%d_%s_🙂_é", index, engine)
@@ -73,8 +73,31 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if wide < 1 {
 			return nil, fmt.Errorf("%s reported no columns: %+v", plugin, ready)
 		}
-		if err := resizePane(cli, terminalPane, 0.45); err != nil {
+		tree, err := cli.Call("ui.tree", map[string]any{})
+		if err != nil {
 			return nil, err
+		}
+		address, err := terminalNodeAddress(tree, plugin, view, "terminal-root")
+		if err != nil {
+			return nil, err
+		}
+		evidence := terminalResizeEvidence{Plugin: plugin, View: view, NodeAddress: address}
+		evidence.Wide, err = measureTerminalResize(cli, plugin, view, address)
+		if err != nil {
+			return nil, err
+		}
+		evidence.ResizeReceipt, err = resizePane(cli, terminalPane, 0.45)
+		if err != nil {
+			return nil, err
+		}
+		evidence.Narrow, err = measureTerminalResize(cli, plugin, view, address)
+		if err != nil {
+			return nil, err
+		}
+		if boundary := evidence.failureBoundary(); boundary == "core-layout" {
+			evidence.Failure = "terminal DOM width did not decrease"
+			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
+			return nil, fmt.Errorf("%s resize failed at %s: %.2f -> %.2f", plugin, boundary, evidence.Wide.DOM.Width, evidence.Narrow.DOM.Width)
 		}
 		resizeMarker := marker + "_RESIZED"
 		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "printf '%s\n' " + resizeMarker + "\r"}); err != nil {
@@ -86,13 +109,21 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		}
 		resized, err = terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "colsLessThan": wide, "timeoutMs": 8000})
 		if err != nil {
-			return nil, fmt.Errorf("%s resize wait failed: %w", plugin, err)
+			evidence.Narrow, _ = measureTerminalResize(cli, plugin, view, address)
+			evidence.Failure = err.Error()
+			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
+			return nil, fmt.Errorf("%s resize wait failed at %s: %w; evidence=%+v", plugin, evidence.failureBoundary(), err, evidence)
 		}
 		narrow, _ := resized["cols"].(float64)
 		if narrow < 1 || narrow >= wide {
+			evidence.Failure = fmt.Sprintf("columns did not decrease: %.0f -> %.0f", wide, narrow)
+			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
 			return nil, fmt.Errorf("%s columns did not decrease: %.0f -> %.0f", plugin, wide, narrow)
 		}
-		if err := resizePane(cli, terminalPane, 0.75); err != nil {
+		if err := writeTerminalResizeEvidence(cli.EvidenceDir, evidence); err != nil {
+			return nil, err
+		}
+		if _, err := resizePane(cli, terminalPane, 0.75); err != nil {
 			return nil, err
 		}
 		read, err := terminal(cli, plugin, "read", view, nil)
@@ -127,19 +158,19 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 	return results, nil
 }
 
-func resizePane(cli CLI, pane string, ratio float64) error {
+func resizePane(cli CLI, pane string, ratio float64) (map[string]any, error) {
 	receipt, err := cli.Call("pane.resize", map[string]any{"pane": pane, "edge": "right", "ratio": ratio})
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if receipt["paneId"] != pane {
-		return fmt.Errorf("pane resize targeted %s and returned %+v", pane, receipt)
+		return nil, fmt.Errorf("pane resize targeted %s and returned %+v", pane, receipt)
 	}
 	_, err = cli.Call("ui.layout.wait-settled", map[string]any{"timeoutMs": 8000})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return receipt, nil
 }
 
 func captureTerminal(cli CLI, plugin string) error {
