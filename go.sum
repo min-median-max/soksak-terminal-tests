@@ -1,2 +1,4 @@
+github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260822021138-8afc21b75bfb h1:+ZmY/iafSuoPjzjlcmmicHx/xI+iSEeGDUL5RBm+GPc=
+github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260822021138-8afc21b75bfb/go.mod h1:QwCqbAMhqxpM/JzvVANfDueN9LnN+9IEWOmjUhgm/hs=
 golang.org/x/sys v0.47.0 h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=
 golang.org/x/sys v0.47.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=

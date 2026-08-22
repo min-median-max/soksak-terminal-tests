@@ -14,9 +14,10 @@ Each plugin and sidecar repository remains responsible for its own conformance a
 This repository owns only cross-provider comparison and installed-composition system behavior.
 
 `prepare-development` accepts one JSON object on stdin and atomically writes a development
-`settings.json`. The input contains an absolute identity-home path plus exact maps for seven plugin
-source directories and seven staged sidecar directories. It validates every manifest identity and
-sidecar process before replacing the file. It does not build source code.
+`settings.json` and `installed.json`. The input contains an absolute identity-home path plus exact
+artifact path, repository, source commit and digest records for seven plugins and seven sidecars.
+It validates every manifest identity, process, target and provenance before replacing both
+canonical files while the test application is stopped. It does not build source code.
 
 ```sh
 go run ./cmd/prepare-development < /absolute/path/to/development-input.json

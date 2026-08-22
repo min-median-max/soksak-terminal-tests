@@ -53,3 +53,21 @@ func TestRepositoryDoesNotExecuteOwnerSources(t *testing.T) {
 		}
 	}
 }
+
+func TestRepositoryUsesCanonicalSettingsAndInstalledState(t *testing.T) {
+	for _, path := range []string{"development/settings.go", "system/inventory.go"} {
+		body, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		source := string(body)
+		if !strings.Contains(source, "github.com/soksak-ai/soksak-spec/go/platformspec") {
+			t.Errorf("%s does not use the canonical platform state parser", path)
+		}
+		for _, obsolete := range []string{"soksak-spec-composition", "type Component struct", "SettingsSpec"} {
+			if strings.Contains(source, obsolete) {
+				t.Errorf("%s contains obsolete platform state %q", path, obsolete)
+			}
+		}
+	}
+}

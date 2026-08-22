@@ -4,49 +4,60 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
 
-func TestTerminalInventoryRequiresSevenPluginsAndSixSidecars(t *testing.T) {
-	root := t.TempDir()
-	settings := Settings{Spec: SettingsSpec}
-	for _, id := range TerminalPlugins {
-		settings.Plugins = append(settings.Plugins, componentFixture(t, root, id, "plugin.json"))
-	}
-	for _, id := range RecoverySidecars {
-		settings.Sidecars = append(settings.Sidecars, componentFixture(t, root, id, "sidecar.json"))
-	}
-	if err := ValidateTerminalInventory(settings); err != nil {
+func TestTerminalInventoryRequiresSevenPluginsAndSevenSidecars(t *testing.T) {
+	settings, installed := inventoryFixture(t)
+	if err := ValidateTerminalInventory(settings, installed); err != nil {
 		t.Fatal(err)
 	}
-	settings.Plugins = settings.Plugins[:len(settings.Plugins)-1]
-	if err := ValidateTerminalInventory(settings); err == nil {
+	delete(installed.Plugins, TerminalPlugins[len(TerminalPlugins)-1])
+	if err := ValidateTerminalInventory(settings, installed); err == nil {
 		t.Fatal("six terminal plugins were accepted")
 	}
 }
 
-func TestTerminalInventoryRejectsAChangedVersion(t *testing.T) {
-	root := t.TempDir()
-	settings := Settings{Spec: SettingsSpec}
-	for _, id := range TerminalPlugins {
-		settings.Plugins = append(settings.Plugins, componentFixture(t, root, id, "plugin.json"))
+func TestTerminalInventoryRejectsMissingPTYAndProviderSelection(t *testing.T) {
+	settings, installed := inventoryFixture(t)
+	delete(installed.Sidecars, "soksak-sidecar-pty")
+	if err := ValidateTerminalInventory(settings, installed); err == nil {
+		t.Fatal("missing PTY sidecar was accepted")
 	}
-	for _, id := range RecoverySidecars {
-		settings.Sidecars = append(settings.Sidecars, componentFixture(t, root, id, "sidecar.json"))
-	}
-	settings.Sidecars[0].Version = "0.0.0"
-	if err := ValidateTerminalInventory(settings); err == nil {
-		t.Fatal("a sidecar below 0.0.1 was accepted")
+	settings, installed = inventoryFixture(t)
+	plugin := settings.Plugins[TerminalPlugins[0]]
+	delete(plugin.Providers, "terminal-alacritty")
+	settings.Plugins[TerminalPlugins[0]] = plugin
+	if err := ValidateTerminalInventory(settings, installed); err == nil {
+		t.Fatal("missing recovery provider selection was accepted")
 	}
 }
 
-func componentFixture(t *testing.T, root, id, manifest string) Component {
+func inventoryFixture(t *testing.T) (platformspec.Settings, platformspec.Installed) {
 	t.Helper()
-	installPath := filepath.Join(root, id)
-	if err := os.MkdirAll(installPath, 0o700); err != nil {
-		t.Fatal(err)
+	root := t.TempDir()
+	settings, installed := platformspec.EmptySettings(), platformspec.EmptyInstalled()
+	for _, id := range TerminalPlugins {
+		engine := id[len("soksak-plugin-terminal-"):]
+		provider, requirement := "soksak-sidecar-terminal-"+engine, "terminal-"+engine
+		if engine == "xterm" {
+			provider, requirement = "soksak-sidecar-terminal-vt100", "terminal-vt100"
+		}
+		settings.Plugins[id] = platformspec.PluginPreference{Enabled: true, Providers: map[string]string{"pty": "soksak-sidecar-pty", requirement: provider}}
+		installed.Plugins[id] = installedFixture(filepath.Join(root, id), false)
 	}
-	if err := os.WriteFile(filepath.Join(installPath, manifest), []byte("{}"), 0o600); err != nil {
-		t.Fatal(err)
+	for _, id := range append([]string{"soksak-sidecar-pty"}, RecoverySidecars...) {
+		installed.Sidecars[id] = installedFixture(filepath.Join(root, id), true)
 	}
-	return Component{ID: id, Version: "0.0.1", Enabled: true, InstallPath: installPath, Manifest: manifest}
+	return settings, installed
+}
+
+func installedFixture(path string, sidecar bool) platformspec.InstalledComponent {
+	_ = os.MkdirAll(path, 0o700)
+	target := ""
+	if sidecar {
+		target = "x86_64-unknown-linux-gnu"
+	}
+	return platformspec.InstalledComponent{Version: "0.0.1", Path: path, RegistryID: "test", Repository: "https://github.com/example/component", SourceCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ManifestSHA256: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", ArtifactSHA256: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", Target: target}
 }

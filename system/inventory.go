@@ -1,97 +1,71 @@
 package system
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+
+	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
 
-const SettingsSpec = "soksak-spec-composition@0.0.1"
-
 var TerminalPlugins = []string{
-	"soksak-plugin-terminal-alacritty",
-	"soksak-plugin-terminal-ghostty",
-	"soksak-plugin-terminal-kitty",
-	"soksak-plugin-terminal-shitty",
-	"soksak-plugin-terminal-vt100",
-	"soksak-plugin-terminal-wezterm",
+	"soksak-plugin-terminal-alacritty", "soksak-plugin-terminal-ghostty",
+	"soksak-plugin-terminal-kitty", "soksak-plugin-terminal-shitty",
+	"soksak-plugin-terminal-vt100", "soksak-plugin-terminal-wezterm",
 	"soksak-plugin-terminal-xterm",
 }
-
 var RecoverySidecars = []string{
-	"soksak-sidecar-terminal-alacritty",
-	"soksak-sidecar-terminal-ghostty",
-	"soksak-sidecar-terminal-kitty",
-	"soksak-sidecar-terminal-shitty",
-	"soksak-sidecar-terminal-vt100",
-	"soksak-sidecar-terminal-wezterm",
+	"soksak-sidecar-terminal-alacritty", "soksak-sidecar-terminal-ghostty",
+	"soksak-sidecar-terminal-kitty", "soksak-sidecar-terminal-shitty",
+	"soksak-sidecar-terminal-vt100", "soksak-sidecar-terminal-wezterm",
 }
 
-type Component struct {
-	ID          string `json:"id"`
-	Version     string `json:"version"`
-	Enabled     bool   `json:"enabled"`
-	InstallPath string `json:"installPath"`
-	Manifest    string `json:"manifest"`
-}
-
-type Settings struct {
-	Spec     string      `json:"spec"`
-	Plugins  []Component `json:"plugins"`
-	Sidecars []Component `json:"sidecars"`
-}
-
-func ReadSettings(path string) (Settings, error) {
-	if !filepath.IsAbs(path) {
-		return Settings{}, fmt.Errorf("settings path must be absolute: %s", path)
+func ReadState(settingsPath string) (platformspec.Settings, platformspec.Installed, error) {
+	if !filepath.IsAbs(settingsPath) || filepath.Base(settingsPath) != platformspec.SettingsFile {
+		return platformspec.Settings{}, platformspec.Installed{}, fmt.Errorf("settings path must be an absolute settings.json path: %s", settingsPath)
 	}
-	body, err := os.ReadFile(path)
+	settingsBody, err := os.ReadFile(settingsPath)
 	if err != nil {
-		return Settings{}, err
+		return platformspec.Settings{}, platformspec.Installed{}, err
 	}
-	var settings Settings
-	if err := json.Unmarshal(body, &settings); err != nil {
-		return Settings{}, err
+	settings, err := platformspec.ParseSettings(settingsBody)
+	if err != nil {
+		return platformspec.Settings{}, platformspec.Installed{}, err
 	}
-	if settings.Spec != SettingsSpec {
-		return Settings{}, fmt.Errorf("settings spec is %q, expected %q", settings.Spec, SettingsSpec)
+	installedBody, err := os.ReadFile(filepath.Join(filepath.Dir(settingsPath), platformspec.InstalledFile))
+	if err != nil {
+		return platformspec.Settings{}, platformspec.Installed{}, err
 	}
-	return settings, nil
+	installed, err := platformspec.ParseInstalled(installedBody)
+	return settings, installed, err
 }
 
-func ValidateTerminalInventory(settings Settings) error {
-	if err := validateComponents("plugin", settings.Plugins, TerminalPlugins); err != nil {
-		return err
+func ValidateTerminalInventory(settings platformspec.Settings, installed platformspec.Installed) error {
+	for _, id := range TerminalPlugins {
+		preference, ok := settings.Plugins[id]
+		component, installedOK := installed.Plugins[id]
+		if !ok || !preference.Enabled || !installedOK || component.Version != "0.0.1" || !filepath.IsAbs(component.Path) {
+			return fmt.Errorf("plugin is not active and installed: %s", id)
+		}
+		if preference.Providers["pty"] != "soksak-sidecar-pty" {
+			return fmt.Errorf("plugin has no PTY provider: %s", id)
+		}
 	}
-	return validateComponents("sidecar", settings.Sidecars, RecoverySidecars)
-}
-
-func validateComponents(kind string, components []Component, expected []string) error {
-	index := make(map[string]Component, len(components))
-	for _, component := range components {
-		if _, exists := index[component.ID]; exists {
-			return fmt.Errorf("duplicate %s: %s", kind, component.ID)
+	for _, id := range append([]string{"soksak-sidecar-pty"}, RecoverySidecars...) {
+		component, ok := installed.Sidecars[id]
+		if !ok || component.Version != "0.0.1" || component.Target == "" || !filepath.IsAbs(component.Path) {
+			return fmt.Errorf("sidecar is not installed: %s", id)
 		}
-		index[component.ID] = component
 	}
-	for _, id := range expected {
-		component, exists := index[id]
-		if !exists {
-			return fmt.Errorf("missing %s: %s", kind, id)
+	for _, id := range TerminalPlugins {
+		engine := strings.TrimPrefix(id, "soksak-plugin-terminal-")
+		provider, requirement := "soksak-sidecar-terminal-"+engine, "terminal-"+engine
+		if engine == "xterm" {
+			provider, requirement = "soksak-sidecar-terminal-vt100", "terminal-vt100"
 		}
-		if component.Version != "0.0.1" {
-			return fmt.Errorf("%s %s has version %s", kind, id, component.Version)
-		}
-		if !component.Enabled {
-			return fmt.Errorf("%s %s is disabled", kind, id)
-		}
-		if !filepath.IsAbs(component.InstallPath) {
-			return fmt.Errorf("%s %s install path is not absolute", kind, id)
-		}
-		info, err := os.Lstat(filepath.Join(component.InstallPath, filepath.FromSlash(component.Manifest)))
-		if err != nil || !info.Mode().IsRegular() {
-			return fmt.Errorf("%s %s manifest is not a regular file: %v", kind, id, err)
+		if settings.Plugins[id].Providers[requirement] != provider {
+			return fmt.Errorf("plugin provider selection is invalid: %s", id)
 		}
 	}
 	return nil

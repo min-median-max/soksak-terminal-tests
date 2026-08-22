@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -10,10 +11,10 @@ import (
 func main() {
 	input, err := development.DecodeInput(os.Stdin)
 	if err == nil {
-		var path string
-		path, err = development.WriteSettings(input)
+		var paths development.StatePaths
+		paths, err = development.PrepareState(input)
 		if err == nil {
-			fmt.Println(path)
+			err = json.NewEncoder(os.Stdout).Encode(paths)
 		}
 	}
 	if err != nil {

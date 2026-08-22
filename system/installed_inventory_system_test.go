@@ -12,11 +12,11 @@ func TestInstalledTerminalInventory(t *testing.T) {
 	if path == "" {
 		t.Fatal("SOKSAK_TEST_SETTINGS must name the installed settings.json")
 	}
-	settings, err := ReadSettings(path)
+	settings, installed, err := ReadState(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := ValidateTerminalInventory(settings); err != nil {
+	if err := ValidateTerminalInventory(settings, installed); err != nil {
 		t.Fatal(err)
 	}
 }

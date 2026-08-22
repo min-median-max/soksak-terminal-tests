@@ -112,14 +112,19 @@ func (lifecycle *Lifecycle) PrepareHome(settingsPath string) error {
 	if !filepath.IsAbs(settingsPath) {
 		return fmt.Errorf("settings path must be absolute: %s", settingsPath)
 	}
-	body, err := os.ReadFile(settingsPath)
-	if err != nil {
-		return err
-	}
 	if err := os.MkdirAll(lifecycle.config.Home, 0o700); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(lifecycle.config.Home, "settings.json"), body, 0o600)
+	for _, name := range []string{"settings.json", "installed.json"} {
+		body, err := os.ReadFile(filepath.Join(filepath.Dir(settingsPath), name))
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(lifecycle.config.Home, name), body, 0o600); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
