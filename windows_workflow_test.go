@@ -35,14 +35,14 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 			t.Errorf("executes owner source: %s", v)
 		}
 	}
-	installer, err := os.ReadFile("scripts/install-windows-fleet.ps1")
+	installer, err := os.ReadFile("cmd/stage-windows-fleet/main.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(string(installer), "gh run download") {
 		t.Fatal("Windows fleet installs a workflow artifact instead of an immutable release")
 	}
-	if !strings.Contains(string(installer), `../release/windows-fleet.json`) {
-		t.Error("Windows installer does not read the verified fleet declaration")
+	if !strings.Contains(string(installer), "release/windows-fleet.json") {
+		t.Error("Windows staging runner does not read the verified fleet declaration")
 	}
 }

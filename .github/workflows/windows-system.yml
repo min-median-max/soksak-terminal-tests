@@ -33,9 +33,7 @@ jobs:
       - shell: pwsh
         run: |
           New-Item -ItemType Directory -Force stage/evidence | Out-Null
-          tests/scripts/install-windows-fleet.ps1 -Stage (Join-Path $env:GITHUB_WORKSPACE "stage")
-          go build -C tests -o ../stage/prepare-development.exe ./cmd/prepare-development
-          Get-Content stage/development-input.json -Raw | stage/prepare-development.exe
+          go run -C tests ./cmd/stage-windows-fleet -stage (Join-Path $env:GITHUB_WORKSPACE "stage")
       - shell: pwsh
         env:
           SOKSAK_TEST_SETTINGS: ${{ github.workspace }}\stage\composition-home\settings.json

@@ -91,16 +91,16 @@ func TestRepositoryUsesCanonicalSettingsAndInstalledState(t *testing.T) {
 }
 
 func TestWindowsReleaseFleetHasOneDeclaration(t *testing.T) {
-	for _, path := range []string{"release/windows-fleet.json", "release/windows_fleet.go", "cmd/verify-windows-fleet/main.go"} {
+	for _, path := range []string{"release/windows-fleet.json", "release/windows_fleet.go", "cmd/verify-windows-fleet/main.go", "cmd/stage-windows-fleet/main.go", "scripts/windows-preflight.sh"} {
 		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
 			t.Errorf("missing Windows release verification file %s: %v", path, err)
 		}
 	}
-	installer, err := os.ReadFile("scripts/install-windows-fleet.ps1")
+	installer, err := os.ReadFile("cmd/stage-windows-fleet/main.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(string(installer), "release/windows-fleet.json") {
-		t.Fatal("Windows installer does not read the release fleet declaration")
+		t.Fatal("Windows staging runner does not read the release fleet declaration")
 	}
 }
