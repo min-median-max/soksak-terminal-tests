@@ -5,6 +5,8 @@ package system
 import (
 	"fmt"
 	"strings"
+
+	controlwire "github.com/soksak-ai/soksak-contract-control"
 )
 
 func validateControlAddress(path string) error {
@@ -14,6 +16,6 @@ func validateControlAddress(path string) error {
 	return nil
 }
 
-func controlAddress(_ string, identifier string) string {
-	return `\\.\pipe\` + identifier
+func controlAddress(runtime, identifier string) string {
+	return controlwire.Address(runtime, identifier, true)
 }

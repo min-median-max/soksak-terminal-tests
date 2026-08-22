@@ -1,3 +1,5 @@
+github.com/soksak-ai/soksak-contract-control v0.0.0-20260822080701-f12f3a6f579b h1:Kbsf+Zp716huYDif+sxU9NgsJ/34TXmrPbyF5rIaKZc=
+github.com/soksak-ai/soksak-contract-control v0.0.0-20260822080701-f12f3a6f579b/go.mod h1:onYfujFaCchwifFz86roX8J7EkpiDEpSgNajcoiuBbw=
 github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260822053448-8308c88bc977 h1:rqlGwyb5SiWV1sTMVsYShdtdQPBKaGeoDoYfuZXWG6M=
 github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260822053448-8308c88bc977/go.mod h1:NdDk33RVxSaxz3Ex5x8YNnIkxMLWmuqne3Pevdygj98=
 golang.org/x/mod v0.29.0 h1:HV8lRxZC4l2cr3Zq1LvtOsi/ThTgWnUk/y64QSs8GwA=
