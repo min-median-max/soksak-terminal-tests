@@ -130,7 +130,13 @@ func terminalRestoreDiagnostic(cli CLI, view RestoreView, stage string, cause er
 }
 
 func countExactLine(text, wanted string) int {
-	return strings.Count(text, wanted)
+	count := 0
+	for _, line := range strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n") {
+		if line == wanted {
+			count++
+		}
+	}
+	return count
 }
 
 func closePaneSession(cli CLI, pane string) error {
