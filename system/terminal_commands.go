@@ -51,13 +51,17 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			return nil, err
 		}
 		marker := fmt.Sprintf("SOKSAK_SYSTEM_%d_%s_🙂_é", index, engine)
+		markerCommand, err := terminalPrintCommand(profile.Platform, marker)
+		if err != nil {
+			return nil, err
+		}
 		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "timeoutMs": 8000}); err != nil {
 			status, statusErr := terminal(cli, plugin, "status", view, nil)
 			read, readErr := terminal(cli, plugin, "read", view, nil)
 			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
 			return nil, fmt.Errorf("%s live wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, err, status, statusErr, read, readErr, sidecars, sidecarErr)
 		}
-		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "printf '%s\n' " + marker + "\r"}); err != nil {
+		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": markerCommand + "\r"}); err != nil {
 			return nil, err
 		}
 		ready, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": marker, "timeoutMs": 8000})
@@ -100,7 +104,11 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			return nil, fmt.Errorf("%s resize failed at %s: %.2f -> %.2f", plugin, boundary, evidence.Wide.DOM.Width, evidence.Narrow.DOM.Width)
 		}
 		resizeMarker := marker + "_RESIZED"
-		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "printf '%s\n' " + resizeMarker + "\r"}); err != nil {
+		resizeCommand, err := terminalPrintCommand(profile.Platform, resizeMarker)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": resizeCommand + "\r"}); err != nil {
 			return nil, err
 		}
 		resized, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": resizeMarker, "timeoutMs": 8000})
@@ -142,7 +150,11 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			return nil, err
 		}
 		tail := fmt.Sprintf("SOKSAK_HIGH_OUTPUT_TAIL_%d", index)
-		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": "yes X | head -c 262144; printf '\\n%s\\n' " + tail + "\r"}); err != nil {
+		highOutputCommand, err := terminalHighOutputCommand(profile.Platform, tail)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": highOutputCommand + "\r"}); err != nil {
 			return nil, err
 		}
 		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": tail, "timeoutMs": 20000}); err != nil {
