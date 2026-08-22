@@ -1,0 +1,40 @@
+name: windows-system
+on:
+  workflow_call:
+permissions:
+  contents: read
+  actions: read
+jobs:
+  system:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    env: { SOKSAK_TEST_PLATFORM: windows, GH_TOKEN: "${{ github.token }}" }
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: { repository: min-median-max/soksak-terminal-tests, ref: 49d47f99c835dcc8fb139d76ab3a8ca608ef059c, path: tests }
+      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with: { go-version: "1.25.0" }
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with: { name: core-windows-artifact, path: core }
+      - shell: pwsh
+        run: |
+          tests/scripts/install-windows-fleet.ps1 -Stage (Join-Path $env:GITHUB_WORKSPACE "stage")
+          go build -C tests -o ../stage/prepare-development.exe ./cmd/prepare-development
+          Get-Content stage/development-input.json -Raw | stage/prepare-development.exe
+      - shell: pwsh
+        env:
+          SOKSAK_TEST_SETTINGS: ${{ github.workspace }}\stage\composition-home\settings.json
+          SOKSAK_TEST_CLI: ${{ github.workspace }}\core\sok.exe
+          SOKSAK_TEST_APP: ${{ github.workspace }}\core\soksak.exe
+          SOKSAK_TEST_HOME: ${{ github.workspace }}\stage\system-home
+          SOKSAK_TEST_RUNTIME: ${{ github.workspace }}\stage\runtime
+          SOKSAK_TEST_WORKSPACE: ${{ github.workspace }}\stage\workspace
+          SOKSAK_TEST_IDENTIFIER: com.soksak.windowsfleet
+          SOKSAK_TEST_EVIDENCE: ${{ github.workspace }}\stage\evidence
+        run: |
+          New-Item -ItemType Directory -Force $env:SOKSAK_TEST_HOME,$env:SOKSAK_TEST_RUNTIME,$env:SOKSAK_TEST_WORKSPACE,$env:SOKSAK_TEST_EVIDENCE|Out-Null
+          go test -C tests -count=1 -tags=system ./system -run '^TestInstalledTerminalCommands$' -v
+          go test -C tests -count=1 -tags=system ./system -run '^TestInstalledTerminalWarmAndArchivedRestore$' -v
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with: { name: windows-terminal-system-evidence, path: stage/evidence, if-no-files-found: error }
