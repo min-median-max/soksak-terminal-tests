@@ -33,7 +33,7 @@ func terminalHighOutputCommand(platform, marker string) (string, error) {
 func detachedMarkerCommand(platform, marker, scheduled string) (string, error) {
 	switch platform {
 	case "windows":
-		script := "Start-Sleep -Seconds 10; Write-Output '" + marker + "'"
+		script := "Start-Sleep -Seconds 10; [Console]::Out.WriteLine(); [Console]::Out.WriteLine('" + marker + "')"
 		return `start "" /b powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ` +
 			encodePowerShell(script) + " & echo " + scheduled + "\r", nil
 	case "darwin", "linux":
@@ -41,7 +41,7 @@ func detachedMarkerCommand(platform, marker, scheduled string) (string, error) {
 		if cut < 1 || cut >= len(marker) {
 			return "", fmt.Errorf("detached marker has no suffix: %s", marker)
 		}
-		return "prefix=" + marker[:cut] + "; (sleep 10; printf '%s\n' \"${prefix}" + marker[cut:] +
+		return "prefix=" + marker[:cut] + "; (sleep 10; printf '\n%s\n' \"${prefix}" + marker[cut:] +
 			"\") & printf '%s\n' " + scheduled + "\r", nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)

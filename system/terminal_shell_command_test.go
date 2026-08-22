@@ -55,7 +55,10 @@ func TestDetachedMarkerCommandsUseThePlatformShell(t *testing.T) {
 	background := strings.Split(windows, " & echo ")[0]
 	fields := strings.Fields(background)
 	script := decodePowerShellForTest(t, fields[len(fields)-1])
-	for _, required := range []string{"Start-Sleep -Seconds 10", "Write-Output 'SOKSAK_DETACHED_7'"} {
+	for _, required := range []string{
+		"Start-Sleep -Seconds 10", "[Console]::Out.WriteLine()",
+		"[Console]::Out.WriteLine('SOKSAK_DETACHED_7')",
+	} {
 		if !strings.Contains(script, required) {
 			t.Errorf("Windows detached script omits %q: %s", required, script)
 		}
@@ -67,7 +70,7 @@ func TestDetachedMarkerCommandsUseThePlatformShell(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(unix, "(sleep 10; printf") || strings.Contains(unix, "SOKSAK_DETACHED_7") {
+	if !strings.Contains(unix, "(sleep 10; printf '\n%s\n'") || strings.Contains(unix, "SOKSAK_DETACHED_7") {
 		t.Fatalf("Linux detached command = %q", unix)
 	}
 }
