@@ -169,11 +169,20 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": highOutputCommand + "\r"}); err != nil {
 			return nil, err
 		}
-		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": tail, "timeoutMs": 20000}); err != nil {
-			status, statusErr := terminal(cli, plugin, "status", view, nil)
+		_, waitErr := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": tail, "timeoutMs": 20000})
+		status, statusErr := terminal(cli, plugin, "status", view, nil)
+		outputEvidence := terminalOutputStatus(plugin, view, status)
+		outputEvidence.MarkerObserved = waitErr == nil
+		if waitErr != nil {
+			outputEvidence.Failure = waitErr.Error()
+		}
+		if err := writeTerminalOutputEvidence(cli.EvidenceDir, outputEvidence); err != nil {
+			return nil, err
+		}
+		if waitErr != nil || statusErr != nil || outputEvidence.failureBoundary() != "" {
 			read, readErr := terminal(cli, plugin, "read", view, nil)
 			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
-			return nil, fmt.Errorf("%s high-output wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, err, status, statusErr, read, readErr, sidecars, sidecarErr)
+			return nil, fmt.Errorf("%s high-output failed at %s: %v; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, outputEvidence.failureBoundary(), waitErr, status, statusErr, read, readErr, sidecars, sidecarErr)
 		}
 		if err := verifyTerminalNodes(cli, plugin, view); err != nil {
 			return nil, err

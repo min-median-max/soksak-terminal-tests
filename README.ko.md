@@ -29,3 +29,10 @@ UTF-16LE PowerShell `-EncodedCommand` payload를 사용하고 Darwin과 Linux는
 macOS native runner는 Apple Silicon에서 universal application과 7개 plugin 전체 fleet를
 실행합니다. Darwin Unix socket 주소 제한 때문에 control socket은 짧은 temporary path를
 사용합니다. WebView2, ConPTY, Windows named pipe 동작은 Windows native runner만 판정합니다.
+## 검증 identity
+
+GREEN은 Core commit, 이 저장소 commit, Registry asset digest, 선택한 모든 release.json digest,
+OS/architecture가 같은 하나의 immutable 입력 묶음에만 유효합니다. 하나라도 바뀌면 이전
+결과는 무효이며 canonical local gate부터 다시 실행합니다. 같은 묶음의 결과가 달라지면
+멱등성 또는 관측 결함이며 성공할 때까지 재실행한 결과는 인정하지 않습니다. provider 예외,
+timeout 증가, retry loop는 이 기준을 충족하지 못합니다.

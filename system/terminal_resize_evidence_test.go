@@ -32,16 +32,31 @@ func TestResizeEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 	if got := evidence.failureBoundary(); got != "pty-observation" {
 		t.Fatalf("failure boundary = %q", got)
 	}
-	evidence.Narrow.PTY = &terminalSequencedSize{terminalSize: terminalSize{Cols: 54, Rows: 25}, EventSequence: 7}
+	evidence.Narrow.PTY = &terminalSequencedSize{terminalSize: terminalSize{Cols: 54, Rows: 25}, EventSequence: 7, OutputSequence: 100}
 	if got := evidence.failureBoundary(); got != "recovery-observation" {
 		t.Fatalf("failure boundary = %q", got)
 	}
-	evidence.Narrow.Recovery = &terminalSequencedSize{terminalSize: terminalSize{Cols: 54, Rows: 25}, EventSequence: 7}
-	evidence.Narrow.Rendered = &terminalSize{Cols: 90, Rows: 25}
+	evidence.Narrow.Recovery = &terminalRecoverySize{terminalSequencedSize: terminalSequencedSize{terminalSize: terminalSize{Cols: 54, Rows: 25}, EventSequence: 7, OutputSequence: 100}}
+	evidence.Narrow.Recovery.Gaps = 1
+	if got := evidence.failureBoundary(); got != "recovery-observation" {
+		t.Fatalf("gap failure boundary = %q", got)
+	}
+	evidence.Narrow.Recovery.Gaps = 0
+	evidence.Narrow.Recovery.OutputSequence = 99
+	if got := evidence.failureBoundary(); got != "recovery-observation" {
+		t.Fatalf("recovery output boundary = %q", got)
+	}
+	evidence.Narrow.Recovery.OutputSequence = 100
+	evidence.Narrow.Rendered = &terminalRenderedSize{terminalSize: terminalSize{Cols: 90, Rows: 25}, OutputSequence: 100}
 	if got := evidence.failureBoundary(); got != "rendered-frame" {
 		t.Fatalf("failure boundary = %q", got)
 	}
-	evidence.Narrow.Rendered = &terminalSize{Cols: 54, Rows: 25}
+	evidence.Narrow.Rendered = &terminalRenderedSize{terminalSize: terminalSize{Cols: 54, Rows: 25}, OutputSequence: 100}
+	evidence.Narrow.Rendered.OutputSequence = 99
+	if got := evidence.failureBoundary(); got != "rendered-frame" {
+		t.Fatalf("rendered output boundary = %q", got)
+	}
+	evidence.Narrow.Rendered.OutputSequence = 100
 	if got := evidence.failureBoundary(); got != "" {
 		t.Fatalf("failure boundary = %q", got)
 	}

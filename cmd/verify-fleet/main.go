@@ -26,5 +26,10 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Printf("%s/%s release fleet verified\n", *platform, *target)
+	fingerprint, err := profile.Fingerprint()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	fmt.Printf("%s/%s release fleet verified: %s\n", *platform, *target, fingerprint)
 }

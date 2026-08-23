@@ -1,6 +1,9 @@
 package fleet
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestProfilesDeclareExactSupportedTerminalFleets(t *testing.T) {
 	linux, err := ForTarget("linux", "aarch64-unknown-linux-gnu")
@@ -39,5 +42,34 @@ func TestProfileRejectsUnknownPlatform(t *testing.T) {
 func TestProfileRejectsAPlatformTargetMismatch(t *testing.T) {
 	if _, err := ForTarget("linux", "aarch64-apple-darwin"); err == nil {
 		t.Fatal("accepted a target owned by another platform")
+	}
+}
+
+func TestFingerprintOwnsEveryImmutableReleaseDigest(t *testing.T) {
+	profile := Profile{
+		Platform: "darwin", Target: "aarch64-apple-darwin",
+		Registry: Component{ID: "registry-1", Version: "1", ReleaseSHA256: strings.Repeat("d", 64), ReleaseSize: 30},
+		Plugins:  []Plugin{{Component: Component{ID: "plugin", Version: "1.0.0", ReleaseSHA256: strings.Repeat("a", 64), ReleaseSize: 10}}},
+		Sidecars: []Component{{ID: "sidecar", Version: "2.0.0", ReleaseSHA256: strings.Repeat("b", 64), ReleaseSize: 20}},
+	}
+	first, err := profile.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile.Sidecars[0].ReleaseSHA256 = strings.Repeat("c", 64)
+	second, err := profile.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == second {
+		t.Fatal("release digest did not change the verification fingerprint")
+	}
+	profile.Registry.ReleaseSHA256 = strings.Repeat("e", 64)
+	third, err := profile.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second == third {
+		t.Fatal("Registry digest did not change the verification fingerprint")
 	}
 }

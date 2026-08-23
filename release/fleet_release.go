@@ -53,6 +53,15 @@ func VerifyAndStage(ctx context.Context, client *http.Client, fleet Fleet, stage
 
 func verify(ctx context.Context, client *http.Client, fleet Fleet, stage string) (StagedFleet, error) {
 	result := StagedFleet{Plugins: map[string]StagedArtifact{}, Sidecars: map[string]StagedArtifact{}}
+	registryURL := "https://github.com/soksak-ai/soksak-plugin-registry/releases/download/" + fleet.Registry.ID + "/registry.json"
+	registry, err := get(ctx, client, registryURL, fleet.Registry.ReleaseSize)
+	if err != nil {
+		return StagedFleet{}, fmt.Errorf("official Registry: %w", err)
+	}
+	registryDigest := sha256.Sum256(registry)
+	if int64(len(registry)) != fleet.Registry.ReleaseSize || hex.EncodeToString(registryDigest[:]) != fleet.Registry.ReleaseSHA256 {
+		return StagedFleet{}, fmt.Errorf("official Registry bytes do not match the fleet profile")
+	}
 	for _, component := range fleet.Plugins {
 		artifact, err := verifyComponent(ctx, client, fleet.Target, "plugin", component.Component, stage)
 		if err != nil {
@@ -80,6 +89,10 @@ func verifyComponent(ctx context.Context, client *http.Client, target, kind stri
 	body, err := get(ctx, client, releaseURL, 4<<20)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", component.ID, err)
+	}
+	releaseDigest := sha256.Sum256(body)
+	if int64(len(body)) != component.ReleaseSize || hex.EncodeToString(releaseDigest[:]) != component.ReleaseSHA256 {
+		return nil, fmt.Errorf("%s release.json bytes do not match the fleet profile", component.ID)
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(body)))
 	decoder.DisallowUnknownFields()

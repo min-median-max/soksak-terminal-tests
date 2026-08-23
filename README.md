@@ -43,9 +43,18 @@ go test -tags=system ./system
 
 Every terminal resize writes `<plugin-id>-resize.json` under `SOKSAK_TEST_EVIDENCE`. The record
 contains the pane resize receipt, the exposed terminal root's wide and narrow CSS-pixel rectangles,
-the requested PTY size, PTY observation and event sequence, recovery observation and event
-sequence, and rendered frame size. Failure names the first boundary that did not advance. A plain
-timeout without this record is not a verdict.
+the requested PTY size, PTY observation and absolute output sequence, recovery observation, output
+sequence and gap count, and the renderer's applied output sequence. High-output checks also write
+`<plugin-id>-output.json`. Failure names the first boundary that did not advance. A plain timeout
+without these coordinates is not a verdict.
+
+## Verification identity
+
+A GREEN result belongs only to one immutable input set: Core commit, this repository commit,
+Registry asset digest, every selected release.json digest, and OS/architecture. Changing any member
+invalidates the prior result and requires the canonical local gate again. If the same set produces
+different results, that is an idempotence or observation defect; rerunning until success is not a
+valid result. Provider exceptions, timeout increases, and retry loops cannot satisfy this rule.
 
 System commands are generated for the declared target shell. Windows uses `cmd.exe` commands and
 UTF-16LE PowerShell `-EncodedCommand` payloads; Darwin and Linux use POSIX shell syntax. Restore
