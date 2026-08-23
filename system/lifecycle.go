@@ -88,7 +88,7 @@ func (lifecycle *Lifecycle) Start() error {
 			windows, _ := value.([]any)
 			for _, candidate := range windows {
 				window, _ := candidate.(string)
-				if window == "" || (expectedWindow != "" && window != expectedWindow) {
+				if !strings.HasPrefix(window, "win-") || (expectedWindow != "" && window != expectedWindow) {
 					continue
 				}
 				if _, readinessErr = lifecycle.client(window).Call("window_renderer_wait", map[string]any{"targetWindow": window, "timeoutMs": 45000}); readinessErr != nil {
@@ -144,7 +144,7 @@ func (lifecycle *Lifecycle) AwaitWindow() error {
 }
 
 func (lifecycle *Lifecycle) recentActivity() string {
-	value, err := lifecycle.client("main").CallValue("activity_recent", map[string]any{"limit": 20})
+	value, err := lifecycle.client(lifecycle.window).CallValue("activity_recent", map[string]any{"limit": 20})
 	if err != nil {
 		return err.Error()
 	}
@@ -211,7 +211,7 @@ func (lifecycle *Lifecycle) Close() {
 }
 
 func (lifecycle *Lifecycle) stopTestSidecars() {
-	value, err := lifecycle.client("main").Call("sidecar_status", map[string]any{})
+	value, err := lifecycle.client(lifecycle.window).Call("sidecar_status", map[string]any{})
 	if err != nil {
 		return
 	}
@@ -223,7 +223,7 @@ func (lifecycle *Lifecycle) stopTestSidecars() {
 			name, _ = open["name"].(string)
 		}
 		if name != "" {
-			_, _ = lifecycle.client("main").Call("sidecar_stop", map[string]any{"name": name})
+			_, _ = lifecycle.client(lifecycle.window).Call("sidecar_stop", map[string]any{"name": name})
 		}
 	}
 }
