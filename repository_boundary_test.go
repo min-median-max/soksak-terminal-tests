@@ -78,7 +78,7 @@ func TestRepositoryUsesTheCanonicalEnvironmentState(t *testing.T) {
 }
 
 func TestReleaseFleetsHaveOneDeclaration(t *testing.T) {
-	for _, path := range []string{"release/fleets.json", "release/fleet_release.go", "cmd/verify-fleet/main.go", "system/install_fleet.go", "scripts/windows-preflight.sh"} {
+	for _, path := range []string{"fleet/profile.go", "release/fleet_release.go", "cmd/verify-fleet/main.go", "system/install_fleet.go", "scripts/windows-preflight.sh"} {
 		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
 			t.Errorf("missing Windows release verification file %s: %v", path, err)
 		}
@@ -87,7 +87,10 @@ func TestReleaseFleetsHaveOneDeclaration(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(verifier), "release/fleets.json") {
-		t.Fatal("release verifier does not read the fleet declaration")
+	if !strings.Contains(string(verifier), "fleet.ForTarget") {
+		t.Fatal("release verifier does not use the canonical fleet profile")
+	}
+	if _, err := os.Stat("release/fleets.json"); !os.IsNotExist(err) {
+		t.Fatal("duplicate JSON fleet declaration remains")
 	}
 }

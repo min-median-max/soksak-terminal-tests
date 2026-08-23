@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 	"github.com/min-median-max/soksak-terminal-tests/release"
 )
 
@@ -15,11 +16,11 @@ func main() {
 	platform := flag.String("platform", "", "runtime platform")
 	target := flag.String("target", "", "sidecar artifact target")
 	flag.Parse()
-	fleet, err := release.ReadFleetTarget("release/fleets.json", *platform, *target)
+	profile, err := fleet.ForTarget(*platform, *target)
 	if err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
-		err = release.Verify(ctx, &http.Client{Timeout: 2 * time.Minute}, fleet)
+		err = release.Verify(ctx, &http.Client{Timeout: 2 * time.Minute}, profile)
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

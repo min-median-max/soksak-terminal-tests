@@ -89,7 +89,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 	for _, view := range restore {
 		markers = append(markers, view.Marker)
 	}
-	if err := verifyEncryptedCheckpoints(lifecycle.config.Home, profile.RecoverySidecars, markers, len(restore)); err != nil {
+	if err := verifyEncryptedCheckpoints(lifecycle.config.Home, profile.RecoverySidecarIDs(), markers, len(restore)); err != nil {
 		return err
 	}
 	if err := lifecycle.Shutdown(); err != nil {

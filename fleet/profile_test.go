@@ -7,15 +7,15 @@ func TestProfilesDeclareExactSupportedTerminalFleets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(linux.Plugins) != 7 || len(linux.RecoverySidecars) != 6 {
-		t.Fatalf("linux plugins=%d recovery=%d", len(linux.Plugins), len(linux.RecoverySidecars))
+	if len(linux.Plugins) != 7 || len(linux.Sidecars) != 7 {
+		t.Fatalf("linux plugins=%d sidecars=%d", len(linux.Plugins), len(linux.Sidecars))
 	}
 	windows, err := ForTarget("windows", "x86_64-pc-windows-msvc")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(windows.Plugins) != 5 || len(windows.RecoverySidecars) != 4 {
-		t.Fatalf("windows plugins=%d recovery=%d", len(windows.Plugins), len(windows.RecoverySidecars))
+	if len(windows.Plugins) != 5 || len(windows.Sidecars) != 5 {
+		t.Fatalf("windows plugins=%d sidecars=%d", len(windows.Plugins), len(windows.Sidecars))
 	}
 	for _, forbidden := range []string{"soksak-plugin-terminal-kitty", "soksak-plugin-terminal-shitty"} {
 		for _, plugin := range windows.Plugins {
@@ -25,7 +25,7 @@ func TestProfilesDeclareExactSupportedTerminalFleets(t *testing.T) {
 		}
 	}
 	darwin, err := ForTarget("darwin", "aarch64-apple-darwin")
-	if err != nil || len(darwin.Plugins) != 7 || len(darwin.RecoverySidecars) != 6 {
+	if err != nil || len(darwin.Plugins) != 7 || len(darwin.Sidecars) != 7 {
 		t.Fatalf("darwin=%+v err=%v", darwin, err)
 	}
 }

@@ -2,50 +2,61 @@ package fleet
 
 import "fmt"
 
+type Component struct{ ID, Version string }
 type Plugin struct {
-	ID      string
+	Component
 	Sidecar string
 }
 
 type Profile struct {
-	Platform         string
-	Target           string
-	Plugins          []Plugin
-	RecoverySidecars []string
+	Platform string
+	Target   string
+	Plugins  []Plugin
+	Sidecars []Component
 }
 
 var fullPlugins = []Plugin{
-	{"soksak-plugin-terminal-alacritty", "soksak-sidecar-terminal-alacritty"},
-	{"soksak-plugin-terminal-ghostty", "soksak-sidecar-terminal-ghostty"},
-	{"soksak-plugin-terminal-kitty", "soksak-sidecar-terminal-kitty"},
-	{"soksak-plugin-terminal-shitty", "soksak-sidecar-terminal-shitty"},
-	{"soksak-plugin-terminal-vt100", "soksak-sidecar-terminal-vt100"},
-	{"soksak-plugin-terminal-wezterm", "soksak-sidecar-terminal-wezterm"},
-	{"soksak-plugin-terminal-xterm", "soksak-sidecar-terminal-vt100"},
+	{Component{"soksak-plugin-terminal-alacritty", "0.0.11"}, "soksak-sidecar-terminal-alacritty"},
+	{Component{"soksak-plugin-terminal-ghostty", "0.0.12"}, "soksak-sidecar-terminal-ghostty"},
+	{Component{"soksak-plugin-terminal-kitty", "0.0.11"}, "soksak-sidecar-terminal-kitty"},
+	{Component{"soksak-plugin-terminal-shitty", "0.0.11"}, "soksak-sidecar-terminal-shitty"},
+	{Component{"soksak-plugin-terminal-vt100", "0.0.11"}, "soksak-sidecar-terminal-vt100"},
+	{Component{"soksak-plugin-terminal-wezterm", "0.0.11"}, "soksak-sidecar-terminal-wezterm"},
+	{Component{"soksak-plugin-terminal-xterm", "0.0.18"}, "soksak-sidecar-terminal-vt100"},
 }
 
-var fullRecoverySidecars = []string{
-	"soksak-sidecar-terminal-alacritty", "soksak-sidecar-terminal-ghostty",
-	"soksak-sidecar-terminal-kitty", "soksak-sidecar-terminal-shitty",
-	"soksak-sidecar-terminal-vt100", "soksak-sidecar-terminal-wezterm",
+var fullSidecars = []Component{
+	{"soksak-sidecar-pty", "0.0.6"},
+	{"soksak-sidecar-terminal-alacritty", "0.0.12"}, {"soksak-sidecar-terminal-ghostty", "0.0.12"},
+	{"soksak-sidecar-terminal-kitty", "0.0.7"}, {"soksak-sidecar-terminal-shitty", "0.0.7"},
+	{"soksak-sidecar-terminal-vt100", "0.0.11"}, {"soksak-sidecar-terminal-wezterm", "0.0.11"},
 }
 
 func ForTarget(platform, target string) (Profile, error) {
 	switch {
 	case platform == "darwin" && (target == "aarch64-apple-darwin" || target == "x86_64-apple-darwin"):
-		return Profile{Platform: platform, Target: target, Plugins: clonePlugins(fullPlugins), RecoverySidecars: cloneStrings(fullRecoverySidecars)}, nil
+		return Profile{Platform: platform, Target: target, Plugins: clonePlugins(fullPlugins), Sidecars: cloneComponents(fullSidecars)}, nil
 	case platform == "linux" && (target == "aarch64-unknown-linux-gnu" || target == "x86_64-unknown-linux-gnu"):
-		return Profile{Platform: platform, Target: target, Plugins: clonePlugins(fullPlugins), RecoverySidecars: cloneStrings(fullRecoverySidecars)}, nil
+		return Profile{Platform: platform, Target: target, Plugins: clonePlugins(fullPlugins), Sidecars: cloneComponents(fullSidecars)}, nil
 	case platform == "windows" && target == "x86_64-pc-windows-msvc":
 		return Profile{
 			Platform: platform, Target: target,
-			Plugins:          []Plugin{fullPlugins[0], fullPlugins[1], fullPlugins[4], fullPlugins[5], fullPlugins[6]},
-			RecoverySidecars: []string{fullRecoverySidecars[0], fullRecoverySidecars[1], fullRecoverySidecars[4], fullRecoverySidecars[5]},
+			Plugins:  []Plugin{fullPlugins[0], fullPlugins[1], fullPlugins[4], fullPlugins[5], fullPlugins[6]},
+			Sidecars: []Component{fullSidecars[0], fullSidecars[1], fullSidecars[2], fullSidecars[5], fullSidecars[6]},
 		}, nil
 	default:
 		return Profile{}, fmt.Errorf("unsupported terminal fleet target: %s/%s", platform, target)
 	}
 }
 
-func clonePlugins(values []Plugin) []Plugin { return append([]Plugin(nil), values...) }
-func cloneStrings(values []string) []string { return append([]string(nil), values...) }
+func clonePlugins(values []Plugin) []Plugin          { return append([]Plugin(nil), values...) }
+func cloneComponents(values []Component) []Component { return append([]Component(nil), values...) }
+func (profile Profile) RecoverySidecarIDs() []string {
+	ids := []string{}
+	for _, component := range profile.Sidecars {
+		if component.ID != "soksak-sidecar-pty" {
+			ids = append(ids, component.ID)
+		}
+	}
+	return ids
+}

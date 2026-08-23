@@ -29,24 +29,17 @@ func ValidateTerminalInventory(profile fleet.Profile, environment platformspec.E
 	}
 	for _, plugin := range profile.Plugins {
 		component, ok := environment.Plugins[plugin.ID]
-		if !ok || !component.Enabled || !filepath.IsAbs(component.Path) {
+		if !ok || !component.Enabled || component.Version != plugin.Version || !filepath.IsAbs(component.Path) {
 			return fmt.Errorf("plugin is not active and installed: %s", plugin.ID)
 		}
-		if component.Sidecars["pty"] != "soksak-sidecar-pty" {
-			return fmt.Errorf("plugin has no PTY sidecar: %s", plugin.ID)
-		}
-		if component.Sidecars["recovery"] != plugin.Sidecar {
-			return fmt.Errorf("plugin recovery sidecar selection is invalid: %s", plugin.ID)
-		}
 	}
-	sidecars := append([]string{"soksak-sidecar-pty"}, profile.RecoverySidecars...)
-	if len(environment.Sidecars) != len(sidecars) {
+	if len(environment.Sidecars) != len(profile.Sidecars) {
 		return fmt.Errorf("sidecar inventory is not exact for %s", profile.Platform)
 	}
-	for _, id := range sidecars {
-		component, ok := environment.Sidecars[id]
-		if !ok || component.Target != profile.Target || !filepath.IsAbs(component.Path) {
-			return fmt.Errorf("sidecar is not installed: %s found=%t target=%q want=%q path=%q", id, ok, component.Target, profile.Target, component.Path)
+	for _, expected := range profile.Sidecars {
+		component, ok := environment.Sidecars[expected.ID]
+		if !ok || component.Version != expected.Version || component.Target != profile.Target || !filepath.IsAbs(component.Path) {
+			return fmt.Errorf("sidecar is not installed: %s@%s found=%t version=%q target=%q want=%q path=%q", expected.ID, expected.Version, ok, component.Version, component.Target, profile.Target, component.Path)
 		}
 	}
 	return nil

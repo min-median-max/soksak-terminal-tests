@@ -16,21 +16,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/min-median-max/soksak-terminal-tests/fleet"
 	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
 
-type Component struct {
-	ID      string `json:"id"`
-	Version string `json:"version"`
-}
-
-type Fleet struct {
-	Platform string      `json:"platform"`
-	Targets  []string    `json:"targets"`
-	Target   string      `json:"-"`
-	Plugins  []Component `json:"plugins"`
-	Sidecars []Component `json:"sidecars"`
-}
+type Component = fleet.Component
+type Fleet = fleet.Profile
 
 type StagedArtifact struct {
 	Path, Repository, Commit, ArtifactSHA256, Target string
@@ -43,57 +34,6 @@ type StagedFleet struct {
 type artifact struct {
 	Target, URL, SHA256, Format, Manifest string
 	Size                                  int64
-}
-
-type releaseDocument struct {
-	Plugin  *Component `json:"plugin"`
-	Sidecar *Component `json:"sidecar"`
-	Source  struct {
-		Repository string `json:"repository"`
-		Commit     string `json:"commit"`
-	} `json:"source"`
-	Artifacts []artifact `json:"artifacts"`
-	Reports   []struct {
-		URL, SHA256 string
-	} `json:"reports"`
-}
-
-func ReadFleetTarget(filename, platform, target string) (Fleet, error) {
-	body, err := os.ReadFile(filename)
-	if err != nil {
-		return Fleet{}, err
-	}
-	decoder := json.NewDecoder(strings.NewReader(string(body)))
-	decoder.DisallowUnknownFields()
-	var document struct {
-		Fleet []Fleet `json:"fleets"`
-	}
-	if err := decoder.Decode(&document); err != nil {
-		return Fleet{}, err
-	}
-	for _, fleet := range document.Fleet {
-		if fleet.Platform != platform || !contains(fleet.Targets, target) {
-			continue
-		}
-		if len(fleet.Plugins) == 0 || len(fleet.Sidecars) == 0 {
-			return Fleet{}, fmt.Errorf("fleet requires plugins and sidecars")
-		}
-		if targetPlatform, err := platformForTarget(target); err != nil || targetPlatform != platform {
-			return Fleet{}, fmt.Errorf("fleet platform does not own target: %s/%s", platform, target)
-		}
-		fleet.Target = target
-		return fleet, nil
-	}
-	return Fleet{}, fmt.Errorf("fleet target is not declared: %s/%s", platform, target)
-}
-
-func contains(values []string, wanted string) bool {
-	for _, value := range values {
-		if value == wanted {
-			return true
-		}
-	}
-	return false
 }
 
 func Verify(ctx context.Context, client *http.Client, fleet Fleet) error {
@@ -114,7 +54,7 @@ func VerifyAndStage(ctx context.Context, client *http.Client, fleet Fleet, stage
 func verify(ctx context.Context, client *http.Client, fleet Fleet, stage string) (StagedFleet, error) {
 	result := StagedFleet{Plugins: map[string]StagedArtifact{}, Sidecars: map[string]StagedArtifact{}}
 	for _, component := range fleet.Plugins {
-		artifact, err := verifyComponent(ctx, client, fleet.Target, "plugin", component, stage)
+		artifact, err := verifyComponent(ctx, client, fleet.Target, "plugin", component.Component, stage)
 		if err != nil {
 			return StagedFleet{}, err
 		}
@@ -143,22 +83,18 @@ func verifyComponent(ctx context.Context, client *http.Client, target, kind stri
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(body)))
 	decoder.DisallowUnknownFields()
-	var release releaseDocument
-	if err := decoder.Decode(&release); err != nil {
+	release, err := platformspec.ParseReleaseManifest(body)
+	if err != nil {
 		return nil, fmt.Errorf("%s release.json: %w", component.ID, err)
 	}
-	identity := release.Plugin
-	if kind == "sidecar" {
-		identity = release.Sidecar
-	}
-	if identity == nil || *identity != component || release.Source.Repository != repository || len(release.Source.Commit) != 40 || len(release.Reports) == 0 {
+	if release.Kind != kind || release.ID != component.ID || release.Version != component.Version || release.Source.Repository != repository {
 		return nil, fmt.Errorf("%s release identity is invalid", component.ID)
 	}
 	wantedTarget := "any"
 	if kind == "sidecar" {
 		wantedTarget = target
 	}
-	var selected *artifact
+	var selected *platformspec.ReleaseArtifact
 	for index := range release.Artifacts {
 		if release.Artifacts[index].Target == wantedTarget {
 			selected = &release.Artifacts[index]

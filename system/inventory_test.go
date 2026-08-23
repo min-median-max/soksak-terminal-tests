@@ -21,7 +21,7 @@ func TestTerminalInventoryRequiresSevenPluginsAndSevenSidecars(t *testing.T) {
 	}
 }
 
-func TestTerminalInventoryRejectsMissingPTYAndRecoveryBindings(t *testing.T) {
+func TestTerminalInventoryRejectsMissingOrWrongSidecarComponents(t *testing.T) {
 	profile, _ := fleet.ForTarget("linux", "aarch64-unknown-linux-gnu")
 	environment := inventoryFixture(t, profile)
 	delete(environment.Sidecars, "soksak-sidecar-pty")
@@ -29,11 +29,11 @@ func TestTerminalInventoryRejectsMissingPTYAndRecoveryBindings(t *testing.T) {
 		t.Fatal("missing PTY sidecar was accepted")
 	}
 	environment = inventoryFixture(t, profile)
-	plugin := environment.Plugins[profile.Plugins[0].ID]
-	delete(plugin.Sidecars, "recovery")
-	environment.Plugins[profile.Plugins[0].ID] = plugin
+	sidecar := environment.Sidecars[profile.Sidecars[1].ID]
+	sidecar.Version = "9.9.9"
+	environment.Sidecars[profile.Sidecars[1].ID] = sidecar
 	if err := ValidateTerminalInventory(profile, environment); err == nil {
-		t.Fatal("missing recovery sidecar selection was accepted")
+		t.Fatal("wrong sidecar version was accepted")
 	}
 }
 
@@ -45,14 +45,14 @@ func inventoryFixture(t *testing.T, profile fleet.Profile) platformspec.Environm
 		path := filepath.Join(root, plugin.ID)
 		_ = os.MkdirAll(path, 0o700)
 		environment.Plugins[plugin.ID] = platformspec.Plugin{
-			Component: platformspec.Component{Version: "0.0.1", Path: path, Source: platformspec.RegistrySource, Registry: "test"},
-			Enabled:   true, Sidecars: map[string]string{"pty": "soksak-sidecar-pty", "recovery": plugin.Sidecar},
+			Component: platformspec.Component{Version: plugin.Version, Path: path, Source: platformspec.RegistrySource, Registry: "test"},
+			Enabled:   true,
 		}
 	}
-	for _, id := range append([]string{"soksak-sidecar-pty"}, profile.RecoverySidecars...) {
-		path := filepath.Join(root, id)
+	for _, expected := range profile.Sidecars {
+		path := filepath.Join(root, expected.ID)
 		_ = os.MkdirAll(path, 0o700)
-		environment.Sidecars[id] = platformspec.Component{Version: "0.0.1", Path: path, Source: platformspec.RegistrySource, Registry: "test", Target: profile.Target}
+		environment.Sidecars[expected.ID] = platformspec.Component{Version: expected.Version, Path: path, Source: platformspec.RegistrySource, Registry: "test", Target: profile.Target}
 	}
 	return environment
 }
