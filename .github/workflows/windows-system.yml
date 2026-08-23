@@ -25,7 +25,7 @@ jobs:
           path: tests
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: "1.25.0"
+          go-version: "1.26.3"
           cache-dependency-path: tests/go.sum
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
