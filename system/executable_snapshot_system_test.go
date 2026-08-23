@@ -26,3 +26,18 @@ func TestLifecycleExecutableSnapshotDoesNotFollowLaterBuildWrites(t *testing.T) 
 		t.Fatalf("snapshot changed to %q", body)
 	}
 }
+
+func TestWindowsExecutableSnapshotKeepsThePEExtensionWithoutUnixMode(t *testing.T) {
+	root := t.TempDir()
+	executable := filepath.Join(root, "soksak.exe")
+	if err := os.WriteFile(executable, []byte("PE bytes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Stat(executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !validExecutableSnapshot(executable, info) {
+		t.Fatal("a non-empty PE file was judged by a Unix execute bit")
+	}
+}

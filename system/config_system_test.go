@@ -18,6 +18,19 @@ func profileFromEnvironment(t *testing.T) fleet.Profile {
 	if err != nil {
 		t.Fatal(err)
 	}
+	fingerprint, err := profile.Fingerprint()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(os.Getenv("SOKSAK_TEST_EVIDENCE"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(
+		filepath.Join(os.Getenv("SOKSAK_TEST_EVIDENCE"), "fleet-fingerprint.txt"),
+		[]byte(fingerprint+"\n"), 0o600,
+	); err != nil {
+		t.Fatal(err)
+	}
 	return profile
 }
 
@@ -63,8 +76,13 @@ func snapshotExecutable(t *testing.T, root, source, name string) string {
 		t.Fatalf("close %s: %v", destination, err)
 	}
 	info, err := os.Stat(destination)
-	if err != nil || info.Size() == 0 || info.Mode().Perm()&0o100 == 0 {
+	if err != nil || !validExecutableSnapshot(destination, info) {
 		t.Fatalf("invalid executable snapshot %s: %v", destination, fmt.Sprint(err))
 	}
 	return destination
+}
+
+func validExecutableSnapshot(path string, info os.FileInfo) bool {
+	return info.Mode().IsRegular() && info.Size() > 0 &&
+		(filepath.Ext(path) == ".exe" || info.Mode().Perm()&0o100 != 0)
 }
