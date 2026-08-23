@@ -13,8 +13,8 @@ func TestNativePlatformWorkflowsRunTheSameInstalledScenarios(t *testing.T) {
 			"core-darwin-artifact", "runner.temp", "scripts/run-darwin-system.sh",
 		},
 		".github/workflows/linux-system.yml": {
-			"runs-on: ubuntu-24.04", "SOKSAK_TEST_PLATFORM: linux", "SOKSAK_TEST_TARGET: x86_64-unknown-linux-gnu",
-			"core-linux-amd64-artifact", "scripts/run-linux-system.sh", "xvfb", "gnome-keyring",
+			"runs-on: ${{ inputs.runner }}", "architecture:", "target:", "SOKSAK_TEST_PLATFORM: linux", "SOKSAK_TEST_TARGET: ${{ inputs.target }}",
+			"core-linux-${{ inputs.architecture }}-artifact", "test \"$(go env GOARCH)\"", "scripts/run-linux-system.sh", "xvfb", "gnome-keyring",
 		},
 	}
 	for path, required := range checks {

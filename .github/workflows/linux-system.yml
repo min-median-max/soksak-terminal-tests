@@ -6,16 +6,28 @@ on:
         description: Exact soksak-terminal-tests commit to execute
         required: true
         type: string
+      runner:
+        description: Native Linux runner label
+        required: true
+        type: string
+      architecture:
+        description: Go architecture of the tested application
+        required: true
+        type: string
+      target:
+        description: Immutable sidecar artifact target
+        required: true
+        type: string
 permissions:
   contents: read
   actions: read
 jobs:
   system:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 45
     env:
       SOKSAK_TEST_PLATFORM: linux
-      SOKSAK_TEST_TARGET: x86_64-unknown-linux-gnu
+      SOKSAK_TEST_TARGET: ${{ inputs.target }}
       SOKSAK_TEST_IDENTIFIER: com.soksak.linuxfleet
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -29,13 +41,14 @@ jobs:
           cache-dependency-path: tests/go.sum
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
-          name: core-linux-amd64-artifact
+          name: core-linux-${{ inputs.architecture }}-artifact
           path: core
       - run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends dbus-x11 gnome-keyring inotify-tools openbox xvfb libgtk-4-1 libwebkitgtk-6.0-4
           mkdir -p stage/evidence stage/system-home stage/runtime stage/workspace
-          go run -C tests ./cmd/stage-fleet -platform linux -target x86_64-unknown-linux-gnu -stage "$GITHUB_WORKSPACE/stage"
+          test "$(go env GOARCH)" = "${{ inputs.architecture }}"
+          go run -C tests ./cmd/stage-fleet -platform linux -target "${{ inputs.target }}" -stage "$GITHUB_WORKSPACE/stage"
       - env:
           SOKSAK_TEST_SETTINGS: ${{ github.workspace }}/stage/composition-home/settings.json
           SOKSAK_TEST_CLI: ${{ github.workspace }}/core/sok
@@ -51,6 +64,6 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
-          name: linux-terminal-system-evidence
+          name: linux-${{ inputs.architecture }}-terminal-system-evidence
           path: stage/evidence
           if-no-files-found: error
