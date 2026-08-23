@@ -32,6 +32,17 @@ func TestInspectArchiveRejectsLinks(t *testing.T) {
 	}
 }
 
+func TestInspectArchiveRejectsDotPrefixedPaths(t *testing.T) {
+	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
+	archive := archiveFixture(t, map[string][]byte{
+		"./sidecar.json":                    []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example.exe"}`),
+		"./dist/soksak-sidecar-example.exe": []byte("binary"),
+	})
+	if err := inspectArchive(archive, "sidecar", component, "x86_64-pc-windows-msvc"); err == nil {
+		t.Fatal("dot-prefixed archive paths were accepted")
+	}
+}
+
 func TestInspectArchiveRequiresAUnixProcessForDarwinAndLinux(t *testing.T) {
 	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
 	valid := archiveFixture(t, map[string][]byte{

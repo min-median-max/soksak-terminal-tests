@@ -267,12 +267,9 @@ func inspectArchive(filename, kind string, component Component, target string) e
 			return err
 		}
 		rawName := filepath.ToSlash(header.Name)
-		name := strings.TrimPrefix(rawName, "./")
-		if header.Typeflag == tar.TypeSymlink || header.Typeflag == tar.TypeLink || strings.HasPrefix(rawName, "/") || strings.Contains("/"+name+"/", "/../") {
+		name, safe := canonicalArchivePath(rawName, header.Typeflag)
+		if header.Typeflag == tar.TypeSymlink || header.Typeflag == tar.TypeLink || !safe {
 			return fmt.Errorf("%s archive contains unsafe entry %q", component.ID, header.Name)
-		}
-		if name == "" && header.Typeflag != tar.TypeDir {
-			return fmt.Errorf("%s archive contains unnamed entry", component.ID)
 		}
 		if header.Typeflag == tar.TypeReg || header.Typeflag == tar.TypeRegA {
 			files[name] = true
@@ -340,15 +337,15 @@ func extractArchive(filename, destination string) error {
 			return err
 		}
 		rawName := filepath.ToSlash(header.Name)
-		name := strings.TrimPrefix(rawName, "./")
-		if name == "" || header.Typeflag == tar.TypeDir {
+		name, safe := canonicalArchivePath(rawName, header.Typeflag)
+		if !safe {
+			return fmt.Errorf("unsafe archive path %q", header.Name)
+		}
+		if header.Typeflag == tar.TypeDir {
 			continue
 		}
 		if header.Typeflag != tar.TypeReg && header.Typeflag != tar.TypeRegA {
 			return fmt.Errorf("unsafe archive entry %q", header.Name)
-		}
-		if strings.HasPrefix(rawName, "/") || strings.Contains("/"+name+"/", "/../") {
-			return fmt.Errorf("unsafe archive path %q", header.Name)
 		}
 		output := filepath.Join(destination, filepath.FromSlash(name))
 		if !strings.HasPrefix(output, destination+string(filepath.Separator)) {
@@ -374,4 +371,19 @@ func extractArchive(filename, destination string) error {
 			return closeErr
 		}
 	}
+}
+
+func canonicalArchivePath(name string, entryType byte) (string, bool) {
+	if entryType == tar.TypeDir {
+		name = strings.TrimSuffix(name, "/")
+	}
+	if name == "" || strings.HasPrefix(name, "/") || strings.Contains(name, "\\") {
+		return "", false
+	}
+	for _, segment := range strings.Split(name, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return "", false
+		}
+	}
+	return name, true
 }
