@@ -119,7 +119,7 @@ func TestPrepareStateRejectsMissingProcessAndUnverifiedProvenance(t *testing.T) 
 		t.Fatal("missing sidecar process was accepted")
 	}
 	input = fixtureInput(t)
-	profile, _ := fleet.ForPlatform(input.Platform)
+	profile, _ := fleet.ForTarget(input.Platform, input.Target)
 	plugin := input.Plugins[profile.Plugins[0].ID]
 	plugin.Commit = "main"
 	input.Plugins[profile.Plugins[0].ID] = plugin
@@ -135,11 +135,16 @@ func fixtureInput(t *testing.T) Input {
 func fixtureInputForPlatform(t *testing.T, platform string) Input {
 	t.Helper()
 	root := t.TempDir()
-	profile, err := fleet.ForPlatform(platform)
+	target := map[string]string{
+		"windows": "x86_64-pc-windows-msvc",
+		"darwin":  "aarch64-apple-darwin",
+		"linux":   "aarch64-unknown-linux-gnu",
+	}[platform]
+	profile, err := fleet.ForTarget(platform, target)
 	if err != nil {
 		t.Fatal(err)
 	}
-	input := Input{Platform: platform, Home: filepath.Join(root, "home"), Plugins: map[string]ArtifactInput{}, Sidecars: map[string]ArtifactInput{}}
+	input := Input{Platform: platform, Target: target, Home: filepath.Join(root, "home"), Plugins: map[string]ArtifactInput{}, Sidecars: map[string]ArtifactInput{}}
 	for _, plugin := range profile.Plugins {
 		path := filepath.Join(root, plugin.ID)
 		if err := os.MkdirAll(path, 0o700); err != nil {

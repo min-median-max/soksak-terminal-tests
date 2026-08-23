@@ -12,7 +12,7 @@ import (
 
 func profileFromEnvironment(t *testing.T) fleet.Profile {
 	t.Helper()
-	profile, err := fleet.ForPlatform(os.Getenv("SOKSAK_TEST_PLATFORM"))
+	profile, err := fleet.ForTarget(os.Getenv("SOKSAK_TEST_PLATFORM"), os.Getenv("SOKSAK_TEST_TARGET"))
 	if err != nil {
 		t.Fatal(err)
 	}

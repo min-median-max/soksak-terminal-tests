@@ -27,6 +27,7 @@ type ArtifactInput struct {
 
 type Input struct {
 	Platform string                   `json:"platform"`
+	Target   string                   `json:"target"`
 	Home     string                   `json:"home"`
 	Plugins  map[string]ArtifactInput `json:"plugins"`
 	Sidecars map[string]ArtifactInput `json:"sidecars"`
@@ -55,7 +56,7 @@ func DecodeInput(reader io.Reader) (Input, error) {
 }
 
 func PrepareState(input Input) (StatePaths, error) {
-	profile, err := fleet.ForPlatform(input.Platform)
+	profile, err := fleet.ForTarget(input.Platform, input.Target)
 	if err != nil {
 		return StatePaths{}, err
 	}

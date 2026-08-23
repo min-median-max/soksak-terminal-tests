@@ -3,14 +3,14 @@ package fleet
 import "testing"
 
 func TestProfilesDeclareExactSupportedTerminalFleets(t *testing.T) {
-	linux, err := ForPlatform("linux")
+	linux, err := ForTarget("linux", "aarch64-unknown-linux-gnu")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(linux.Plugins) != 7 || len(linux.RecoverySidecars) != 6 {
 		t.Fatalf("linux plugins=%d recovery=%d", len(linux.Plugins), len(linux.RecoverySidecars))
 	}
-	windows, err := ForPlatform("windows")
+	windows, err := ForTarget("windows", "x86_64-pc-windows-msvc")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -24,14 +24,20 @@ func TestProfilesDeclareExactSupportedTerminalFleets(t *testing.T) {
 			}
 		}
 	}
-	darwin, err := ForPlatform("darwin")
+	darwin, err := ForTarget("darwin", "aarch64-apple-darwin")
 	if err != nil || len(darwin.Plugins) != 7 || len(darwin.RecoverySidecars) != 6 {
 		t.Fatalf("darwin=%+v err=%v", darwin, err)
 	}
 }
 
 func TestProfileRejectsUnknownPlatform(t *testing.T) {
-	if _, err := ForPlatform("freebsd"); err == nil {
+	if _, err := ForTarget("freebsd", "x86_64-unknown-freebsd"); err == nil {
 		t.Fatal("accepted an undeclared platform")
+	}
+}
+
+func TestProfileRejectsAPlatformTargetMismatch(t *testing.T) {
+	if _, err := ForTarget("linux", "aarch64-apple-darwin"); err == nil {
+		t.Fatal("accepted a target owned by another platform")
 	}
 }

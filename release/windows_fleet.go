@@ -67,8 +67,11 @@ func ReadFleet(filename string) (Fleet, error) {
 	if err := decoder.Decode(&fleet); err != nil {
 		return Fleet{}, err
 	}
-	if fleet.Target != "x86_64-pc-windows-msvc" || len(fleet.Plugins) == 0 || len(fleet.Sidecars) == 0 {
-		return Fleet{}, fmt.Errorf("Windows fleet requires a target, plugins, and sidecars")
+	if len(fleet.Plugins) == 0 || len(fleet.Sidecars) == 0 {
+		return Fleet{}, fmt.Errorf("fleet requires a target, plugins, and sidecars")
+	}
+	if _, err := platformForTarget(fleet.Target); err != nil {
+		return Fleet{}, err
 	}
 	return fleet, nil
 }
@@ -152,7 +155,7 @@ func verifyComponent(ctx context.Context, client *http.Client, target, kind stri
 		return nil, fmt.Errorf("%s: %w", component.ID, err)
 	}
 	defer os.Remove(archive)
-	if err := inspectArchive(archive, kind, component); err != nil {
+	if err := inspectArchive(archive, kind, component, wantedTarget); err != nil {
 		return nil, err
 	}
 	if stage == "" {
@@ -192,7 +195,7 @@ func download(ctx context.Context, client *http.Client, address string, size int
 	if err != nil {
 		return "", err
 	}
-	file, err := os.CreateTemp("", "soksak-windows-release-*"+path.Ext(parsed.Path))
+	file, err := os.CreateTemp("", "soksak-release-*"+path.Ext(parsed.Path))
 	if err != nil {
 		return "", err
 	}
@@ -220,7 +223,7 @@ func download(ctx context.Context, client *http.Client, address string, size int
 	return filename, nil
 }
 
-func inspectArchive(filename, kind string, component Component) error {
+func inspectArchive(filename, kind string, component Component, target string) error {
 	file, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -272,10 +275,28 @@ func inspectArchive(filename, kind string, component Component) error {
 		return nil
 	}
 	sidecar, err := platformspec.ParseSidecarManifest(manifest)
-	if err != nil || sidecar.ID != component.ID || sidecar.Version != component.Version || !strings.HasSuffix(sidecar.Process, ".exe") || !files[sidecar.Process] {
-		return fmt.Errorf("%s Windows process does not match its archive: %v", component.ID, err)
+	platform, platformErr := platformForTarget(target)
+	if err != nil || platformErr != nil || sidecar.ID != component.ID || sidecar.Version != component.Version || !files[sidecar.Process] {
+		return fmt.Errorf("%s process does not match its %s archive: manifest=%v target=%v", component.ID, target, err, platformErr)
+	}
+	windowsProcess := strings.HasSuffix(sidecar.Process, ".exe")
+	if (platform == "windows") != windowsProcess {
+		return fmt.Errorf("%s process does not match its %s archive", component.ID, target)
 	}
 	return nil
+}
+
+func platformForTarget(target string) (string, error) {
+	switch target {
+	case "x86_64-pc-windows-msvc":
+		return "windows", nil
+	case "aarch64-apple-darwin", "x86_64-apple-darwin":
+		return "darwin", nil
+	case "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu":
+		return "linux", nil
+	default:
+		return "", fmt.Errorf("unsupported fleet target: %s", target)
+	}
 }
 
 func extractArchive(filename, destination string) error {

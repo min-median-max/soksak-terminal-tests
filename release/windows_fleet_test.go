@@ -8,27 +8,40 @@ import (
 	"testing"
 )
 
-func TestInspectArchiveRequiresTheDeclaredWindowsProcess(t *testing.T) {
+func TestInspectArchiveRequiresTheDeclaredPlatformProcess(t *testing.T) {
 	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
 	valid := archiveFixture(t, map[string][]byte{
 		"sidecar.json":                    []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example.exe"}`),
 		"dist/soksak-sidecar-example.exe": []byte("binary"),
 	})
-	if err := inspectArchive(valid, "sidecar", component); err != nil {
+	if err := inspectArchive(valid, "sidecar", component, "x86_64-pc-windows-msvc"); err != nil {
 		t.Fatal(err)
 	}
 	missing := archiveFixture(t, map[string][]byte{
 		"sidecar.json": []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example.exe"}`),
 	})
-	if err := inspectArchive(missing, "sidecar", component); err == nil {
+	if err := inspectArchive(missing, "sidecar", component, "x86_64-pc-windows-msvc"); err == nil {
 		t.Fatal("missing Windows process was accepted")
 	}
 }
 
 func TestInspectArchiveRejectsLinks(t *testing.T) {
 	filename := archiveFixtureWithLink(t)
-	if err := inspectArchive(filename, "sidecar", Component{ID: "soksak-sidecar-example", Version: "0.0.1"}); err == nil {
+	if err := inspectArchive(filename, "sidecar", Component{ID: "soksak-sidecar-example", Version: "0.0.1"}, "x86_64-pc-windows-msvc"); err == nil {
 		t.Fatal("archive link was accepted")
+	}
+}
+
+func TestInspectArchiveRequiresAUnixProcessForDarwinAndLinux(t *testing.T) {
+	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
+	valid := archiveFixture(t, map[string][]byte{
+		"sidecar.json":                []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example"}`),
+		"dist/soksak-sidecar-example": []byte("binary"),
+	})
+	for _, target := range []string{"aarch64-apple-darwin", "x86_64-unknown-linux-gnu"} {
+		if err := inspectArchive(valid, "sidecar", component, target); err != nil {
+			t.Fatalf("%s: %v", target, err)
+		}
 	}
 }
 

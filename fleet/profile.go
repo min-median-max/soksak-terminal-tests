@@ -31,20 +31,20 @@ var fullRecoverySidecars = []string{
 	"soksak-sidecar-terminal-vt100", "soksak-sidecar-terminal-wezterm",
 }
 
-func ForPlatform(platform string) (Profile, error) {
-	switch platform {
-	case "darwin":
-		return Profile{Platform: platform, Target: "aarch64-apple-darwin", Plugins: clonePlugins(fullPlugins), RecoverySidecars: cloneStrings(fullRecoverySidecars)}, nil
-	case "linux":
-		return Profile{Platform: platform, Target: "aarch64-unknown-linux-gnu", Plugins: clonePlugins(fullPlugins), RecoverySidecars: cloneStrings(fullRecoverySidecars)}, nil
-	case "windows":
+func ForTarget(platform, target string) (Profile, error) {
+	switch {
+	case platform == "darwin" && (target == "aarch64-apple-darwin" || target == "x86_64-apple-darwin"):
+		return Profile{Platform: platform, Target: target, Plugins: clonePlugins(fullPlugins), RecoverySidecars: cloneStrings(fullRecoverySidecars)}, nil
+	case platform == "linux" && (target == "aarch64-unknown-linux-gnu" || target == "x86_64-unknown-linux-gnu"):
+		return Profile{Platform: platform, Target: target, Plugins: clonePlugins(fullPlugins), RecoverySidecars: cloneStrings(fullRecoverySidecars)}, nil
+	case platform == "windows" && target == "x86_64-pc-windows-msvc":
 		return Profile{
-			Platform: platform, Target: "x86_64-pc-windows-msvc",
+			Platform: platform, Target: target,
 			Plugins:          []Plugin{fullPlugins[0], fullPlugins[1], fullPlugins[4], fullPlugins[5], fullPlugins[6]},
 			RecoverySidecars: []string{fullRecoverySidecars[0], fullRecoverySidecars[1], fullRecoverySidecars[4], fullRecoverySidecars[5]},
 		}, nil
 	default:
-		return Profile{}, fmt.Errorf("unsupported terminal fleet platform: %s", platform)
+		return Profile{}, fmt.Errorf("unsupported terminal fleet target: %s/%s", platform, target)
 	}
 }
 

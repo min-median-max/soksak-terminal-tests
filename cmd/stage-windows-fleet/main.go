@@ -30,7 +30,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	input := development.Input{Platform: "windows", Home: filepath.Join(*stage, "composition-home"), Plugins: map[string]development.ArtifactInput{}, Sidecars: map[string]development.ArtifactInput{}}
+	input := development.Input{Platform: "windows", Target: fleet.Target, Home: filepath.Join(*stage, "composition-home"), Plugins: map[string]development.ArtifactInput{}, Sidecars: map[string]development.ArtifactInput{}}
 	for id, artifact := range staged.Plugins {
 		input.Plugins[id] = development.ArtifactInput{Path: artifact.Path, Repository: artifact.Repository, Commit: artifact.Commit, ArtifactSHA256: artifact.ArtifactSHA256}
 	}

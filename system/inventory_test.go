@@ -10,7 +10,7 @@ import (
 )
 
 func TestTerminalInventoryRequiresSevenPluginsAndSevenSidecars(t *testing.T) {
-	profile, _ := fleet.ForPlatform("linux")
+	profile, _ := fleet.ForTarget("linux", "aarch64-unknown-linux-gnu")
 	settings, installed := inventoryFixture(t, profile)
 	if err := ValidateTerminalInventory(profile, settings, installed); err != nil {
 		t.Fatal(err)
@@ -22,7 +22,7 @@ func TestTerminalInventoryRequiresSevenPluginsAndSevenSidecars(t *testing.T) {
 }
 
 func TestTerminalInventoryRejectsMissingPTYAndProviderSelection(t *testing.T) {
-	profile, _ := fleet.ForPlatform("linux")
+	profile, _ := fleet.ForTarget("linux", "aarch64-unknown-linux-gnu")
 	settings, installed := inventoryFixture(t, profile)
 	delete(installed.Sidecars, "soksak-sidecar-pty")
 	if err := ValidateTerminalInventory(profile, settings, installed); err == nil {
@@ -38,7 +38,7 @@ func TestTerminalInventoryRejectsMissingPTYAndProviderSelection(t *testing.T) {
 }
 
 func TestTerminalInventoryAcceptsValidatedComponentPatchVersions(t *testing.T) {
-	profile, _ := fleet.ForPlatform("windows")
+	profile, _ := fleet.ForTarget("windows", "x86_64-pc-windows-msvc")
 	settings, installed := inventoryFixture(t, profile)
 	plugin := installed.Plugins["soksak-plugin-terminal-ghostty"]
 	plugin.Version = "0.0.2"
