@@ -8,7 +8,7 @@
         { "id": "soksak-plugin-terminal-ghostty", "version": "0.0.11" },
         { "id": "soksak-plugin-terminal-vt100", "version": "0.0.10" },
         { "id": "soksak-plugin-terminal-wezterm", "version": "0.0.10" },
-        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.16" }
+        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.17" }
       ],
       "sidecars": [
         { "id": "soksak-sidecar-pty", "version": "0.0.5" },
@@ -28,7 +28,7 @@
         { "id": "soksak-plugin-terminal-shitty", "version": "0.0.10" },
         { "id": "soksak-plugin-terminal-vt100", "version": "0.0.10" },
         { "id": "soksak-plugin-terminal-wezterm", "version": "0.0.10" },
-        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.16" }
+        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.17" }
       ],
       "sidecars": [
         { "id": "soksak-sidecar-pty", "version": "0.0.5" },
@@ -50,7 +50,7 @@
         { "id": "soksak-plugin-terminal-shitty", "version": "0.0.10" },
         { "id": "soksak-plugin-terminal-vt100", "version": "0.0.10" },
         { "id": "soksak-plugin-terminal-wezterm", "version": "0.0.10" },
-        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.16" }
+        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.17" }
       ],
       "sidecars": [
         { "id": "soksak-sidecar-pty", "version": "0.0.5" },
