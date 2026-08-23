@@ -15,12 +15,14 @@ import (
 )
 
 func main() {
+	platform := flag.String("platform", "", "runtime platform")
+	target := flag.String("target", "", "sidecar artifact target")
 	stage := flag.String("stage", "", "absolute staging directory")
 	flag.Parse()
 	if !filepath.IsAbs(*stage) {
 		fail(fmt.Errorf("--stage must be absolute"))
 	}
-	fleet, err := release.ReadFleet("release/windows-fleet.json")
+	fleet, err := release.ReadFleetTarget("release/fleets.json", *platform, *target)
 	if err != nil {
 		fail(err)
 	}
@@ -30,7 +32,7 @@ func main() {
 	if err != nil {
 		fail(err)
 	}
-	input := development.Input{Platform: "windows", Target: fleet.Target, Home: filepath.Join(*stage, "composition-home"), Plugins: map[string]development.ArtifactInput{}, Sidecars: map[string]development.ArtifactInput{}}
+	input := development.Input{Platform: *platform, Target: *target, Home: filepath.Join(*stage, "composition-home"), Plugins: map[string]development.ArtifactInput{}, Sidecars: map[string]development.ArtifactInput{}}
 	for id, artifact := range staged.Plugins {
 		input.Plugins[id] = development.ArtifactInput{Path: artifact.Path, Repository: artifact.Repository, Commit: artifact.Commit, ArtifactSHA256: artifact.ArtifactSHA256}
 	}
@@ -46,4 +48,7 @@ func main() {
 	}
 }
 
-func fail(err error) { fmt.Fprintln(os.Stderr, err); os.Exit(1) }
+func fail(err error) {
+	fmt.Fprintln(os.Stderr, err)
+	os.Exit(1)
+}

@@ -1,0 +1,66 @@
+{
+  "fleets": [
+    {
+      "platform": "windows",
+      "targets": ["x86_64-pc-windows-msvc"],
+      "plugins": [
+        { "id": "soksak-plugin-terminal-alacritty", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-ghostty", "version": "0.0.8" },
+        { "id": "soksak-plugin-terminal-vt100", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-wezterm", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.15" }
+      ],
+      "sidecars": [
+        { "id": "soksak-sidecar-pty", "version": "0.0.4" },
+        { "id": "soksak-sidecar-terminal-alacritty", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-ghostty", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-vt100", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-wezterm", "version": "0.0.9" }
+      ]
+    },
+    {
+      "platform": "darwin",
+      "targets": ["aarch64-apple-darwin", "x86_64-apple-darwin"],
+      "plugins": [
+        { "id": "soksak-plugin-terminal-alacritty", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-ghostty", "version": "0.0.8" },
+        { "id": "soksak-plugin-terminal-kitty", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-shitty", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-vt100", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-wezterm", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.15" }
+      ],
+      "sidecars": [
+        { "id": "soksak-sidecar-pty", "version": "0.0.4" },
+        { "id": "soksak-sidecar-terminal-alacritty", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-ghostty", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-kitty", "version": "0.0.5" },
+        { "id": "soksak-sidecar-terminal-shitty", "version": "0.0.5" },
+        { "id": "soksak-sidecar-terminal-vt100", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-wezterm", "version": "0.0.9" }
+      ]
+    },
+    {
+      "platform": "linux",
+      "targets": ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"],
+      "plugins": [
+        { "id": "soksak-plugin-terminal-alacritty", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-ghostty", "version": "0.0.8" },
+        { "id": "soksak-plugin-terminal-kitty", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-shitty", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-vt100", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-wezterm", "version": "0.0.7" },
+        { "id": "soksak-plugin-terminal-xterm", "version": "0.0.15" }
+      ],
+      "sidecars": [
+        { "id": "soksak-sidecar-pty", "version": "0.0.4" },
+        { "id": "soksak-sidecar-terminal-alacritty", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-ghostty", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-kitty", "version": "0.0.5" },
+        { "id": "soksak-sidecar-terminal-shitty", "version": "0.0.5" },
+        { "id": "soksak-sidecar-terminal-vt100", "version": "0.0.9" },
+        { "id": "soksak-sidecar-terminal-wezterm", "version": "0.0.9" }
+      ]
+    }
+  ]
+}

@@ -12,7 +12,7 @@ func TestWindowsWorkflowUsesRepositoryRunners(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := string(body)
-	if !strings.Contains(source, "go run -C tests ./cmd/stage-windows-fleet") {
+	if !strings.Contains(source, "go run -C tests ./cmd/stage-fleet -platform windows -target x86_64-pc-windows-msvc") {
 		t.Fatal("Windows workflow does not use the fleet staging runner")
 	}
 	for _, obsolete := range []string{"install-windows-fleet.ps1", "prepare-development.exe", "development-input.json"} {
@@ -27,7 +27,7 @@ func TestDockerPreflightUsesTheSameFleetCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(body), "go run ./cmd/stage-windows-fleet") {
+	if !strings.Contains(string(body), "go run ./cmd/stage-fleet -platform windows -target x86_64-pc-windows-msvc") {
 		t.Fatal("Docker preflight does not use the fleet staging runner")
 	}
 }

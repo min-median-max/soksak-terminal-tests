@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,7 +12,10 @@ import (
 )
 
 func main() {
-	fleet, err := release.ReadFleet("release/windows-fleet.json")
+	platform := flag.String("platform", "", "runtime platform")
+	target := flag.String("target", "", "sidecar artifact target")
+	flag.Parse()
+	fleet, err := release.ReadFleetTarget("release/fleets.json", *platform, *target)
 	if err == nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
@@ -21,5 +25,5 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	fmt.Println("Windows release fleet verified")
+	fmt.Printf("%s/%s release fleet verified\n", *platform, *target)
 }

@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 45
     env:
       SOKSAK_TEST_PLATFORM: windows
+      SOKSAK_TEST_TARGET: x86_64-pc-windows-msvc
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -33,7 +34,7 @@ jobs:
       - shell: pwsh
         run: |
           New-Item -ItemType Directory -Force stage/evidence | Out-Null
-          go run -C tests ./cmd/stage-windows-fleet -stage (Join-Path $env:GITHUB_WORKSPACE "stage")
+          go run -C tests ./cmd/stage-fleet -platform windows -target x86_64-pc-windows-msvc -stage (Join-Path $env:GITHUB_WORKSPACE "stage")
       - shell: pwsh
         env:
           SOKSAK_TEST_SETTINGS: ${{ github.workspace }}\stage\composition-home\settings.json

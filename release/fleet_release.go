@@ -25,7 +25,9 @@ type Component struct {
 }
 
 type Fleet struct {
-	Target   string      `json:"target"`
+	Platform string      `json:"platform"`
+	Targets  []string    `json:"targets"`
+	Target   string      `json:"-"`
 	Plugins  []Component `json:"plugins"`
 	Sidecars []Component `json:"sidecars"`
 }
@@ -56,24 +58,42 @@ type releaseDocument struct {
 	} `json:"reports"`
 }
 
-func ReadFleet(filename string) (Fleet, error) {
+func ReadFleetTarget(filename, platform, target string) (Fleet, error) {
 	body, err := os.ReadFile(filename)
 	if err != nil {
 		return Fleet{}, err
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(body)))
 	decoder.DisallowUnknownFields()
-	var fleet Fleet
-	if err := decoder.Decode(&fleet); err != nil {
+	var document struct {
+		Fleet []Fleet `json:"fleets"`
+	}
+	if err := decoder.Decode(&document); err != nil {
 		return Fleet{}, err
 	}
-	if len(fleet.Plugins) == 0 || len(fleet.Sidecars) == 0 {
-		return Fleet{}, fmt.Errorf("fleet requires a target, plugins, and sidecars")
+	for _, fleet := range document.Fleet {
+		if fleet.Platform != platform || !contains(fleet.Targets, target) {
+			continue
+		}
+		if len(fleet.Plugins) == 0 || len(fleet.Sidecars) == 0 {
+			return Fleet{}, fmt.Errorf("fleet requires plugins and sidecars")
+		}
+		if targetPlatform, err := platformForTarget(target); err != nil || targetPlatform != platform {
+			return Fleet{}, fmt.Errorf("fleet platform does not own target: %s/%s", platform, target)
+		}
+		fleet.Target = target
+		return fleet, nil
 	}
-	if _, err := platformForTarget(fleet.Target); err != nil {
-		return Fleet{}, err
+	return Fleet{}, fmt.Errorf("fleet target is not declared: %s/%s", platform, target)
+}
+
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
 	}
-	return fleet, nil
+	return false
 }
 
 func Verify(ctx context.Context, client *http.Client, fleet Fleet) error {
