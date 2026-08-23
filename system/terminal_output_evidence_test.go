@@ -7,15 +7,15 @@ func TestOutputEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 	if got := evidence.failureBoundary(); got != "pty-output" {
 		t.Fatalf("PTY boundary = %q", got)
 	}
-	evidence.PTY = &terminalSequencedSize{OutputSequence: 100}
+	evidence.PTY = &terminalSequencedSize{OutputSequence: 262244}
 	if got := evidence.failureBoundary(); got != "recovery-output" {
 		t.Fatalf("recovery boundary = %q", got)
 	}
-	evidence.Recovery = &terminalRecoverySize{terminalSequencedSize: terminalSequencedSize{OutputSequence: 99}}
+	evidence.Recovery = &terminalRecoverySize{terminalSequencedSize: terminalSequencedSize{OutputSequence: 262243}}
 	if got := evidence.failureBoundary(); got != "recovery-output" {
 		t.Fatalf("recovery sequence boundary = %q", got)
 	}
-	evidence.Recovery.OutputSequence = 100
+	evidence.Recovery.OutputSequence = 262244
 	evidence.Recovery.Gaps = 1
 	if got := evidence.failureBoundary(); got != "recovery-output" {
 		t.Fatalf("gap boundary = %q", got)
@@ -24,22 +24,22 @@ func TestOutputEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 	if got := evidence.failureBoundary(); got != "renderer-output" {
 		t.Fatalf("renderer boundary = %q", got)
 	}
-	evidence.Rendered = &terminalRenderedSize{OutputSequence: 99}
+	evidence.Rendered = &terminalRenderedSize{OutputSequence: 262243}
 	if got := evidence.failureBoundary(); got != "renderer-output" {
 		t.Fatalf("renderer sequence boundary = %q", got)
 	}
-	evidence.Rendered.OutputSequence = 100
+	evidence.Rendered.OutputSequence = 262244
 	if got := evidence.failureBoundary(); got != "" {
 		t.Fatalf("complete boundary = %q", got)
 	}
 	evidence.MarkerObserved = true
-	evidence.PTY.OutputSequence = 103
-	evidence.Recovery.OutputSequence = 102
-	evidence.Rendered.OutputSequence = 101
+	evidence.PTY.OutputSequence = 262247
+	evidence.Recovery.OutputSequence = 262246
+	evidence.Rendered.OutputSequence = 262245
 	if got := evidence.failureBoundary(); got != "" {
 		t.Fatalf("post-marker monotonic boundary = %q", got)
 	}
-	evidence.Rendered.OutputSequence = 104
+	evidence.Rendered.OutputSequence = 262248
 	if got := evidence.failureBoundary(); got != "renderer-output" {
 		t.Fatalf("renderer-ahead boundary = %q", got)
 	}

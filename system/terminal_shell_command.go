@@ -19,15 +19,27 @@ func terminalPrintCommand(platform, marker string) (string, error) {
 }
 
 func terminalHighOutputCommand(platform, marker string) (string, error) {
+	prefix, suffix, err := splitMarker(marker)
+	if err != nil {
+		return "", err
+	}
 	switch platform {
 	case "windows":
-		script := "[Console]::Out.Write(('X' * 262144)); [Console]::Out.WriteLine(); [Console]::Out.WriteLine('" + marker + "')"
+		script := "$prefix='" + prefix + "'; [Console]::Out.Write(('X' * 262144)); [Console]::Out.WriteLine(); [Console]::Out.WriteLine($prefix + '" + suffix + "')"
 		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
 	case "darwin", "linux":
-		return "head -c 262144 /dev/zero | tr '\\0' X; printf '\\n%s\\n' " + marker, nil
+		return "prefix=" + prefix + "; head -c 262144 /dev/zero | tr '\\0' X; printf '\\n%s%s\\n' \"$prefix\" " + suffix, nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}
+}
+
+func splitMarker(marker string) (string, string, error) {
+	cut := strings.LastIndex(marker, "_") + 1
+	if cut < 1 || cut >= len(marker) {
+		return "", "", fmt.Errorf("marker has no suffix: %s", marker)
+	}
+	return marker[:cut], marker[cut:], nil
 }
 
 func detachedMarkerCommand(platform, marker, scheduled string) (string, error) {

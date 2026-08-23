@@ -162,6 +162,14 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			return nil, err
 		}
 		tail := fmt.Sprintf("SOKSAK_HIGH_OUTPUT_TAIL_%d", index)
+		beforeStatus, err := terminal(cli, plugin, "status", view, nil)
+		if err != nil {
+			return nil, err
+		}
+		beforePTY := readTerminalSequencedSize(beforeStatus["pty"])
+		if beforePTY == nil {
+			return nil, fmt.Errorf("%s reported no PTY output baseline", plugin)
+		}
 		highOutputCommand, err := terminalHighOutputCommand(profile.Platform, tail)
 		if err != nil {
 			return nil, err
@@ -173,6 +181,7 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		status, statusErr := terminal(cli, plugin, "status", view, nil)
 		outputEvidence := terminalOutputStatus(plugin, view, status)
 		outputEvidence.MarkerObserved = waitErr == nil
+		outputEvidence.BeforeOutput = beforePTY.OutputSequence
 		if waitErr != nil {
 			outputEvidence.Failure = waitErr.Error()
 		}

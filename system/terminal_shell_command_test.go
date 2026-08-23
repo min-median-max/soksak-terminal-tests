@@ -15,7 +15,8 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 	if windowsMarker != "echo MARKER" || strings.Contains(windowsMarker, "printf") {
 		t.Fatalf("Windows marker command = %q", windowsMarker)
 	}
-	windowsOutput, err := terminalHighOutputCommand("windows", "TAIL")
+	const highOutputMarker = "SOKSAK_HIGH_OUTPUT_TAIL_7"
+	windowsOutput, err := terminalHighOutputCommand("windows", highOutputMarker)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,16 +24,19 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 		t.Fatalf("Windows output command = %q", windowsOutput)
 	}
 	script := decodePowerShellForTest(t, windowsOutput[strings.LastIndex(windowsOutput, " ")+1:])
-	for _, required := range []string{"'X' * 262144", "WriteLine('TAIL')"} {
+	for _, required := range []string{"'X' * 262144", "$prefix", "'7'"} {
 		if !strings.Contains(script, required) {
 			t.Errorf("Windows output script omits %q: %s", required, script)
 		}
+	}
+	if strings.Contains(windowsOutput, highOutputMarker) || strings.Contains(script, highOutputMarker) {
+		t.Fatalf("Windows high-output command exposes the awaited marker: %s", script)
 	}
 	if strings.Contains(windowsOutput, "yes X") || strings.Contains(windowsOutput, "head -c") {
 		t.Fatalf("Windows output command uses POSIX utilities: %s", windowsOutput)
 	}
 
-	unixOutput, err := terminalHighOutputCommand("linux", "TAIL")
+	unixOutput, err := terminalHighOutputCommand("linux", highOutputMarker)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,6 +45,9 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 	}
 	if strings.Contains(unixOutput, "yes X") {
 		t.Fatalf("Linux output command creates one parser event per line: %s", unixOutput)
+	}
+	if strings.Contains(unixOutput, highOutputMarker) {
+		t.Fatalf("Linux high-output command exposes the awaited marker: %s", unixOutput)
 	}
 	if _, err := terminalHighOutputCommand("unknown", "TAIL"); err == nil {
 		t.Fatal("unsupported platform was accepted")

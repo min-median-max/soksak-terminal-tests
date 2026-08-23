@@ -14,6 +14,7 @@ type terminalOutputEvidence struct {
 	Recovery        *terminalRecoverySize  `json:"recovery"`
 	Rendered        *terminalRenderedSize  `json:"rendered"`
 	MarkerObserved  bool                   `json:"markerObserved"`
+	BeforeOutput    float64                `json:"beforeOutputSequence"`
 	FailureBoundary string                 `json:"failureBoundary,omitempty"`
 	Failure         string                 `json:"failure,omitempty"`
 }
@@ -28,6 +29,9 @@ func terminalOutputStatus(plugin, view string, status map[string]any) terminalOu
 
 func (evidence terminalOutputEvidence) failureBoundary() string {
 	if evidence.PTY == nil {
+		return "pty-output"
+	}
+	if evidence.PTY.OutputSequence-evidence.BeforeOutput < 262144 {
 		return "pty-output"
 	}
 	if evidence.Recovery == nil || evidence.Recovery.Gaps != 0 ||
