@@ -33,14 +33,14 @@ jobs:
           path: core
       - run: |
           chmod +x core/sok core/soksak.app/Contents/MacOS/soksak
-          mkdir -p stage/evidence stage/system-home stage/workspace "${{ runner.temp }}/soksak-runtime"
+          mkdir -p stage/evidence stage/system-home stage/workspace /tmp/soksak-runtime
           go run -C tests ./cmd/stage-fleet -platform darwin -target aarch64-apple-darwin -stage "$GITHUB_WORKSPACE/stage"
       - env:
           SOKSAK_TEST_SETTINGS: ${{ github.workspace }}/stage/composition-home/settings.json
           SOKSAK_TEST_CLI: ${{ github.workspace }}/core/sok
           SOKSAK_TEST_APP: ${{ github.workspace }}/core/soksak.app/Contents/MacOS/soksak
           SOKSAK_TEST_HOME: ${{ github.workspace }}/stage/system-home
-          SOKSAK_TEST_RUNTIME: ${{ runner.temp }}/soksak-runtime
+          SOKSAK_TEST_RUNTIME: /tmp/soksak-runtime
           SOKSAK_TEST_WORKSPACE: ${{ github.workspace }}/stage/workspace
           SOKSAK_TEST_EVIDENCE: ${{ github.workspace }}/stage/evidence
         run: |
