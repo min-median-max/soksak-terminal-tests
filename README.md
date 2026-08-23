@@ -67,9 +67,9 @@ UTF-16LE PowerShell `-EncodedCommand` payloads; Darwin and Linux use POSIX shell
 markers are scheduled without placing the awaited marker literal in the echoed command, and the
 test reads PTY process identity only from the public `pty.status` contract.
 
-The macOS Docker runner verifies Windows cross-build outputs and immutable release inputs. It does
-not run WebView2, ConPTY or Windows named pipes. Those runtime boundaries are decided only by the
-installed system suite on GitHub's `windows-2025` runner.
+The macOS native runner executes the universal application on Apple Silicon with the full seven
+plugin fleet. Its control socket uses a short temporary path because Darwin limits Unix socket
+addresses. The Windows native runner alone decides WebView2, ConPTY, and named-pipe behavior.
 
 Inside the Linux system-test image, run the same suite through the D-Bus, Secret Service and Xvfb
 runner. The runner declares `/bin/bash` as the login shell. All `SOKSAK_TEST_*` paths must name container paths. Additional arguments are passed to

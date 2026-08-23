@@ -18,6 +18,6 @@ UTF-16LE PowerShell `-EncodedCommand` payload를 사용하고 Darwin과 Linux는
 문법을 사용합니다. Restore marker는 기다리는 marker 문자열이 echo되는 command 자체에
 나타나지 않게 예약하며, PTY process identity는 공개 `pty.status` 계약에서만 읽습니다.
 
-macOS Docker runner는 Windows cross-build 결과와 immutable release 입력을 검증합니다.
-WebView2, ConPTY, Windows named pipe를 실행하지 않습니다. 이 runtime 경계는 GitHub
-`windows-2025` runner의 설치 시스템 테스트에서만 판정합니다.
+macOS native runner는 Apple Silicon에서 universal application과 7개 plugin 전체 fleet를
+실행합니다. Darwin Unix socket 주소 제한 때문에 control socket은 짧은 temporary path를
+사용합니다. WebView2, ConPTY, Windows named pipe 동작은 Windows native runner만 판정합니다.
