@@ -3,6 +3,8 @@
 package system
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,10 +30,41 @@ func lifecycleConfigFromEnvironment(t *testing.T, scenario string) LifecycleConf
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.RemoveAll(runtime) })
+	app := snapshotExecutable(t, root, os.Getenv("SOKSAK_TEST_APP"), "soksak")
+	cli := snapshotExecutable(t, root, os.Getenv("SOKSAK_TEST_CLI"), "sok")
 	return LifecycleConfig{
-		App: os.Getenv("SOKSAK_TEST_APP"), CLI: os.Getenv("SOKSAK_TEST_CLI"),
+		App: app, CLI: cli,
 		Socket: controlAddress(runtime, identifier), Home: filepath.Join(root, "home"),
 		Runtime: runtime, Workspace: filepath.Join(root, "workspace"),
 		EvidenceDir: filepath.Join(os.Getenv("SOKSAK_TEST_EVIDENCE"), scenario), Identifier: identifier,
 	}
+}
+
+func snapshotExecutable(t *testing.T, root, source, name string) string {
+	t.Helper()
+	input, err := os.Open(source)
+	if err != nil {
+		t.Fatalf("open %s: %v", source, err)
+	}
+	defer input.Close()
+	if filepath.Ext(source) == ".exe" {
+		name += ".exe"
+	}
+	destination := filepath.Join(root, name)
+	output, err := os.OpenFile(destination, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o700)
+	if err != nil {
+		t.Fatalf("create %s: %v", destination, err)
+	}
+	if _, err = io.Copy(output, input); err != nil {
+		_ = output.Close()
+		t.Fatalf("copy %s: %v", source, err)
+	}
+	if err = output.Close(); err != nil {
+		t.Fatalf("close %s: %v", destination, err)
+	}
+	info, err := os.Stat(destination)
+	if err != nil || info.Size() == 0 || info.Mode().Perm()&0o100 == 0 {
+		t.Fatalf("invalid executable snapshot %s: %v", destination, fmt.Sprint(err))
+	}
+	return destination
 }
