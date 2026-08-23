@@ -50,9 +50,11 @@ func TestInstallTerminalFleetUsesPublicInstallConsentAndActivationCommands(t *te
 				continue
 			}
 			found = true
-			sidecars, _ := call.params["sidecars"].(map[string]string)
-			if sidecars["pty"] != "soksak-sidecar-pty" || sidecars["recovery"] != plugin.Sidecar || len(sidecars) != 2 {
-				t.Fatalf("%s sidecars = %+v", plugin.ID, sidecars)
+			if call.params["registryId"] != "official" || len(call.params) != 2 {
+				t.Fatalf("%s install params = %+v", plugin.ID, call.params)
+			}
+			if _, legacy := call.params["sidecars"]; legacy {
+				t.Fatalf("%s install request selects sidecars", plugin.ID)
 			}
 		}
 		if !found {

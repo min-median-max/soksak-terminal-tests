@@ -20,7 +20,6 @@ func InstallTerminalFleet(profile fleet.Profile, cli commandCaller) error {
 	for _, plugin := range profile.Plugins {
 		if _, err := cli.Call("plugin.install", map[string]any{
 			"registryId": "official", "pluginId": plugin.ID,
-			"sidecars": map[string]string{"pty": "soksak-sidecar-pty", "recovery": plugin.Sidecar},
 		}); err != nil {
 			return fmt.Errorf("install %s: %w", plugin.ID, err)
 		}

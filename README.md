@@ -15,8 +15,9 @@ This repository owns only cross-provider comparison and installed-system behavio
 Darwin and Linux require seven plugins plus PTY and six recovery sidecars. Windows requires the five
 plugins backed by Alacritty, Ghostty, VT100, WezTerm, and Xterm plus PTY and four recovery sidecars;
 Kitty and Shitty are not Windows artifacts. `verify-fleet` validates those immutable release bytes.
-The system suite starts Core with an empty home, calls `plugin.install` with explicit `pty` and
-`recovery` bindings, reads every consent summary, grants consent, enables each plugin, and validates
+The system suite starts Core with an empty home and calls `plugin.install` with only the authenticated
+Registry plugin identity. Each plugin release declares its exact Sidecar closure, which Core installs.
+The suite reads every consent summary, grants consent, enables each plugin, and validates
 the resulting `environment.json` through the public control surface. This repository never writes
 product installation state.
 

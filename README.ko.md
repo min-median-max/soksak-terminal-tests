@@ -11,7 +11,8 @@ registry 항목이 아닙니다. benchmark는 복원 구현의 성능·RSS·손�
 Darwin과 Linux는 plugin 7개, PTY sidecar, recovery sidecar 6개를 사용합니다. Windows는
 Alacritty, Ghostty, VT100, WezTerm, Xterm plugin과 PTY 및 recovery sidecar 4개를 사용합니다.
 `verify-fleet`가 immutable release byte를 먼저 검증합니다. System suite는 빈 home으로 Core를
-시작하고 `plugin.install`에 `pty`와 `recovery` binding을 명시합니다. Consent summary를 읽고
+시작하고 인증된 Registry plugin identity만 `plugin.install`에 전달합니다. 각 plugin release가
+정확한 Sidecar closure를 선언하고 Core가 이를 설치합니다. Consent summary를 읽고
 승인한 후 plugin을 활성화하며, 공개 control surface를 통해 Core가 만든 `environment.json`을
 검증합니다. 이 저장소는 제품 설치 상태를 직접 작성하지 않습니다.
 
