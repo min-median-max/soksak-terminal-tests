@@ -32,7 +32,9 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		}
 		opened, err := cli.Call("tab.open", openParams)
 		if err != nil {
-			return nil, err
+			plugins, pluginErr := cli.Call("plugin.list", map[string]any{})
+			programs, programErr := cli.Call("program.list", map[string]any{})
+			return nil, fmt.Errorf("%s open failed: %w; plugins=%+v pluginErr=%v programs=%+v programErr=%v", plugin, err, plugins, pluginErr, programs, programErr)
 		}
 		view, _ := opened["tabId"].(string)
 		if view == "" {
