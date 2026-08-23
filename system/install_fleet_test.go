@@ -50,7 +50,7 @@ func TestInstallTerminalFleetUsesPublicInstallConsentAndActivationCommands(t *te
 				continue
 			}
 			found = true
-			if call.params["registryId"] != "official" || len(call.params) != 2 {
+			if call.params["registryId"] != "official" || call.params["timeoutMs"] != 60000 || len(call.params) != 3 {
 				t.Fatalf("%s install params = %+v", plugin.ID, call.params)
 			}
 			if _, legacy := call.params["sidecars"]; legacy {
