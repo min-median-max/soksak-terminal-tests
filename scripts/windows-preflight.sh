@@ -5,7 +5,9 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 stage=${1:-$root/local/windows-preflight}
 case "$stage" in /*) ;; *) stage="$root/$stage" ;; esac
 
-[ "$(go version | awk '{print $3}')" = "go1.26.3" ] || { echo "Go 1.26.3 is required" >&2; exit 1; }
+required=$(awk '$1 == "go" { print "go" $2; count++ } END { if (count != 1) exit 1 }' go.mod)
+actual=$(go env GOVERSION)
+[ "$actual" = "$required" ] || { echo "$required is required; found $actual" >&2; exit 1; }
 mkdir -p "$stage"
 
 go test -count=1 ./...
