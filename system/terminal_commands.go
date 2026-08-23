@@ -150,6 +150,9 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if _, err := resizePane(cli, terminalPane, 0.75); err != nil {
 			return nil, err
 		}
+		if _, err := terminal(cli, plugin, "wait", view, wideResizeWait(wide)); err != nil {
+			return nil, fmt.Errorf("%s wide resize did not reach the terminal before output: %w", plugin, err)
+		}
 		read, err := terminal(cli, plugin, "read", view, nil)
 		if err != nil || !strings.Contains(fmt.Sprint(read["text"]), marker) {
 			return nil, fmt.Errorf("%s did not read marker: %v %+v", plugin, err, read)
@@ -202,6 +205,10 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		results = append(results, TerminalResult{Plugin: plugin, View: view})
 	}
 	return results, nil
+}
+
+func wideResizeWait(cols float64) map[string]any {
+	return map[string]any{"phase": "live", "cols": cols, "timeoutMs": 8000}
 }
 
 func resizePane(cli CLI, pane string, ratio float64) (map[string]any, error) {
