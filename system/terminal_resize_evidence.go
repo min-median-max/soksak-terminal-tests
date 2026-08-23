@@ -96,7 +96,8 @@ func measureTerminalResize(cli CLI, plugin, view, address string) (terminalResiz
 	width, _ := rect["w"].(float64)
 	height, _ := rect["h"].(float64)
 	if width <= 0 || height <= 0 {
-		return terminalResizeSample{}, fmt.Errorf("terminal node has no measurable area: %+v", measured)
+		overlays, overlayErr := cli.Call("ui.plugin-view.overlay", map[string]any{})
+		return terminalResizeSample{}, fmt.Errorf("terminal node has no measurable area: %+v; overlays=%+v overlayErr=%v", measured, overlays, overlayErr)
 	}
 	status, err := terminal(cli, plugin, "status", view, nil)
 	if err != nil {

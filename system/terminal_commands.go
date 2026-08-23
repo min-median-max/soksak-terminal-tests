@@ -47,6 +47,16 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 				return nil, err
 			}
 		}
+		if _, err := cli.Call("tab.activate", map[string]any{"tab": view}); err != nil {
+			return nil, err
+		}
+		if _, err := cli.Call("ui.layout.wait-settled", map[string]any{"timeoutMs": 8000}); err != nil {
+			return nil, err
+		}
+		tabs, err := cli.Call("tab.list", map[string]any{"pane": terminalPane})
+		if err != nil || tabs["activeTabId"] != view {
+			return nil, fmt.Errorf("%s activation did not reach session state: %v %+v", plugin, err, tabs)
+		}
 		if _, err := resizePane(cli, terminalPane, 0.75); err != nil {
 			return nil, err
 		}
