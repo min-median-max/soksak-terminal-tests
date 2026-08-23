@@ -190,7 +190,9 @@ func (lifecycle *Lifecycle) Shutdown() error {
 }
 
 func (lifecycle *Lifecycle) Finish() error {
-	lifecycle.stopTestSidecars()
+	if err := lifecycle.stopTestSidecars(); err != nil {
+		return err
+	}
 	return lifecycle.Shutdown()
 }
 
@@ -198,7 +200,7 @@ func (lifecycle *Lifecycle) Close() {
 	if lifecycle.cmd == nil {
 		return
 	}
-	lifecycle.stopTestSidecars()
+	_ = lifecycle.stopTestSidecars()
 	_ = lifecycle.cmd.Process.Kill()
 	_, _ = lifecycle.cmd.Process.Wait()
 	lifecycle.cmd = nil
@@ -210,10 +212,10 @@ func (lifecycle *Lifecycle) Close() {
 	}
 }
 
-func (lifecycle *Lifecycle) stopTestSidecars() {
+func (lifecycle *Lifecycle) stopTestSidecars() error {
 	value, err := lifecycle.client(lifecycle.window).Call("sidecar_status", map[string]any{})
 	if err != nil {
-		return
+		return err
 	}
 	started, _ := value["open"].([]any)
 	for _, item := range started {
@@ -223,9 +225,12 @@ func (lifecycle *Lifecycle) stopTestSidecars() {
 			name, _ = open["name"].(string)
 		}
 		if name != "" {
-			_, _ = lifecycle.client(lifecycle.window).Call("sidecar_stop", map[string]any{"name": name})
+			if _, err := lifecycle.client(lifecycle.window).Call("sidecar_stop", map[string]any{"name": name}); err != nil {
+				return fmt.Errorf("stop sidecar %s: %w", name, err)
+			}
 		}
 	}
+	return nil
 }
 
 func (lifecycle *Lifecycle) Client() CLI {
