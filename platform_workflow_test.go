@@ -29,4 +29,13 @@ func TestNativePlatformWorkflowsRunTheSameInstalledScenarios(t *testing.T) {
 			}
 		}
 	}
+	runner, err := os.ReadFile("scripts/run-linux-system.sh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"GTK_A11Y=none", "NO_AT_BRIDGE=1"} {
+		if !strings.Contains(string(runner), required) {
+			t.Errorf("Linux runner does not disable the headless accessibility bridge through %s", required)
+		}
+	}
 }

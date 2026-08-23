@@ -22,6 +22,7 @@ dbus-run-session -- xvfb-run -a -s "-screen 0 1920x1200x24" sh -eu -c '
   export GDK_BACKEND=x11
   export GSK_RENDERER=cairo
   export GTK_A11Y=none
+  export NO_AT_BRIDGE=1
   export LIBGL_ALWAYS_SOFTWARE=1
   export WEBKIT_DISABLE_COMPOSITING_MODE=1
   export WEBKIT_DISABLE_DMABUF_RENDERER=1
