@@ -32,6 +32,7 @@ jobs:
           name: core-darwin-artifact
           path: core
       - run: |
+          chmod +x core/sok core/soksak.app/Contents/MacOS/soksak
           mkdir -p stage/evidence stage/system-home stage/workspace "${{ runner.temp }}/soksak-runtime"
           go run -C tests ./cmd/stage-fleet -platform darwin -target aarch64-apple-darwin -stage "$GITHUB_WORKSPACE/stage"
       - env:
