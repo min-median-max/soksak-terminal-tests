@@ -36,8 +36,11 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(unixOutput, "head -c 262144") || !strings.Contains(unixOutput, "; printf") {
+	if !strings.Contains(unixOutput, "head -c 262144 /dev/zero | tr '\\0' X") || !strings.Contains(unixOutput, "; printf") {
 		t.Fatalf("Linux output command = %q", unixOutput)
+	}
+	if strings.Contains(unixOutput, "yes X") {
+		t.Fatalf("Linux output command creates one parser event per line: %s", unixOutput)
 	}
 	if _, err := terminalHighOutputCommand("unknown", "TAIL"); err == nil {
 		t.Fatal("unsupported platform was accepted")

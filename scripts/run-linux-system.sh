@@ -13,6 +13,7 @@ export SHELL=/bin/bash
 
 dbus-run-session -- xvfb-run -a -s "-screen 0 1920x1200x24" sh -eu -c '
   printf "\n" | gnome-keyring-daemon --unlock >/tmp/soksak-keyring.env
+  . /tmp/soksak-keyring.env
   wm_ready=/tmp/soksak-openbox-ready.$$
   rm -f "$wm_ready"
   openbox --startup "touch $wm_ready" >/tmp/soksak-openbox.log 2>&1 &

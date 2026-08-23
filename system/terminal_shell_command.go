@@ -24,7 +24,7 @@ func terminalHighOutputCommand(platform, marker string) (string, error) {
 		script := "[Console]::Out.Write(('X' * 262144)); [Console]::Out.WriteLine(); [Console]::Out.WriteLine('" + marker + "')"
 		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
 	case "darwin", "linux":
-		return "yes X | head -c 262144; printf '\\n%s\\n' " + marker, nil
+		return "head -c 262144 /dev/zero | tr '\\0' X; printf '\\n%s\\n' " + marker, nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}
