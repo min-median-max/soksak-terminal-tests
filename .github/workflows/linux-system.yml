@@ -1,0 +1,56 @@
+name: linux-system
+on:
+  workflow_call:
+    inputs:
+      tests_ref:
+        description: Exact soksak-terminal-tests commit to execute
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+jobs:
+  system:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      SOKSAK_TEST_PLATFORM: linux
+      SOKSAK_TEST_TARGET: x86_64-unknown-linux-gnu
+      SOKSAK_TEST_IDENTIFIER: com.soksak.linuxfleet
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: min-median-max/soksak-terminal-tests
+          ref: ${{ inputs.tests_ref }}
+          path: tests
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: tests/go.mod
+          cache-dependency-path: tests/go.sum
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: core-linux-amd64-artifact
+          path: core
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends dbus-x11 gnome-keyring inotify-tools openbox xvfb libgtk-4-1 libwebkitgtk-6.0-4
+          mkdir -p stage/evidence stage/system-home stage/runtime stage/workspace
+          go run -C tests ./cmd/stage-fleet -platform linux -target x86_64-unknown-linux-gnu -stage "$GITHUB_WORKSPACE/stage"
+      - env:
+          SOKSAK_TEST_SETTINGS: ${{ github.workspace }}/stage/composition-home/settings.json
+          SOKSAK_TEST_CLI: ${{ github.workspace }}/core/sok
+          SOKSAK_TEST_APP: ${{ github.workspace }}/core/soksak
+          SOKSAK_TEST_HOME: ${{ github.workspace }}/stage/system-home
+          SOKSAK_TEST_RUNTIME: ${{ github.workspace }}/stage/runtime
+          SOKSAK_TEST_WORKSPACE: ${{ github.workspace }}/stage/workspace
+          SOKSAK_TEST_EVIDENCE: ${{ github.workspace }}/stage/evidence
+        run: |
+          cd tests
+          scripts/run-linux-system.sh -run '^TestInstalledTerminalCommands$' -v
+          scripts/run-linux-system.sh -run '^TestInstalledTerminalWarmAndArchivedRestore$' -v
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        if: always()
+        with:
+          name: linux-terminal-system-evidence
+          path: stage/evidence
+          if-no-files-found: error
