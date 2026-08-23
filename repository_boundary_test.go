@@ -52,22 +52,9 @@ func TestRepositoryDoesNotExecuteOwnerSources(t *testing.T) {
 			t.Errorf("test repository contains install manifest %s", forbidden)
 		}
 	}
-	dockerfile, err := os.ReadFile("build/linux-sidecar.Dockerfile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, required := range []string{"rust:1.96-bookworm AS rust-toolchain", "ubuntu:24.04", "COPY --from=rust-toolchain", "CARGO_NET_GIT_FETCH_WITH_CLI=true", "rustc 1.96.", "git", "libxxhash-dev"} {
-		if !strings.Contains(string(dockerfile), required) {
-			t.Errorf("Linux sidecar image is missing %s", required)
-		}
-	}
-	engineImage, err := os.ReadFile("build/linux-engine-sdk.Dockerfile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, required := range []string{"ubuntu:24.04", "clang-20", "-std=c++26", "libpython3-dev", "python3-full", "import encodings, json", "libssl-dev", "libvulkan-dev", "ragel", "glslang-tools", "libxxhash-dev"} {
-		if !strings.Contains(string(engineImage), required) {
-			t.Errorf("Linux engine SDK image is missing %s", required)
+	for _, obsolete := range []string{"build/linux-sidecar.Dockerfile", "build/linux-engine-sdk.Dockerfile"} {
+		if _, err := os.Stat(obsolete); !os.IsNotExist(err) {
+			t.Errorf("acceptance repository retains owner build input %s", obsolete)
 		}
 	}
 }
