@@ -46,7 +46,7 @@ func ValidateTerminalInventory(profile fleet.Profile, environment platformspec.E
 	for _, id := range sidecars {
 		component, ok := environment.Sidecars[id]
 		if !ok || component.Target != profile.Target || !filepath.IsAbs(component.Path) {
-			return fmt.Errorf("sidecar is not installed: %s", id)
+			return fmt.Errorf("sidecar is not installed: %s found=%t target=%q want=%q path=%q", id, ok, component.Target, profile.Target, component.Path)
 		}
 	}
 	return nil
