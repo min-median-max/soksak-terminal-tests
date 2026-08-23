@@ -108,25 +108,6 @@ func (lifecycle *Lifecycle) Start() error {
 	return fmt.Errorf("application did not answer within 45 seconds: %v: %s", readinessErr, lifecycle.lastLog())
 }
 
-func (lifecycle *Lifecycle) PrepareHome(settingsPath string) error {
-	if !filepath.IsAbs(settingsPath) {
-		return fmt.Errorf("settings path must be absolute: %s", settingsPath)
-	}
-	if err := os.MkdirAll(lifecycle.config.Home, 0o700); err != nil {
-		return err
-	}
-	for _, name := range []string{"settings.json", "installed.json"} {
-		body, err := os.ReadFile(filepath.Join(filepath.Dir(settingsPath), name))
-		if err != nil {
-			return err
-		}
-		if err := os.WriteFile(filepath.Join(lifecycle.config.Home, name), body, 0o600); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
 	if lifecycle.window == "" {
 		return "", fmt.Errorf("ready window is not known")

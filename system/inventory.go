@@ -9,53 +9,44 @@ import (
 	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
 
-func ReadState(settingsPath string) (platformspec.Settings, platformspec.Installed, error) {
-	if !filepath.IsAbs(settingsPath) || filepath.Base(settingsPath) != platformspec.SettingsFile {
-		return platformspec.Settings{}, platformspec.Installed{}, fmt.Errorf("settings path must be an absolute settings.json path: %s", settingsPath)
+func ReadEnvironment(environmentPath string) (platformspec.Environment, error) {
+	if !filepath.IsAbs(environmentPath) || filepath.Base(environmentPath) != platformspec.EnvironmentFile {
+		return platformspec.Environment{}, fmt.Errorf("environment path must be an absolute environment.json path: %s", environmentPath)
 	}
-	settingsBody, err := os.ReadFile(settingsPath)
+	body, err := os.ReadFile(environmentPath)
 	if err != nil {
-		return platformspec.Settings{}, platformspec.Installed{}, err
+		return platformspec.Environment{}, err
 	}
-	settings, err := platformspec.ParseSettings(settingsBody)
-	if err != nil {
-		return platformspec.Settings{}, platformspec.Installed{}, err
-	}
-	installedBody, err := os.ReadFile(filepath.Join(filepath.Dir(settingsPath), platformspec.InstalledFile))
-	if err != nil {
-		return platformspec.Settings{}, platformspec.Installed{}, err
-	}
-	installed, err := platformspec.ParseInstalled(installedBody)
-	return settings, installed, err
+	return platformspec.ParseEnvironment(body)
 }
 
-func ValidateTerminalInventory(profile fleet.Profile, settings platformspec.Settings, installed platformspec.Installed) error {
-	if len(settings.Plugins) != len(profile.Plugins) || len(installed.Plugins) != len(profile.Plugins) {
+func ValidateTerminalInventory(profile fleet.Profile, environment platformspec.Environment) error {
+	if err := platformspec.ValidateEnvironment(environment); err != nil {
+		return err
+	}
+	if len(environment.Plugins) != len(profile.Plugins) {
 		return fmt.Errorf("plugin inventory is not exact for %s", profile.Platform)
 	}
 	for _, plugin := range profile.Plugins {
-		preference, ok := settings.Plugins[plugin.ID]
-		component, installedOK := installed.Plugins[plugin.ID]
-		if !ok || !preference.Enabled || !installedOK || !filepath.IsAbs(component.Path) {
+		component, ok := environment.Plugins[plugin.ID]
+		if !ok || !component.Enabled || !filepath.IsAbs(component.Path) {
 			return fmt.Errorf("plugin is not active and installed: %s", plugin.ID)
 		}
-		if preference.Providers["pty"] != "soksak-sidecar-pty" {
-			return fmt.Errorf("plugin has no PTY provider: %s", plugin.ID)
+		if component.Sidecars["pty"] != "soksak-sidecar-pty" {
+			return fmt.Errorf("plugin has no PTY sidecar: %s", plugin.ID)
+		}
+		if component.Sidecars["recovery"] != plugin.Sidecar {
+			return fmt.Errorf("plugin recovery sidecar selection is invalid: %s", plugin.ID)
 		}
 	}
 	sidecars := append([]string{"soksak-sidecar-pty"}, profile.RecoverySidecars...)
-	if len(installed.Sidecars) != len(sidecars) {
+	if len(environment.Sidecars) != len(sidecars) {
 		return fmt.Errorf("sidecar inventory is not exact for %s", profile.Platform)
 	}
 	for _, id := range sidecars {
-		component, ok := installed.Sidecars[id]
+		component, ok := environment.Sidecars[id]
 		if !ok || component.Target != profile.Target || !filepath.IsAbs(component.Path) {
 			return fmt.Errorf("sidecar is not installed: %s", id)
-		}
-	}
-	for _, plugin := range profile.Plugins {
-		if settings.Plugins[plugin.ID].Providers[plugin.Requirement] != plugin.Sidecar {
-			return fmt.Errorf("plugin provider selection is invalid: %s", plugin.ID)
 		}
 	}
 	return nil

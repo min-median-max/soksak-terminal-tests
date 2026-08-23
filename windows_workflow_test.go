@@ -28,21 +28,24 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 		}
 	}
 	if !strings.Contains(s, "New-Item -ItemType Directory -Force stage/evidence") {
-		t.Error("Windows workflow does not create the evidence directory before fleet installation")
+		t.Error("Windows workflow does not create the evidence directory before verification")
 	}
 	for _, v := range []string{"github.workflow_sha", "soksak-" + "plugins", "soksak-" + "sidecars", "git clone", "cargo build"} {
 		if strings.Contains(s, v) {
 			t.Errorf("executes owner source: %s", v)
 		}
 	}
-	installer, err := os.ReadFile("cmd/stage-fleet/main.go")
+	installer, err := os.ReadFile("system/install_fleet.go")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if strings.Contains(string(installer), "gh run download") {
 		t.Fatal("Windows fleet installs a workflow artifact instead of an immutable release")
 	}
-	if !strings.Contains(string(installer), "release/fleets.json") {
-		t.Error("Windows staging runner does not read the verified fleet declaration")
+	if !strings.Contains(s, "go run -C tests ./cmd/verify-fleet -platform windows -target x86_64-pc-windows-msvc") {
+		t.Error("Windows workflow does not verify the declared release fleet")
+	}
+	if !strings.Contains(string(installer), "plugin.install") {
+		t.Error("system installation does not use the public plugin installer")
 	}
 }

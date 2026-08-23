@@ -1,7 +1,6 @@
 #!/bin/sh
 set -eu
 
-: "${SOKSAK_TEST_SETTINGS:?}"
 : "${SOKSAK_TEST_CLI:?}"
 : "${SOKSAK_TEST_APP:?}"
 : "${SOKSAK_TEST_HOME:?}"

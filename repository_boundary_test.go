@@ -72,8 +72,8 @@ func TestRepositoryDoesNotExecuteOwnerSources(t *testing.T) {
 	}
 }
 
-func TestRepositoryUsesCanonicalSettingsAndInstalledState(t *testing.T) {
-	for _, path := range []string{"development/settings.go", "system/inventory.go"} {
+func TestRepositoryUsesTheCanonicalEnvironmentState(t *testing.T) {
+	for _, path := range []string{"system/inventory.go", "system/install_fleet.go"} {
 		body, err := os.ReadFile(path)
 		if err != nil {
 			t.Fatal(err)
@@ -82,7 +82,7 @@ func TestRepositoryUsesCanonicalSettingsAndInstalledState(t *testing.T) {
 		if !strings.Contains(source, "github.com/soksak-ai/soksak-spec/go/platformspec") {
 			t.Errorf("%s does not use the canonical platform state parser", path)
 		}
-		for _, obsolete := range []string{"soksak-spec-composition", "type Component struct", "SettingsSpec"} {
+		for _, obsolete := range []string{"soksak-spec-composition", "type Component struct", "SettingsSpec", "InstalledSpec"} {
 			if strings.Contains(source, obsolete) {
 				t.Errorf("%s contains obsolete platform state %q", path, obsolete)
 			}
@@ -91,16 +91,16 @@ func TestRepositoryUsesCanonicalSettingsAndInstalledState(t *testing.T) {
 }
 
 func TestReleaseFleetsHaveOneDeclaration(t *testing.T) {
-	for _, path := range []string{"release/fleets.json", "release/fleet_release.go", "cmd/verify-fleet/main.go", "cmd/stage-fleet/main.go", "scripts/windows-preflight.sh"} {
+	for _, path := range []string{"release/fleets.json", "release/fleet_release.go", "cmd/verify-fleet/main.go", "system/install_fleet.go", "scripts/windows-preflight.sh"} {
 		if info, err := os.Stat(path); err != nil || !info.Mode().IsRegular() {
 			t.Errorf("missing Windows release verification file %s: %v", path, err)
 		}
 	}
-	installer, err := os.ReadFile("cmd/stage-fleet/main.go")
+	verifier, err := os.ReadFile("cmd/verify-fleet/main.go")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(installer), "release/fleets.json") {
-		t.Fatal("staging runner does not read the release fleet declaration")
+	if !strings.Contains(string(verifier), "release/fleets.json") {
+		t.Fatal("release verifier does not read the fleet declaration")
 	}
 }

@@ -3,7 +3,7 @@
 Non-product quality repository for terminal implementations used by Soksak.
 
 - benchmark compares provider throughput, RSS and loss against measured daemon demand.
-- system runs black-box recovery scenarios against installed Soksak settings.
+- system installs released components through Soksak commands and runs black-box recovery scenarios.
 
 This repository is not installable software and is never listed in soksak-plugin-registry. It
 contains no plugin, sidecar or kit implementation. It does not build another repository's source
@@ -12,18 +12,13 @@ tree. Inputs are installed artifacts, public commands, contract reports and benc
 Each plugin and sidecar repository remains responsible for its own conformance and release gates.
 This repository owns only cross-provider comparison and installed-system behavior.
 
-`prepare-development` accepts one JSON object on stdin and atomically writes a development
-`settings.json` and `installed.json`. The input declares `platform` (`darwin`, `linux`, or `windows`),
-an absolute identity-home path, and exact artifact path, repository, source commit and digest records.
 Darwin and Linux require seven plugins plus PTY and six recovery sidecars. Windows requires the five
 plugins backed by Alacritty, Ghostty, VT100, WezTerm, and Xterm plus PTY and four recovery sidecars;
-Kitty and Shitty are not Windows artifacts.
-It validates every manifest identity, process, target and provenance before replacing both
-canonical files while the test application is stopped. It does not build source code.
-
-```sh
-go run ./cmd/prepare-development < /absolute/path/to/development-input.json
-```
+Kitty and Shitty are not Windows artifacts. `verify-fleet` validates those immutable release bytes.
+The system suite starts Core with an empty home, calls `plugin.install` with explicit `pty` and
+`recovery` bindings, reads every consent summary, grants consent, enables each plugin, and validates
+the resulting `environment.json` through the public control surface. This repository never writes
+product installation state.
 
 Provider repositories produce versioned `*.bench.json` reports. This repository reads those
 reports and never runs provider source:
@@ -32,26 +27,15 @@ reports and never runs provider source:
 SOKSAK_BENCH_REPORTS=/absolute/path/to/reports go test -tags=benchmark ./benchmark -v
 ```
 
-The default test suite validates the harness. The installed inventory gate is explicit and never
-skips missing input:
+The default test suite validates the harness. Native system tests require the application and CLI:
 
 ```sh
-SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json go test -tags=system ./system
-```
-
-The public-command gate also requires a running installed application:
-
-```sh
-SOKSAK_TEST_SETTINGS=/absolute/identity-home/settings.json \
 SOKSAK_TEST_PLATFORM=linux \
 SOKSAK_TEST_CLI=/absolute/path/to/sok \
 SOKSAK_TEST_APP=/absolute/path/to/soksak \
-SOKSAK_TEST_SOCKET=/absolute/path/to/control.sock \
-SOKSAK_TEST_HOME=/absolute/path/to/identity-home \
 SOKSAK_TEST_RUNTIME=/absolute/path/to/runtime \
 SOKSAK_TEST_WORKSPACE=/absolute/path/to/workspace \
 SOKSAK_TEST_IDENTIFIER=com.soksak.systemtest \
-SOKSAK_TEST_WINDOW=w-workspace \
 SOKSAK_TEST_EVIDENCE=/absolute/path/to/evidence \
 go test -tags=system ./system
 ```

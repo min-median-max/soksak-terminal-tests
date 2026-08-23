@@ -3,9 +3,8 @@ package fleet
 import "fmt"
 
 type Plugin struct {
-	ID          string
-	Requirement string
-	Sidecar     string
+	ID      string
+	Sidecar string
 }
 
 type Profile struct {
@@ -16,13 +15,13 @@ type Profile struct {
 }
 
 var fullPlugins = []Plugin{
-	{"soksak-plugin-terminal-alacritty", "terminal-alacritty", "soksak-sidecar-terminal-alacritty"},
-	{"soksak-plugin-terminal-ghostty", "terminal-ghostty", "soksak-sidecar-terminal-ghostty"},
-	{"soksak-plugin-terminal-kitty", "terminal-kitty", "soksak-sidecar-terminal-kitty"},
-	{"soksak-plugin-terminal-shitty", "terminal-shitty", "soksak-sidecar-terminal-shitty"},
-	{"soksak-plugin-terminal-vt100", "terminal-vt100", "soksak-sidecar-terminal-vt100"},
-	{"soksak-plugin-terminal-wezterm", "terminal-wezterm", "soksak-sidecar-terminal-wezterm"},
-	{"soksak-plugin-terminal-xterm", "terminal-vt100", "soksak-sidecar-terminal-vt100"},
+	{"soksak-plugin-terminal-alacritty", "soksak-sidecar-terminal-alacritty"},
+	{"soksak-plugin-terminal-ghostty", "soksak-sidecar-terminal-ghostty"},
+	{"soksak-plugin-terminal-kitty", "soksak-sidecar-terminal-kitty"},
+	{"soksak-plugin-terminal-shitty", "soksak-sidecar-terminal-shitty"},
+	{"soksak-plugin-terminal-vt100", "soksak-sidecar-terminal-vt100"},
+	{"soksak-plugin-terminal-wezterm", "soksak-sidecar-terminal-wezterm"},
+	{"soksak-plugin-terminal-xterm", "soksak-sidecar-terminal-vt100"},
 }
 
 var fullRecoverySidecars = []string{
