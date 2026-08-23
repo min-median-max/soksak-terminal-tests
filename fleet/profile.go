@@ -26,22 +26,22 @@ type Profile struct {
 }
 
 var officialRegistry = Component{
-	ID: "registry-12", Version: "12", ReleaseSize: 7915,
-	ReleaseSHA256: "c19eec7208b0013df6aca6426b7d2b593d04957ace986f4e3a0a2ba8d4d740bf",
+	ID: "registry-13", Version: "13", ReleaseSize: 7915,
+	ReleaseSHA256: "598121d12066dec61eb8347cd72b3590741ba0edebcc4e82ab021de908ca61fa",
 }
 
 var fullPlugins = []Plugin{
-	{Component: Component{ID: "soksak-plugin-terminal-alacritty", Version: "0.0.13", ReleaseSize: 2278, ReleaseSHA256: "7e4e0426c7711bac61252e58e821373e968aab91e00fcb57e14bae4cf593b5a3"}, Sidecar: "soksak-sidecar-terminal-alacritty"},
-	{Component: Component{ID: "soksak-plugin-terminal-ghostty", Version: "0.0.14", ReleaseSize: 2258, ReleaseSHA256: "8eef8e7ef3e8d835bb7ffd52a096735b8932534c21df7732c1487e1d3b609994"}, Sidecar: "soksak-sidecar-terminal-ghostty"},
-	{Component: Component{ID: "soksak-plugin-terminal-kitty", Version: "0.0.13", ReleaseSize: 2236, ReleaseSHA256: "72114f485d0805df741164d401eabdf799340ecb5f37d631ecdaba71722890c7"}, Sidecar: "soksak-sidecar-terminal-kitty"},
-	{Component: Component{ID: "soksak-plugin-terminal-shitty", Version: "0.0.13", ReleaseSize: 2246, ReleaseSHA256: "1bc623b6f2e39a290be1ea74b11601816b0f64abadcb22e7a07243aa50413f15"}, Sidecar: "soksak-sidecar-terminal-shitty"},
-	{Component: Component{ID: "soksak-plugin-terminal-vt100", Version: "0.0.13", ReleaseSize: 2238, ReleaseSHA256: "06065b7afbb609bf0dcd7f4a2fdb2d8780e69c071f60121649ac5207ba1b628a"}, Sidecar: "soksak-sidecar-terminal-vt100"},
-	{Component: Component{ID: "soksak-plugin-terminal-wezterm", Version: "0.0.13", ReleaseSize: 2258, ReleaseSHA256: "9186cb81ca52d0bf407b793f7feb907cfdb17960887332af315c93eb741d5211"}, Sidecar: "soksak-sidecar-terminal-wezterm"},
-	{Component: Component{ID: "soksak-plugin-terminal-xterm", Version: "0.0.20", ReleaseSize: 2239, ReleaseSHA256: "0e73249a45f64c0cf2bee9aa1181eefa5147a71073322f8063cab31f22d4b9cd"}, Sidecar: "soksak-sidecar-terminal-vt100"},
+	{Component: Component{ID: "soksak-plugin-terminal-alacritty", Version: "0.0.14", ReleaseSize: 2278, ReleaseSHA256: "dd4c5f14ba91303d83e884a6220d68f7c57039aa91f99284c57bbbdbda5d38fa"}, Sidecar: "soksak-sidecar-terminal-alacritty"},
+	{Component: Component{ID: "soksak-plugin-terminal-ghostty", Version: "0.0.15", ReleaseSize: 2258, ReleaseSHA256: "a6e2d88f83fc85ad3829c8e7fad875b25a9ac6802a4c87a9befb244a77ae5816"}, Sidecar: "soksak-sidecar-terminal-ghostty"},
+	{Component: Component{ID: "soksak-plugin-terminal-kitty", Version: "0.0.14", ReleaseSize: 2236, ReleaseSHA256: "74f36c5b212fd57d3e499b73783b940b5c2a7ae5f6fb4db1586aed4bab9e8364"}, Sidecar: "soksak-sidecar-terminal-kitty"},
+	{Component: Component{ID: "soksak-plugin-terminal-shitty", Version: "0.0.14", ReleaseSize: 2246, ReleaseSHA256: "5d3a3a00ca550404458e3f1a8daa4ead5c17778fd7fc56e4f187e92f02602537"}, Sidecar: "soksak-sidecar-terminal-shitty"},
+	{Component: Component{ID: "soksak-plugin-terminal-vt100", Version: "0.0.14", ReleaseSize: 2238, ReleaseSHA256: "9057cd8f2726dac46260e15cbe38c93f5092c9d72866cad0216962f9dcb0d297"}, Sidecar: "soksak-sidecar-terminal-vt100"},
+	{Component: Component{ID: "soksak-plugin-terminal-wezterm", Version: "0.0.14", ReleaseSize: 2258, ReleaseSHA256: "dae7421e32748c20ae70e615f189206699d469deab32a1de78fcf114c576f76d"}, Sidecar: "soksak-sidecar-terminal-wezterm"},
+	{Component: Component{ID: "soksak-plugin-terminal-xterm", Version: "0.0.21", ReleaseSize: 2239, ReleaseSHA256: "0bfcad93004633fd4e5725e12f5d1d59d9f439b7d5a6f2713c987f69c130f477"}, Sidecar: "soksak-sidecar-terminal-vt100"},
 }
 
 var fullSidecars = []Component{
-	{ID: "soksak-sidecar-pty", Version: "0.0.6", ReleaseSize: 2996, ReleaseSHA256: "32e05911074b381222cbcac6004c76c93e73c9fe967df57b649af5abb5c69c40"},
+	{ID: "soksak-sidecar-pty", Version: "0.0.7", ReleaseSize: 2996, ReleaseSHA256: "58e102c1943c4d478a3f5d1d39d19c0dba95b521de76a1fb9205469cd1650c37"},
 	{ID: "soksak-sidecar-terminal-alacritty", Version: "0.0.13", ReleaseSize: 3246, ReleaseSHA256: "01838a47dcde2058382ac948bdc7523963ac5aaa7c0ad11574d56e8c48fa1f6f"},
 	{ID: "soksak-sidecar-terminal-ghostty", Version: "0.0.13", ReleaseSize: 3216, ReleaseSHA256: "6b1f93e333b79037e949dd4a367247d207d2068c5670e00df6ab0635a365d2da"},
 	{ID: "soksak-sidecar-terminal-kitty", Version: "0.0.8", ReleaseSize: 2788, ReleaseSHA256: "2594bb7ba6b1a4e5c087b495cfc0f0e89ea985bc026a1baae76bbdda318e2a3c"},
