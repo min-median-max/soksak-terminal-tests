@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: require-target preflight native-preflight prepare verify benchmark fleet system system-commands system-restore system-parity system-visibility
+.PHONY: require-target preflight native-preflight prepare verify benchmark fleet system system-commands system-restore system-parity system-visibility system-native-input
 
 require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
@@ -38,6 +38,9 @@ system-parity: system
 
 system-visibility: TEST_NAME := TestInstalledTerminalVisibilityMatrix
 system-visibility: system
+
+system-native-input: TEST_NAME := TestInstalledTerminalNativeInputMatrix
+system-native-input: system
 
 system: native-preflight prepare
 	@test -n '$(TEST_NAME)' || { echo 'system scenario must be one declared Make target' >&2; exit 2; }

@@ -53,6 +53,14 @@ func lifecycleConfigFromEnvironment(t *testing.T, scenario string) LifecycleConf
 	}
 }
 
+func nativeInputLifecycleConfigFromEnvironment(t *testing.T) LifecycleConfig {
+	t.Helper()
+	config := lifecycleConfigFromEnvironment(t, "native-input")
+	config.Presentation = "interactive"
+	config.Focus = true
+	return config
+}
+
 func snapshotExecutable(t *testing.T, root, source, name string) string {
 	t.Helper()
 	input, err := os.Open(source)

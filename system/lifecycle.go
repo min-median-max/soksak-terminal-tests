@@ -13,14 +13,16 @@ import (
 )
 
 type LifecycleConfig struct {
-	App         string
-	CLI         string
-	Socket      string
-	Home        string
-	Runtime     string
-	Workspace   string
-	EvidenceDir string
-	Identifier  string
+	App          string
+	CLI          string
+	Socket       string
+	Home         string
+	Runtime      string
+	Workspace    string
+	EvidenceDir  string
+	Identifier   string
+	Presentation string
+	Focus        bool
 }
 
 type Lifecycle struct {
@@ -44,6 +46,12 @@ func NewLifecycle(config LifecycleConfig) (*Lifecycle, error) {
 	}
 	if config.Identifier == "" {
 		return nil, fmt.Errorf("identifier is required")
+	}
+	if config.Presentation == "" {
+		config.Presentation = "capture-only"
+	}
+	if config.Presentation != "capture-only" && config.Presentation != "interactive" {
+		return nil, fmt.Errorf("presentation must be capture-only or interactive: %s", config.Presentation)
 	}
 	if err := validateControlAddress(config.Socket); err != nil {
 		return nil, err
@@ -69,7 +77,7 @@ func (lifecycle *Lifecycle) Start() error {
 		"SOKSAK_HOME="+lifecycle.config.Home,
 		"SOKSAK_IDENTIFIER="+lifecycle.config.Identifier,
 		"SOKSAK_RUNTIME="+lifecycle.config.Runtime,
-		"SOKSAK_PRESENTATION=capture-only",
+		"SOKSAK_PRESENTATION="+lifecycle.config.Presentation,
 	)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -111,7 +119,7 @@ func (lifecycle *Lifecycle) Start() error {
 		return lifecycle.AwaitWindow()
 	}
 	opened, err := lifecycle.client("main").Call("window.open", map[string]any{
-		"root": lifecycle.config.Workspace, "focus": false,
+		"root": lifecycle.config.Workspace, "focus": lifecycle.config.Focus,
 	})
 	if err != nil {
 		return err
@@ -137,7 +145,7 @@ func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
 		return "", fmt.Errorf("ready window is not known")
 	}
 	data, err := lifecycle.client(lifecycle.window).Call("window.open", map[string]any{
-		"root": lifecycle.config.Workspace, "focus": false,
+		"root": lifecycle.config.Workspace, "focus": lifecycle.config.Focus,
 	})
 	if err != nil {
 		return "", err
