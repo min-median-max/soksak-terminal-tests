@@ -121,6 +121,16 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			t.Fatalf("keyboard round trip %s: %v; status=%+v statusErr=%v; read=%+v readErr=%v",
 				plugin.ID, err, status, statusErr, read, readErr)
 		}
+		if err := captureTerminal(cli, "parity-"+plugin.ID); err != nil {
+			t.Fatalf("capture %s: %v", plugin.ID, err)
+		}
+		terminalImage := filepath.Join(lifecycle.config.EvidenceDir, "parity-"+plugin.ID+"-screen.png")
+		if _, err := cli.Call("window.snapshot", map[string]any{"path": terminalImage, "node": screen}); err != nil {
+			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
+		}
+		if _, err := validateTerminalPaletteEvidence(terminalImage, palette); err != nil {
+			t.Errorf("%s terminal pixels: %v", plugin.ID, err)
+		}
 		status, err := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
 		if err != nil {
 			t.Fatalf("status %s: %v", plugin.ID, err)
@@ -149,16 +159,6 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		}
 		if report.LastInputToPtyWriteMs > budgets.InputToPtyWriteMs {
 			t.Errorf("%s input-to-PTY %.3fms exceeds %.3fms", plugin.ID, report.LastInputToPtyWriteMs, budgets.InputToPtyWriteMs)
-		}
-		if err := captureTerminal(cli, "parity-"+plugin.ID); err != nil {
-			t.Fatalf("capture %s: %v", plugin.ID, err)
-		}
-		terminalImage := filepath.Join(lifecycle.config.EvidenceDir, "parity-"+plugin.ID+"-screen.png")
-		if _, err := cli.Call("window.snapshot", map[string]any{"path": terminalImage, "node": screen}); err != nil {
-			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
-		}
-		if _, err := validateTerminalPaletteEvidence(terminalImage, palette); err != nil {
-			t.Errorf("%s terminal pixels: %v", plugin.ID, err)
 		}
 		reports = append(reports, report)
 	}
