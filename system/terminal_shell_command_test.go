@@ -66,7 +66,10 @@ func TestTerminalPaletteCommandHidesTheAwaitedMarkerFromShellEcho(t *testing.T) 
 		}
 	}
 	unix, _ := terminalPaletteCommand("darwin", marker)
-	for _, sequence := range []string{"\\033[41m", "\\033[42m", "\\033[44m", "\\033[0m"} {
+	for _, sequence := range []string{
+		"\\033[41m", "\\033[42m", "\\033[44m",
+		"\\033[101m", "\\033[102m", "\\033[104m", "\\033[0m",
+	} {
 		if !strings.Contains(unix, sequence) {
 			t.Errorf("palette command omits %q: %s", sequence, unix)
 		}

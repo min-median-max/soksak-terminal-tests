@@ -28,7 +28,7 @@ func TestCaptureEvidenceRejectsUniformAndAcceptsDrawnPixels(t *testing.T) {
 	}
 }
 
-func TestTerminalPaletteEvidenceRequiresAllThreePaintedSwatches(t *testing.T) {
+func TestTerminalPaletteEvidenceRequiresExactBaseAndBrightSwatches(t *testing.T) {
 	expected, err := terminalPaletteExpectationFromBase([]string{
 		"#2e3436", "#cc0000", "#4e9a06", "#c4a000", "#3465a4", "#75507b", "#06989a", "#d3d7cf",
 		"#555753", "#ef2929", "#8ae234", "#fce94f", "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec",
@@ -36,10 +36,13 @@ func TestTerminalPaletteEvidenceRequiresAllThreePaintedSwatches(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	complete := image.NewRGBA(image.Rect(0, 0, 36, 12))
+	complete := image.NewRGBA(image.Rect(0, 0, 72, 12))
 	paintBlock(complete, image.Rect(0, 0, 12, 12), color.RGBA{R: 0xcc, G: 0x00, B: 0x00, A: 255})
 	paintBlock(complete, image.Rect(12, 0, 24, 12), color.RGBA{R: 0x4e, G: 0x9a, B: 0x06, A: 255})
 	paintBlock(complete, image.Rect(24, 0, 36, 12), color.RGBA{R: 0x34, G: 0x65, B: 0xa4, A: 255})
+	paintBlock(complete, image.Rect(36, 0, 48, 12), color.RGBA{R: 0xef, G: 0x29, B: 0x29, A: 255})
+	paintBlock(complete, image.Rect(48, 0, 60, 12), color.RGBA{R: 0x8a, G: 0xe2, B: 0x34, A: 255})
+	paintBlock(complete, image.Rect(60, 0, 72, 12), color.RGBA{R: 0x72, G: 0x9f, B: 0xcf, A: 255})
 	if _, err := validateTerminalPaletteEvidence(writeCaptureFixture(t, "palette.png", complete), expected); err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +55,7 @@ func TestTerminalPaletteEvidenceRequiresAllThreePaintedSwatches(t *testing.T) {
 	}
 }
 
-func TestTerminalPaletteEvidenceAcceptsOneSharedFocusLightingTransform(t *testing.T) {
+func TestTerminalPaletteEvidenceRejectsFocusLightingAsAColorSubstitute(t *testing.T) {
 	expected, err := terminalPaletteExpectationFromBase([]string{
 		"#2e3436", "#cc0000", "#4e9a06", "#c4a000", "#3465a4", "#75507b", "#06989a", "#d3d7cf",
 		"#555753", "#ef2929", "#8ae234", "#fce94f", "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec",
@@ -64,8 +67,8 @@ func TestTerminalPaletteEvidenceAcceptsOneSharedFocusLightingTransform(t *testin
 	paintBlock(painted, image.Rect(0, 0, 12, 12), color.RGBA{R: 0xbb, G: 0x27, B: 0x1a, A: 255})
 	paintBlock(painted, image.Rect(12, 0, 24, 12), color.RGBA{R: 0x61, G: 0x98, B: 0x2d, A: 255})
 	paintBlock(painted, image.Rect(24, 0, 36, 12), color.RGBA{R: 0x40, G: 0x64, B: 0x9f, A: 255})
-	if _, err := validateTerminalPaletteEvidence(writeCaptureFixture(t, "focus-lit-palette.png", painted), expected); err != nil {
-		t.Fatal(err)
+	if _, err := validateTerminalPaletteEvidence(writeCaptureFixture(t, "focus-lit-palette.png", painted), expected); err == nil {
+		t.Fatal("focus-lit hues were accepted instead of exact terminal palette pixels")
 	}
 }
 
