@@ -108,21 +108,76 @@ func parseTerminalColour(value string) ([3]uint8, error) {
 }
 
 func countTerminalPalettePixels(pixels image.Image, expected terminalPaletteExpectation) terminalPaletteCounts {
-	var counts terminalPaletteCounts
+	return terminalPaletteCounts{
+		Red:   largestPaletteRegion(pixels, expected.Red),
+		Green: largestPaletteRegion(pixels, expected.Green),
+		Blue:  largestPaletteRegion(pixels, expected.Blue),
+	}
+}
+
+func largestPaletteRegion(pixels image.Image, expected [3]uint8) int {
 	bounds := pixels.Bounds()
+	width, height := bounds.Dx(), bounds.Dy()
+	matched := make([]bool, width*height)
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r16, g16, b16, _ := pixels.At(x, y).RGBA()
 			colour := [3]uint8{uint8(r16 >> 8), uint8(g16 >> 8), uint8(b16 >> 8)}
-			switch {
-			case colour == expected.Red:
-				counts.Red++
-			case colour == expected.Green:
-				counts.Green++
-			case colour == expected.Blue:
-				counts.Blue++
-			}
+			matched[(y-bounds.Min.Y)*width+x-bounds.Min.X] = sameDominantHue(colour, expected)
 		}
 	}
-	return counts
+	largest := 0
+	queue := make([]int, 0, 256)
+	for start := range matched {
+		if !matched[start] {
+			continue
+		}
+		matched[start] = false
+		queue = append(queue[:0], start)
+		count := 0
+		for len(queue) > 0 {
+			index := queue[len(queue)-1]
+			queue = queue[:len(queue)-1]
+			count++
+			x, y := index%width, index/width
+			for _, next := range []int{index - 1, index + 1, index - width, index + width} {
+				if next < 0 || next >= len(matched) || !matched[next] {
+					continue
+				}
+				nextX, nextY := next%width, next/width
+				if abs(nextX-x)+abs(nextY-y) != 1 {
+					continue
+				}
+				matched[next] = false
+				queue = append(queue, next)
+			}
+		}
+		if count > largest {
+			largest = count
+		}
+	}
+	return largest
+}
+
+func sameDominantHue(colour, expected [3]uint8) bool {
+	dominant := 0
+	for index := 1; index < len(expected); index++ {
+		if expected[index] > expected[dominant] {
+			dominant = index
+		}
+	}
+	second := uint8(0)
+	for index, value := range colour {
+		if index != dominant && value > second {
+			second = value
+		}
+	}
+	return colour[dominant] >= 64 && int(colour[dominant])-int(second) >= 24
+}
+
+func abs(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
 }

@@ -156,7 +156,7 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
 		}
 		if _, err := validateTerminalPaletteEvidence(terminalImage, palette); err != nil {
-			t.Fatalf("%s terminal pixels: %v", plugin.ID, err)
+			t.Errorf("%s terminal pixels: %v", plugin.ID, err)
 		}
 		reports = append(reports, report)
 	}
