@@ -29,6 +29,12 @@ func TestOutputEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 		t.Fatalf("renderer sequence boundary = %q", got)
 	}
 	evidence.Rendered.OutputSequence = 262244
+	if got := evidence.failureBoundary(); got != "composition-throughput" {
+		t.Fatalf("missing throughput boundary = %q", got)
+	}
+	evidence.ElapsedMS = 50
+	evidence.OutputBytes = 262244
+	evidence.ThroughputMBs = 5.24488
 	if got := evidence.failureBoundary(); got != "" {
 		t.Fatalf("complete boundary = %q", got)
 	}
