@@ -42,6 +42,22 @@ func TestLifecyclePublishesProcessWindowAndSidecarOwnershipEvidence(t *testing.T
 	}
 }
 
+func TestOwnedSidecarNamesIncludesOpenAndRecordedWithoutDuplicates(t *testing.T) {
+	status := map[string]any{
+		"open": []any{
+			map[string]any{"name": "soksak-sidecar-pty"},
+		},
+		"recorded": []any{
+			map[string]any{"name": "soksak-sidecar-pty"},
+			map[string]any{"name": "soksak-sidecar-terminal-vt100"},
+		},
+	}
+	names := ownedSidecarNames(status)
+	if strings.Join(names, ",") != "soksak-sidecar-pty,soksak-sidecar-terminal-vt100" {
+		t.Fatalf("names=%v", names)
+	}
+}
+
 func TestLifecycleRequiresDeclaredAbsoluteInputs(t *testing.T) {
 	_, err := NewLifecycle(LifecycleConfig{
 		App: "soksak", CLI: "/bin/sok", Socket: "/tmp/s.sock", Home: "/tmp/home",
