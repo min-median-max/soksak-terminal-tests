@@ -4,7 +4,7 @@
   "spec": {
     "id": "soksak-spec",
     "repository": "soksak-ai/soksak-spec",
-    "sourceCommit": "05fe452e9246b448c58a1c885badcad8830c0d70"
+    "sourceCommit": "f634aaa014d624311dbf48d4f974d547c8e3e471"
   },
   "contract": {
     "id": "soksak-contract-plugin-terminal",
@@ -20,37 +20,37 @@
     {
       "id": "soksak-plugin-terminal-alacritty",
       "repository": "soksak-ai/soksak-plugin-terminal-alacritty",
-      "sourceCommit": "0795d6bb59350a7f802500e4a6903f0e67bdcf13"
+      "sourceCommit": "3d6c54e27971b21473a7ebd337efc9c02c068521"
     },
     {
       "id": "soksak-plugin-terminal-ghostty",
       "repository": "soksak-ai/soksak-plugin-terminal-ghostty",
-      "sourceCommit": "cf53a03cdb17f87bb01f6ecda229aa1da325b3f2"
+      "sourceCommit": "aa4b9d979a6b51cdd55ff07453b1c0f95dde3743"
     },
     {
       "id": "soksak-plugin-terminal-kitty",
       "repository": "soksak-ai/soksak-plugin-terminal-kitty",
-      "sourceCommit": "d516ba26c813c460d96adce52ebb467b79524923"
+      "sourceCommit": "7b8390f37a4637e4d5a799f7b452dd420ba110e2"
     },
     {
       "id": "soksak-plugin-terminal-shitty",
       "repository": "soksak-ai/soksak-plugin-terminal-shitty",
-      "sourceCommit": "d3d9d0b082ec4a79d9402c10f2a420077edaec92"
+      "sourceCommit": "a8f452b53098693825475e1b2115b243bf6fd759"
     },
     {
       "id": "soksak-plugin-terminal-vt100",
       "repository": "soksak-ai/soksak-plugin-terminal-vt100",
-      "sourceCommit": "dd2b714cc26f91338ff0f86902a916ec4b083a1e"
+      "sourceCommit": "031c93c90fb3d086be080d39d94aa594087b068a"
     },
     {
       "id": "soksak-plugin-terminal-wezterm",
       "repository": "soksak-ai/soksak-plugin-terminal-wezterm",
-      "sourceCommit": "1259862e55b0be31a39fa8230b1590c60a8a3a52"
+      "sourceCommit": "312de26a321256450e4f8d3dda9c2f6b92aed9ce"
     },
     {
       "id": "soksak-plugin-terminal-xterm",
       "repository": "soksak-ai/soksak-plugin-terminal-xterm",
-      "sourceCommit": "db3cb806c1c229b398af9362a38ec7dab62df6d9"
+      "sourceCommit": "15fe4143be1f19e5941e169fdd0dc3e7d0e66437"
     }
   ],
   "sidecars": [
