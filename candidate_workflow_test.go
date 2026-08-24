@@ -36,7 +36,7 @@ func TestDarwinCandidateWorkflowUsesTheExactOwnerWorkflowsAndNativeGate(t *testi
 			t.Errorf("candidate workflow omits %q", required)
 		}
 	}
-	order := []string{"system-parity", "system-visibility", "system-commands", "system-native-input"}
+	order := []string{"system-parity", "system-native-input", "system-visibility", "system-commands"}
 	for index := 1; index < len(order); index++ {
 		if strings.Index(workflow, order[index-1]) > strings.Index(workflow, order[index]) {
 			t.Errorf("candidate matrix order is not %s before %s", order[index-1], order[index])
