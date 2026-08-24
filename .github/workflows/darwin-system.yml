@@ -6,17 +6,37 @@ on:
         description: Exact soksak-terminal-tests commit to execute
         required: true
         type: string
+      runner:
+        description: Native GitHub macOS runner label
+        required: true
+        type: string
+      artifact:
+        description: Exact Core build artifact name
+        required: true
+        type: string
+      architecture:
+        description: Native runner and thin-binary architecture
+        required: true
+        type: string
+      target:
+        description: Immutable sidecar artifact target
+        required: true
+        type: string
+      variant:
+        description: Core artifact shape, thin or universal
+        required: true
+        type: string
 permissions:
   contents: read
   actions: read
 jobs:
   system:
-    runs-on: macos-15
+    runs-on: ${{ inputs.runner }}
     timeout-minutes: 45
     env:
       SOKSAK_TEST_PLATFORM: darwin
-      SOKSAK_TEST_TARGET: aarch64-apple-darwin
-      SOKSAK_TEST_IDENTIFIER: com.soksak.darwinfleet
+      SOKSAK_TEST_TARGET: ${{ inputs.target }}
+      SOKSAK_TEST_IDENTIFIER: com.soksak.darwinfleet.${{ inputs.variant }}.${{ inputs.architecture }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -29,12 +49,27 @@ jobs:
           cache-dependency-path: tests/go.sum
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
-          name: core-darwin-artifact
+          name: ${{ inputs.artifact }}
           path: core
       - run: |
+          case "${{ inputs.architecture }}/${{ inputs.target }}/${{ inputs.runner }}" in
+            arm64/aarch64-apple-darwin/macos-15|x86_64/x86_64-apple-darwin/macos-15-intel) ;;
+            *) echo "Darwin runner, architecture and target do not match" >&2; exit 1 ;;
+          esac
+          case "${{ inputs.variant }}" in thin|universal) ;; *) echo "invalid Darwin artifact variant" >&2; exit 1 ;; esac
+          test "$(uname -m)" = "${{ inputs.architecture }}"
           chmod +x core/sok core/soksak.app/Contents/MacOS/soksak
+          app_arches=$(lipo -archs core/soksak.app/Contents/MacOS/soksak)
+          cli_arches=$(lipo -archs core/sok)
+          if [ "${{ inputs.variant }}" = universal ]; then
+            test "$app_arches" = "x86_64 arm64"
+            test "$cli_arches" = "x86_64 arm64"
+          else
+            test "$app_arches" = "${{ inputs.architecture }}"
+            test "$cli_arches" = "${{ inputs.architecture }}"
+          fi
           mkdir -p stage/evidence stage/system-home stage/workspace /tmp/soksak-runtime
-          go run -C tests ./cmd/verify-fleet -platform darwin -target aarch64-apple-darwin
+          go run -C tests ./cmd/verify-fleet -platform darwin -target "${{ inputs.target }}"
       - env:
           SOKSAK_TEST_CLI: ${{ github.workspace }}/core/sok
           SOKSAK_TEST_APP: ${{ github.workspace }}/core/soksak.app/Contents/MacOS/soksak
@@ -49,6 +84,6 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
-          name: darwin-terminal-system-evidence
+          name: darwin-${{ inputs.variant }}-${{ inputs.architecture }}-terminal-system-evidence
           path: stage/evidence
           if-no-files-found: error
