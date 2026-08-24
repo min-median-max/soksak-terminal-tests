@@ -27,6 +27,15 @@ func InstallTerminalFleet(profile fleet.Profile, cli commandCaller) error {
 	return nil
 }
 
+func EnableCandidateTerminalFleet(profile fleet.Profile, cli commandCaller) error {
+	for _, plugin := range profile.Plugins {
+		if err := enableInstalledPlugin(plugin.ID, cli); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func InstallPlugin(pluginID string, cli commandCaller) error {
 	if _, err := cli.Call("plugin.install", map[string]any{
 		"registryId": "official", "pluginId": pluginID,

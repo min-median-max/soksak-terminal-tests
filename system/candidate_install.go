@@ -17,14 +17,15 @@ import (
 )
 
 type CandidateComponent struct {
-	Kind             string `json:"kind"`
-	ID               string `json:"id"`
-	Version          string `json:"version"`
-	Artifact         string `json:"artifact"`
-	Manifest         string `json:"manifest"`
-	Target           string `json:"target,omitempty"`
-	SourceRepository string `json:"sourceRepository"`
-	SourceCommit     string `json:"sourceCommit"`
+	Kind              string            `json:"kind"`
+	ID                string            `json:"id"`
+	Version           string            `json:"version"`
+	Artifact          string            `json:"artifact"`
+	Manifest          string            `json:"manifest"`
+	Target            string            `json:"target,omitempty"`
+	SourceRepository  string            `json:"sourceRepository"`
+	SourceCommit      string            `json:"sourceCommit"`
+	DependencyCommits map[string]string `json:"dependencyCommits,omitempty"`
 }
 
 type CandidatePlan struct {
@@ -174,6 +175,11 @@ func prepareCandidate(root string, component CandidateComponent) (preparedCandid
 	}
 	if component.Kind == "sidecar" && component.Target == "" {
 		return preparedCandidate{}, fmt.Errorf("candidate sidecar %s has no target", component.ID)
+	}
+	for id, commit := range component.DependencyCommits {
+		if !candidateIdentity.MatchString(id) || !candidateCommit.MatchString(commit) {
+			return preparedCandidate{}, fmt.Errorf("candidate dependency commit is invalid: %s=%s", id, commit)
+		}
 	}
 	clean := filepath.Clean(component.Artifact)
 	if clean == "." || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {

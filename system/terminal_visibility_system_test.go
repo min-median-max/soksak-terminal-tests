@@ -21,8 +21,21 @@ func TestInstalledTerminalVisibilityMatrix(t *testing.T) {
 	if err := lifecycle.Start(); err != nil {
 		t.Fatal(err)
 	}
-	if err := InstallTerminalFleet(profile, lifecycle.Client()); err != nil {
-		t.Fatal(err)
+	candidatePlan := os.Getenv("SOKSAK_TEST_CANDIDATE_PLAN")
+	if candidatePlan == "" {
+		if err := InstallTerminalFleet(profile, lifecycle.Client()); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		if err := InstallCandidateFleet(candidatePlan, lifecycle.Client()); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := lifecycle.Client().Call("plugin.boot.wait", map[string]any{"timeoutMs": 45000}); err != nil {
+			t.Fatal(err)
+		}
+		if err := EnableCandidateTerminalFleet(profile, lifecycle.Client()); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := InstallPlugin("soksak-plugin-browser-wails3", lifecycle.Client()); err != nil {
 		t.Fatal(err)
