@@ -1,0 +1,247 @@
+name: darwin-candidate-native-input
+
+on:
+  workflow_call:
+    inputs:
+      tests_ref: { required: true, type: string }
+      core_artifact_name: { required: true, type: string }
+      core_source_commit: { required: true, type: string }
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      tests_repository: ${{ steps.tests-owner.outputs.repository }}
+      spec_repository: ${{ steps.plan.outputs.spec_repository }}
+      spec_commit: ${{ steps.plan.outputs.spec_commit }}
+      contract_repository: ${{ steps.plan.outputs.contract_repository }}
+      contract_commit: ${{ steps.plan.outputs.contract_commit }}
+      kit_repository: ${{ steps.plan.outputs.kit_repository }}
+      kit_commit: ${{ steps.plan.outputs.kit_commit }}
+      plugins: ${{ steps.plan.outputs.plugins }}
+      sidecars: ${{ steps.plan.outputs.sidecars }}
+    steps:
+      - name: Resolve this workflow's owner repository
+        id: tests-owner
+        shell: bash
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+        run: |
+          repository=${WORKFLOW_REF%%/.github/workflows/*}
+          case "$repository" in */*) ;; *) echo "workflow_ref has no owner repository" >&2; exit 1 ;; esac
+          echo "repository=$repository" >> "$GITHUB_OUTPUT"
+      - name: Check out the exact product tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ steps.tests-owner.outputs.repository }}
+          ref: ${{ inputs.tests_ref }}
+          path: tests
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Bind and verify the product configuration
+        shell: bash
+        env:
+          TESTS_REF: ${{ inputs.tests_ref }}
+        run: |
+          case "$TESTS_REF" in *[!a-f0-9]*|'') echo "tests_ref is invalid" >&2; exit 1 ;; esac
+          test "${#TESTS_REF}" -eq 40
+          test "$(git -C tests rev-parse HEAD)" = "$TESTS_REF"
+          make -C tests verify
+      - name: Export the exact source plan
+        id: plan
+        shell: bash
+        run: |
+          plan=tests/candidate/terminal-native-darwin-arm64.json
+          echo "spec_repository=$(jq -r .spec.repository "$plan")" >> "$GITHUB_OUTPUT"
+          echo "spec_commit=$(jq -r .spec.sourceCommit "$plan")" >> "$GITHUB_OUTPUT"
+          echo "contract_repository=$(jq -r .contract.repository "$plan")" >> "$GITHUB_OUTPUT"
+          echo "contract_commit=$(jq -r .contract.sourceCommit "$plan")" >> "$GITHUB_OUTPUT"
+          echo "kit_repository=$(jq -r .kit.repository "$plan")" >> "$GITHUB_OUTPUT"
+          echo "kit_commit=$(jq -r .kit.sourceCommit "$plan")" >> "$GITHUB_OUTPUT"
+          echo "plugins=$(jq -c .plugins "$plan")" >> "$GITHUB_OUTPUT"
+          echo "sidecars=$(jq -c .sidecars "$plan")" >> "$GITHUB_OUTPUT"
+
+  spec:
+    needs: plan
+    uses: soksak-ai/soksak-spec/.github/workflows/candidate.yml@6955da0b7720eed716051545418703856d55a718
+    with:
+      source_ref: ${{ needs.plan.outputs.spec_commit }}
+
+  contract:
+    needs: [plan, spec]
+    uses: soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@3e8d01dac85d8e3c7db4311bf57642280d15d113
+    with:
+      source_ref: ${{ needs.plan.outputs.contract_commit }}
+      spec_artifact_name: ${{ needs.spec.outputs.artifact_name }}
+      spec_artifact_digest: ${{ needs.spec.outputs.artifact_digest }}
+      spec_candidate_manifest_sha256: ${{ needs.spec.outputs.candidate_manifest_sha256 }}
+      spec_source_commit: ${{ needs.spec.outputs.source_commit }}
+
+  kit:
+    needs: [plan, spec, contract]
+    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@6955da0b7720eed716051545418703856d55a718
+    with:
+      source_repository: ${{ needs.plan.outputs.kit_repository }}
+      source_ref: ${{ needs.plan.outputs.kit_commit }}
+      package_path: package.json
+      kind: portable
+      generated: dist
+      spec_artifact_name: ${{ needs.spec.outputs.artifact_name }}
+      spec_artifact_digest: ${{ needs.spec.outputs.artifact_digest }}
+      spec_candidate_manifest_sha256: ${{ needs.spec.outputs.candidate_manifest_sha256 }}
+      spec_source_commit: ${{ needs.spec.outputs.source_commit }}
+      dependency_one_package_name: '@soksak/soksak-contract-plugin-terminal'
+      dependency_one_artifact_name: ${{ needs.contract.outputs.artifact_name }}
+      dependency_one_artifact_digest: ${{ needs.contract.outputs.artifact_digest }}
+      dependency_one_candidate_manifest_sha256: ${{ needs.contract.outputs.candidate_manifest_sha256 }}
+      dependency_one_source_commit: ${{ needs.contract.outputs.source_commit }}
+      dependency_one_kind: contract
+
+  plugins:
+    needs: [plan, spec, contract, kit]
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.plan.outputs.plugins) }}
+    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@6955da0b7720eed716051545418703856d55a718
+    with:
+      source_repository: ${{ matrix.component.repository }}
+      source_ref: ${{ matrix.component.sourceCommit }}
+      package_path: frontend/package.json
+      kind: plugin
+      generated: main.js
+      spec_artifact_name: ${{ needs.spec.outputs.artifact_name }}
+      spec_artifact_digest: ${{ needs.spec.outputs.artifact_digest }}
+      spec_candidate_manifest_sha256: ${{ needs.spec.outputs.candidate_manifest_sha256 }}
+      spec_source_commit: ${{ needs.spec.outputs.source_commit }}
+      dependency_one_package_name: '@soksak/soksak-contract-plugin-terminal'
+      dependency_one_artifact_name: ${{ needs.contract.outputs.artifact_name }}
+      dependency_one_artifact_digest: ${{ needs.contract.outputs.artifact_digest }}
+      dependency_one_candidate_manifest_sha256: ${{ needs.contract.outputs.candidate_manifest_sha256 }}
+      dependency_one_source_commit: ${{ needs.contract.outputs.source_commit }}
+      dependency_one_kind: contract
+      dependency_two_package_name: '@soksak/soksak-kit-plugin-terminal'
+      dependency_two_artifact_name: ${{ needs.kit.outputs.artifact_name }}
+      dependency_two_artifact_digest: ${{ needs.kit.outputs.artifact_digest }}
+      dependency_two_candidate_manifest_sha256: ${{ needs.kit.outputs.candidate_manifest_sha256 }}
+      dependency_two_source_commit: ${{ needs.kit.outputs.source_commit }}
+      dependency_two_kind: kit
+
+  sidecars:
+    needs: [plan, spec]
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJSON(needs.plan.outputs.sidecars) }}
+    uses: soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@6955da0b7720eed716051545418703856d55a718
+    with:
+      source_repository: ${{ matrix.component.repository }}
+      source_ref: ${{ matrix.component.sourceCommit }}
+      language: ${{ matrix.component.language }}
+      profile: ${{ matrix.component.profile }}
+      spec_artifact_name: ${{ needs.spec.outputs.artifact_name }}
+      spec_artifact_digest: ${{ needs.spec.outputs.artifact_digest }}
+      spec_candidate_manifest_sha256: ${{ needs.spec.outputs.candidate_manifest_sha256 }}
+      spec_source_commit: ${{ needs.spec.outputs.source_commit }}
+
+  native-input:
+    needs: [plan, spec, contract, kit, plugins, sidecars]
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      TARGET: aarch64-apple-darwin
+    steps:
+      - name: Check out the exact product tests
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ needs.plan.outputs.tests_repository }}
+          ref: ${{ inputs.tests_ref }}
+          path: tests
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: tests/go.mod
+          cache-dependency-path: tests/go.sum
+      - name: Download the exact Core candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ inputs.core_artifact_name }}
+          path: core
+      - name: Download every sealed component candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: candidate-*
+          path: candidates
+          merge-multiple: false
+      - name: Verify candidate envelopes and transport inventory
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SPEC_COMMIT: ${{ needs.spec.outputs.source_commit }}
+          SPEC_MANIFEST_SHA256: ${{ needs.spec.outputs.candidate_manifest_sha256 }}
+        run: |
+          mkdir -p stage/evidence spec-package
+          spec_dir="candidates/candidate-soksak-spec-$SPEC_COMMIT"
+          test "$(sha256sum "$spec_dir/candidate-artifact.json" | awk '{print $1}')" = "$SPEC_MANIFEST_SHA256"
+          set -- "$spec_dir"/soksak-ai-plugin-spec-*.tgz
+          test "$#" -eq 1
+          tar -xzf "$1" -C spec-package --strip-components=1
+          test -z "$(find spec-package -type l -print -quit)"
+          count=0
+          for directory in candidates/candidate-*; do
+            test -d "$directory"
+            node spec-package/release-template/verify-candidate-artifact.mjs --directory "$PWD/$directory"
+            count=$((count + 1))
+          done
+          test "$count" -eq 17
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts" | \
+            jq -s '[.[].artifacts[] | select(.name | startswith("candidate-")) | {id,name,digest,sizeInBytes:.size_in_bytes,expired}] | sort_by(.name)' \
+            > stage/evidence/candidate-actions-artifacts.json
+          test "$(jq length stage/evidence/candidate-actions-artifacts.json)" -eq 17
+          test "$(jq '[.[] | select(.expired or (.digest | type != "string"))] | length' stage/evidence/candidate-actions-artifacts.json)" -eq 0
+      - name: Compose the installer candidate plan
+        shell: bash
+        run: |
+          make -C tests compose-candidate-plan \
+            SOURCE_PLAN="$GITHUB_WORKSPACE/tests/candidate/terminal-native-darwin-arm64.json" \
+            ARTIFACTS="$GITHUB_WORKSPACE/candidates" \
+            OUT="$GITHUB_WORKSPACE/candidate-plan.json"
+          cp candidate-plan.json stage/evidence/candidate-plan.json
+      - name: Verify the Core identity and architecture
+        shell: bash
+        env:
+          CORE_SOURCE_COMMIT: ${{ inputs.core_source_commit }}
+        run: |
+          case "$CORE_SOURCE_COMMIT" in *[!a-f0-9]*|'') echo "core source commit is invalid" >&2; exit 1 ;; esac
+          test "${#CORE_SOURCE_COMMIT}" -eq 40
+          test "$(jq -r .sourceCommit core/build-evidence.json)" = "$CORE_SOURCE_COMMIT"
+          chmod +x core/sok core/soksak.app/Contents/MacOS/soksak
+          test "$(lipo -archs core/sok)" = arm64
+          test "$(lipo -archs core/soksak.app/Contents/MacOS/soksak)" = arm64
+      - name: Run the unattended AppKit input matrix
+        env:
+          SOKSAK_TEST_PLATFORM: darwin
+          SOKSAK_TEST_TARGET: aarch64-apple-darwin
+          SOKSAK_TEST_CLI: ${{ github.workspace }}/core/sok
+          SOKSAK_TEST_APP: ${{ github.workspace }}/core/soksak.app/Contents/MacOS/soksak
+          SOKSAK_TEST_HOME: ${{ github.workspace }}/stage/system-home
+          SOKSAK_TEST_RUNTIME: /tmp/scn-${{ github.run_id }}
+          SOKSAK_TEST_WORKSPACE: ${{ github.workspace }}/stage/workspace
+          SOKSAK_TEST_IDENTIFIER: c.s.cn.${{ github.run_id }}
+          SOKSAK_TEST_EVIDENCE: ${{ github.workspace }}/stage/evidence
+          SOKSAK_TEST_CANDIDATE_PLAN: ${{ github.workspace }}/candidate-plan.json
+        run: |
+          mkdir -p "$SOKSAK_TEST_HOME" "$SOKSAK_TEST_RUNTIME" "$SOKSAK_TEST_WORKSPACE" "$SOKSAK_TEST_EVIDENCE"
+          make -C tests system-native-input TARGET="$TARGET"
+      - name: Upload native candidate evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: darwin-candidate-native-input-evidence
+          path: stage/evidence/
+          if-no-files-found: error

@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: require-target preflight native-preflight prepare verify benchmark fleet system system-commands system-restore system-parity system-visibility system-native-input
+.PHONY: require-target preflight native-preflight prepare verify benchmark fleet compose-candidate-plan system system-commands system-restore system-parity system-visibility system-native-input
 
 require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
@@ -26,6 +26,11 @@ benchmark: prepare
 fleet: require-target prepare
 	@set -- $$(scripts/resolve-target.sh '$(TARGET)'); \
 		go run ./cmd/verify-fleet -platform "$$1" -target '$(TARGET)'
+
+compose-candidate-plan: prepare
+	@test '$(origin SOURCE_PLAN)' = 'command line' && test '$(origin ARTIFACTS)' = 'command line' && test '$(origin OUT)' = 'command line' || { echo 'SOURCE_PLAN, ARTIFACTS and OUT must be explicit Make command-line variables' >&2; exit 2; }
+	@case '$(SOURCE_PLAN):$(ARTIFACTS):$(OUT)' in /*:/*:/*) ;; *) echo 'candidate composition paths must be absolute' >&2; exit 2 ;; esac
+	@go run ./cmd/compose-candidate-plan -source-plan '$(SOURCE_PLAN)' -artifacts '$(ARTIFACTS)' -out '$(OUT)'
 
 system-commands: TEST_NAME := TestInstalledTerminalCommands
 system-commands: system

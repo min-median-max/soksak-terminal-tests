@@ -28,7 +28,7 @@ func TestDarwinCandidateWorkflowUsesTheExactOwnerWorkflowsAndNativeGate(t *testi
 		"soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@" + plan.Spec.SourceCommit,
 		"soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@" + plan.Contract.SourceCommit,
 		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
-		"go run ./cmd/compose-candidate-plan", "system-native-input", "candidate-actions-artifacts.json",
+		"make -C tests compose-candidate-plan", "system-native-input", "candidate-actions-artifacts.json",
 		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
 		"if-no-files-found: error",
 	} {
