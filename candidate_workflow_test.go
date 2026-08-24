@@ -22,7 +22,7 @@ func TestDarwinCandidateWorkflowUsesTheExactOwnerWorkflowsAndNativeGate(t *testi
 	}
 	workflow := string(workflowBytes)
 	for _, required := range []string{
-		"workflow_call:", "tests_ref:", "core_artifact_name:", "core_source_commit:",
+		"workflow_call:", "tests_repository: { required: true, type: string }", "tests_ref:", "core_artifact_name:", "core_source_commit:",
 		"soksak-ai/soksak-spec/.github/workflows/candidate.yml@" + plan.Spec.SourceCommit,
 		"soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@" + plan.Spec.SourceCommit,
 		"soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@" + plan.Spec.SourceCommit,
