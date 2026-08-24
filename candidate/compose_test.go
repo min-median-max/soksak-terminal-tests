@@ -156,4 +156,21 @@ func TestComposeProducesOnlyRuntimeComponentsAndPresentationContract(t *testing.
 	if _, err := os.Stat(filepath.Join(artifacts, spec.ID, "candidate-artifact.json")); err != nil {
 		t.Fatal("composition mutated candidate artifacts")
 	}
+	if err := os.Remove(output); err != nil {
+		t.Fatal(err)
+	}
+	pluginArchive := filepath.Join(artifacts, plugin.ID, plugin.ID+"-0.0.1-any.tgz")
+	file, err := os.OpenFile(pluginArchive, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteString("changed"); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := Compose(sourcePlanPath, artifacts, output); err == nil || !strings.Contains(err.Error(), "digest mismatch") {
+		t.Fatalf("changed candidate bytes were accepted: %v", err)
+	}
 }
