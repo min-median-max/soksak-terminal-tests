@@ -14,43 +14,43 @@
   "kit": {
     "id": "soksak-kit-plugin-terminal",
     "repository": "soksak-ai/soksak-kit-plugin-terminal",
-    "sourceCommit": "7d3746eb475486aef21f969ff1f80c791feca456"
+    "sourceCommit": "017f63cbce3dd6ca567d771b21239d689d2fd909"
   },
   "plugins": [
     {
       "id": "soksak-plugin-terminal-alacritty",
       "repository": "soksak-ai/soksak-plugin-terminal-alacritty",
-      "sourceCommit": "120aa478e305b048741f8348e724b79ae27611b9"
+      "sourceCommit": "e0f01ea5bc025c298b3df11e570dece2e9ecdfe0"
     },
     {
       "id": "soksak-plugin-terminal-ghostty",
       "repository": "soksak-ai/soksak-plugin-terminal-ghostty",
-      "sourceCommit": "78154a343f625741bc51e3d8cb26624ac1c8a881"
+      "sourceCommit": "dfc681c6fa60e413616ea9ecd0322836c9b2eafb"
     },
     {
       "id": "soksak-plugin-terminal-kitty",
       "repository": "soksak-ai/soksak-plugin-terminal-kitty",
-      "sourceCommit": "189ec968d57911d523512964c8851ccd676afc49"
+      "sourceCommit": "7a50962f7525881d70e477350db3aa85d9425d07"
     },
     {
       "id": "soksak-plugin-terminal-shitty",
       "repository": "soksak-ai/soksak-plugin-terminal-shitty",
-      "sourceCommit": "dd1df3ee8cdd09535e9df84f81375e040c5baed5"
+      "sourceCommit": "48ad7123bade2477c266b34c80f6c0e768a553d6"
     },
     {
       "id": "soksak-plugin-terminal-vt100",
       "repository": "soksak-ai/soksak-plugin-terminal-vt100",
-      "sourceCommit": "091455ebc2e2f335c988b8078ee535ce52a270d5"
+      "sourceCommit": "40fb549ed0f013ea6bea57017a190cd95f35cd35"
     },
     {
       "id": "soksak-plugin-terminal-wezterm",
       "repository": "soksak-ai/soksak-plugin-terminal-wezterm",
-      "sourceCommit": "7cf1c0142b57caed668a165bc11757c697e72778"
+      "sourceCommit": "24797a1fcfb1a89fed64c99ffbefeb452cdb3153"
     },
     {
       "id": "soksak-plugin-terminal-xterm",
       "repository": "soksak-ai/soksak-plugin-terminal-xterm",
-      "sourceCommit": "bf37c70580ab17699ff29082ce255bfff0b53f2e"
+      "sourceCommit": "5cffacf5252bbe7c36c9218e942ed4ba1947662a"
     }
   ],
   "sidecars": [
