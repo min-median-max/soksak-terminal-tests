@@ -4,7 +4,7 @@
   "spec": {
     "id": "soksak-spec",
     "repository": "soksak-ai/soksak-spec",
-    "sourceCommit": "6955da0b7720eed716051545418703856d55a718"
+    "sourceCommit": "f2b9357fac03a87440d019fdb5bc291f281d0636"
   },
   "contract": {
     "id": "soksak-contract-plugin-terminal",

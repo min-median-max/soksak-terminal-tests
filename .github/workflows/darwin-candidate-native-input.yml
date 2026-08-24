@@ -67,7 +67,7 @@ jobs:
 
   spec:
     needs: plan
-    uses: soksak-ai/soksak-spec/.github/workflows/candidate.yml@6955da0b7720eed716051545418703856d55a718
+    uses: soksak-ai/soksak-spec/.github/workflows/candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
     with:
       source_ref: ${{ needs.plan.outputs.spec_commit }}
 
@@ -83,7 +83,7 @@ jobs:
 
   kit:
     needs: [plan, spec, contract]
-    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@6955da0b7720eed716051545418703856d55a718
+    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
     with:
       source_repository: ${{ needs.plan.outputs.kit_repository }}
       source_ref: ${{ needs.plan.outputs.kit_commit }}
@@ -107,7 +107,7 @@ jobs:
       fail-fast: false
       matrix:
         component: ${{ fromJSON(needs.plan.outputs.plugins) }}
-    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@6955da0b7720eed716051545418703856d55a718
+    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
     with:
       source_repository: ${{ matrix.component.repository }}
       source_ref: ${{ matrix.component.sourceCommit }}
@@ -137,7 +137,7 @@ jobs:
       fail-fast: false
       matrix:
         component: ${{ fromJSON(needs.plan.outputs.sidecars) }}
-    uses: soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@6955da0b7720eed716051545418703856d55a718
+    uses: soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
     with:
       source_repository: ${{ matrix.component.repository }}
       source_ref: ${{ matrix.component.sourceCommit }}
