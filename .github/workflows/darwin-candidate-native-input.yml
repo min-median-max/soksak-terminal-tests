@@ -68,7 +68,7 @@ jobs:
 
   contract:
     needs: [plan, spec]
-    uses: soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@18c8261f8bb7888f5665002e51efff8dd05c1a7c
+    uses: soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@a97dc140071beb0ea1ad57d425044e41365ad88c
     with:
       source_repository: ${{ needs.plan.outputs.contract_repository }}
       source_ref: ${{ needs.plan.outputs.contract_commit }}

@@ -9,12 +9,12 @@
   "contract": {
     "id": "soksak-contract-plugin-terminal",
     "repository": "soksak-ai/soksak-contract-plugin-terminal",
-    "sourceCommit": "18c8261f8bb7888f5665002e51efff8dd05c1a7c"
+    "sourceCommit": "a97dc140071beb0ea1ad57d425044e41365ad88c"
   },
   "kit": {
     "id": "soksak-kit-plugin-terminal",
     "repository": "soksak-ai/soksak-kit-plugin-terminal",
-    "sourceCommit": "075a31a7deadfd1913e25e8c100169ef5873c291"
+    "sourceCommit": "945e16a5529134e9c0722ee4a9905fefd559cef4"
   },
   "plugins": [
     {

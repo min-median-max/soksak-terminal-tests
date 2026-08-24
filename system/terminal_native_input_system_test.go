@@ -83,6 +83,12 @@ func TestInstalledTerminalNativeCursorMatrix(t *testing.T) {
 		if _, err := nativeClickExposedNode(matrix.cli, matrix.window, screen); err != nil {
 			t.Fatalf("native cursor focus %s: %v", plugin.ID, err)
 		}
+		if _, err := terminal(matrix.cli, plugin.ID, "wait", tab, map[string]any{
+			"phase": "live", "focusedInput": true, "cursorVisible": true,
+			"cursorActive": true, "timeoutMs": 12000,
+		}); err != nil {
+			t.Fatalf("native cursor readiness %s: %v", plugin.ID, err)
+		}
 		presentation := nativePresentation(t, matrix.cli, plugin.ID, tab)
 		report := nativeCursorReport{Provider: plugin.ID}
 		report.FocusedInput, _ = presentation["focusedInput"].(bool)
