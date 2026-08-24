@@ -14,13 +14,18 @@ func TestMakeOwnsAcceptanceCommands(t *testing.T) {
 	source := string(body)
 	for _, target := range []string{
 		"preflight:", "native-preflight:", "prepare:", "verify:", "benchmark:", "fleet:",
-		"system-commands:", "system-restore:",
+		"system-commands:", "system-restore:", "system-parity:", "system-visibility:",
 	} {
 		if !strings.Contains(source, target) {
 			t.Errorf("Makefile omits %s", target)
 		}
 	}
-	for _, scenario := range []string{"TestInstalledTerminalCommands", "TestInstalledTerminalWarmAndArchivedRestore"} {
+	for _, scenario := range []string{
+		"TestInstalledTerminalCommands",
+		"TestInstalledTerminalWarmAndArchivedRestore",
+		"TestInstalledTerminalPresentationParity",
+		"TestInstalledTerminalVisibilityMatrix",
+	} {
 		if !strings.Contains(source, scenario) {
 			t.Errorf("Makefile omits system scenario mapping %s", scenario)
 		}
