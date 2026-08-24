@@ -213,10 +213,78 @@ func (lifecycle *Lifecycle) Shutdown() error {
 }
 
 func (lifecycle *Lifecycle) Finish() error {
+	pid := 0
+	if lifecycle.cmd != nil && lifecycle.cmd.Process != nil {
+		pid = lifecycle.cmd.Process.Pid
+	}
+	before, err := lifecycle.ownershipSnapshot()
+	if err != nil {
+		return err
+	}
 	if err := lifecycle.stopTestSidecars(); err != nil {
 		return err
 	}
-	return lifecycle.Shutdown()
+	afterSidecarStop, err := lifecycle.ownershipSnapshot()
+	if err != nil {
+		return err
+	}
+	shutdownErr := lifecycle.Shutdown()
+	report := map[string]any{
+		"process": map[string]any{
+			"pid": pid, "identifier": lifecycle.config.Identifier,
+			"socket": lifecycle.config.Socket, "home": lifecycle.config.Home,
+			"runtime": lifecycle.config.Runtime,
+		},
+		"beforeShutdown":    before,
+		"afterSidecarStop":  afterSidecarStop,
+		"applicationExited": lifecycle.cmd == nil,
+		"gracefulShutdown":  shutdownErr == nil,
+	}
+	if shutdownErr != nil {
+		report["shutdownError"] = shutdownErr.Error()
+	}
+	body, marshalErr := json.MarshalIndent(report, "", "  ")
+	if marshalErr == nil {
+		marshalErr = os.WriteFile(
+			filepath.Join(lifecycle.config.EvidenceDir, "process-window-ownership.json"),
+			append(body, '\n'), 0o600,
+		)
+	}
+	if marshalErr != nil {
+		return marshalErr
+	}
+	return shutdownErr
+}
+
+func (lifecycle *Lifecycle) ownershipSnapshot() (map[string]any, error) {
+	cli := lifecycle.Client()
+	environment, err := cli.Call("app.environment", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	windows, err := cli.CallValue("window_list", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	monitors, err := cli.Call("window.monitors", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	input, err := cli.Call("window.input.state", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	sidecars, err := cli.Call("sidecar_status", map[string]any{})
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"environment": environment,
+		"windows":     windows,
+		"monitors":    monitors,
+		"input":       input,
+		"sidecars":    sidecars,
+	}, nil
 }
 
 func (lifecycle *Lifecycle) Close() {
