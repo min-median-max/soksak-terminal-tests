@@ -14,6 +14,8 @@ import (
 type PresentationParityReport struct {
 	Provider              string                `json:"provider"`
 	Delivery              string                `json:"delivery"`
+	PointerInputRoute     string                `json:"pointerInputRoute"`
+	KeyboardInputRoute    string                `json:"keyboardInputRoute"`
 	RenderSequence        int                   `json:"renderSequence"`
 	AcceptedInputSequence int                   `json:"acceptedInputSequence"`
 	PtyWriteSequence      int                   `json:"ptyWriteSequence"`
@@ -60,7 +62,8 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		t.Fatal(err)
 	}
 	budgets := plan.PresentationContract.Data.Budgets
-	if _, err := lifecycle.OpenWorkspace(); err != nil {
+	window, err := lifecycle.OpenWorkspace()
+	if err != nil {
 		t.Fatal(err)
 	}
 	cli = lifecycle.Client()
@@ -95,7 +98,8 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		if screen == "" || input == "" {
 			t.Fatalf("%s has no public screen/input address", plugin.ID)
 		}
-		if _, err := cli.Call("ui.input.click", map[string]any{"address": screen}); err != nil {
+		pointerRoute, err := nativeClickExposedNode(cli, window, screen)
+		if err != nil {
 			t.Fatalf("focus %s: %v", plugin.ID, err)
 		}
 		marker := "SOKSAK_PARITY_" + strings.ToUpper(strings.TrimPrefix(plugin.ID, "soksak-plugin-terminal-"))
@@ -106,13 +110,18 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		if strings.Contains(command, marker) {
 			t.Fatalf("%s palette input contains its awaited output marker", plugin.ID)
 		}
+		keyboardRoute := ""
 		for _, key := range command {
-			if _, err := cli.Call("ui.input.key", map[string]any{"address": input, "key": string(key)}); err != nil {
+			route, err := nativePressWindowKey(cli, window, string(key))
+			if err != nil {
 				t.Fatalf("type %s key %q: %v", plugin.ID, key, err)
 			}
+			keyboardRoute = route
 		}
-		if _, err := cli.Call("ui.input.key", map[string]any{"address": input, "key": "Enter"}); err != nil {
+		if route, err := nativePressWindowKey(cli, window, "Enter"); err != nil {
 			t.Fatalf("enter %s: %v", plugin.ID, err)
+		} else {
+			keyboardRoute = route
 		}
 		if _, err := cli.Call("plugin."+plugin.ID+".wait", map[string]any{
 			"phase": "live", "view": tab, "contains": marker, "timeoutMs": 12000,
@@ -145,6 +154,8 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			report.Delivery, _ = presentation["delivery"].(string)
 		}
 		report.Palette = paletteCounts
+		report.PointerInputRoute = pointerRoute
+		report.KeyboardInputRoute = keyboardRoute
 		inputState, err := cli.Call("window.input.state", map[string]any{})
 		if err != nil {
 			t.Fatal(err)
@@ -182,6 +193,55 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 	if err := lifecycle.Finish(); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func nativeClickExposedNode(cli CLI, window, address string) (string, error) {
+	measured, err := cli.Call("ui.measure", map[string]any{"address": address})
+	if err != nil {
+		return "", err
+	}
+	rect, _ := measured["rect"].(map[string]any)
+	x, xOK := number(rect["x"])
+	y, yOK := number(rect["y"])
+	w, wOK := number(rect["w"])
+	h, hOK := number(rect["h"])
+	if !xOK || !yOK || !wOK || !hOK || w <= 0 || h <= 0 {
+		return "", fmt.Errorf("%s has no finite nonempty public rectangle: %+v", address, rect)
+	}
+	receipt, err := cli.Call("window.input.pointer.click", map[string]any{
+		"window": window,
+		"x":      x + w/2,
+		"y":      y + h/2,
+	})
+	if err != nil {
+		return "", err
+	}
+	route, _ := receipt["inputRoute"].(string)
+	if route == "" || receipt["delivered"] != true {
+		return "", fmt.Errorf("native pointer click returned no delivery route: %+v", receipt)
+	}
+	if focused, _ := receipt["windowFocused"].(bool); focused {
+		return "", fmt.Errorf("native pointer click focused the capture-only window: %+v", receipt)
+	}
+	return route, nil
+}
+
+func nativePressWindowKey(cli CLI, window, key string) (string, error) {
+	receipt, err := cli.Call("window.input.key.press", map[string]any{
+		"window": window,
+		"key":    key,
+	})
+	if err != nil {
+		return "", err
+	}
+	route, _ := receipt["inputRoute"].(string)
+	if route == "" || receipt["delivered"] != true {
+		return "", fmt.Errorf("native key press returned no delivery route: %+v", receipt)
+	}
+	if focused, _ := receipt["windowFocused"].(bool); focused {
+		return "", fmt.Errorf("native key press focused the capture-only window: %+v", receipt)
+	}
+	return route, nil
 }
 
 func presentationReport(provider string, value map[string]any) (PresentationParityReport, error) {
