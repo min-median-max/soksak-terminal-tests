@@ -5,7 +5,7 @@ import "testing"
 func TestControlReadyWriterConsumesOneSplitOwnedEvent(t *testing.T) {
 	writer := newControlReadyWriter()
 	first := `noise before event
-{"event":"soksak.control.`
+{"event":"soksak.host.`
 	second := `ready","protocol":1,"socket":"/tmp/control.sock","identifier":"com.soksak.test","pid":42}
 noise after event
 `

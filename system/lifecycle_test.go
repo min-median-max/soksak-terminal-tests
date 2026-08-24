@@ -16,7 +16,7 @@ func TestLifecycleStartupUsesTheOwnedReadinessEventWithoutPolling(t *testing.T) 
 	if strings.Contains(source, "time.Sleep(") {
 		t.Fatal("lifecycle startup still polls with time.Sleep")
 	}
-	if !strings.Contains(source, "soksak.control.ready") {
+	if !strings.Contains(source, "soksak.host.ready") {
 		t.Fatal("lifecycle startup does not consume the owned readiness event")
 	}
 }

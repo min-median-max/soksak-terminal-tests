@@ -31,7 +31,7 @@ type Lifecycle struct {
 	window string
 }
 
-const testControlReadyEvent = "soksak.control.ready"
+const testControlReadyEvent = "soksak.host.ready"
 
 func NewLifecycle(config LifecycleConfig) (*Lifecycle, error) {
 	for name, path := range map[string]string{
