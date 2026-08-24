@@ -4,7 +4,7 @@
   "spec": {
     "id": "soksak-spec",
     "repository": "soksak-ai/soksak-spec",
-    "sourceCommit": "f634aaa014d624311dbf48d4f974d547c8e3e471"
+    "sourceCommit": "fd7cf29a7fe8aa577ddbf427abbd62f8bbfece26"
   },
   "contract": {
     "id": "soksak-contract-plugin-terminal",
@@ -78,7 +78,7 @@
     {
       "id": "soksak-sidecar-terminal-kitty",
       "repository": "soksak-ai/soksak-sidecar-terminal-kitty",
-      "sourceCommit": "8051242d1bbfd745ba379958735bc849bd8c7d40",
+      "sourceCommit": "0e22fb5a53cd76ce9b47fb34eb15aad70e5787e9",
       "language": "rust",
       "profile": "kitty"
     },
