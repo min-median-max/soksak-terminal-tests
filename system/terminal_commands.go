@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/min-median-max/soksak-terminal-tests/fleet"
 )
@@ -177,6 +178,7 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err != nil {
 			return nil, err
 		}
+		started := time.Now()
 		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": highOutputCommand + "\r"}); err != nil {
 			return nil, err
 		}
@@ -185,6 +187,13 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		outputEvidence := terminalOutputStatus(plugin, view, status)
 		outputEvidence.MarkerObserved = waitErr == nil
 		outputEvidence.BeforeOutput = beforePTY.OutputSequence
+		outputEvidence.ElapsedMS = float64(time.Since(started).Microseconds()) / 1000
+		if outputEvidence.PTY != nil {
+			outputEvidence.OutputBytes = outputEvidence.PTY.OutputSequence - beforePTY.OutputSequence
+			if outputEvidence.ElapsedMS > 0 {
+				outputEvidence.ThroughputMBs = outputEvidence.OutputBytes / 1000 / outputEvidence.ElapsedMS
+			}
+		}
 		if waitErr != nil {
 			outputEvidence.Failure = waitErr.Error()
 		}

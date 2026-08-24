@@ -15,9 +15,14 @@ type terminalOutputEvidence struct {
 	Rendered        *terminalRenderedSize  `json:"rendered"`
 	MarkerObserved  bool                   `json:"markerObserved"`
 	BeforeOutput    float64                `json:"beforeOutputSequence"`
+	OutputBytes     float64                `json:"outputBytes"`
+	ElapsedMS       float64                `json:"elapsedMs"`
+	ThroughputMBs   float64                `json:"throughputMbS"`
 	FailureBoundary string                 `json:"failureBoundary,omitempty"`
 	Failure         string                 `json:"failure,omitempty"`
 }
+
+const minimumCompositionThroughputMBs = 3.0
 
 func terminalOutputStatus(plugin, view string, status map[string]any) terminalOutputEvidence {
 	return terminalOutputEvidence{
@@ -42,6 +47,9 @@ func (evidence terminalOutputEvidence) failureBoundary() string {
 	if evidence.Rendered == nil || evidence.Rendered.OutputSequence > evidence.Recovery.OutputSequence ||
 		(!evidence.MarkerObserved && evidence.Rendered.OutputSequence < evidence.Recovery.OutputSequence) {
 		return "renderer-output"
+	}
+	if evidence.OutputBytes < 262144 || evidence.ElapsedMS <= 0 || evidence.ThroughputMBs < minimumCompositionThroughputMBs {
+		return "composition-throughput"
 	}
 	return ""
 }
