@@ -13,9 +13,7 @@ type commandCaller interface {
 	CallValue(command string, params map[string]any) (any, error)
 }
 
-// This bounds observation of the complete, event-driven install transaction. It is
-// deliberately not a renderer RPC deadline: plugin.install only admits and starts work.
-const installTransactionDeadlineMs = 180000
+const installProgressIdleTimeoutMs = 30000
 
 func InstallTerminalFleet(profile fleet.Profile, cli commandCaller) error {
 	if _, err := cli.Call("plugin.catalog", map[string]any{"refresh": true}); err != nil {
@@ -39,8 +37,15 @@ func InstallPlugin(pluginID string, cli commandCaller) error {
 		}
 		return fmt.Errorf("install %s: %w; status: %+v", pluginID, err, status)
 	}
+	if err := awaitArtifactInstall(pluginID, cli); err != nil {
+		status, statusErr := cli.Call("plugin.install.status", map[string]any{"pluginId": pluginID})
+		if statusErr == nil && installPhase(status) == "installed" {
+			return enableInstalledPlugin(pluginID, cli)
+		}
+		return fmt.Errorf("materialize install %s: %w; plugin status: %+v; status error: %v", pluginID, err, status, statusErr)
+	}
 	if _, err := cli.Call("plugin.install.wait", map[string]any{
-		"pluginId": pluginID, "phase": "installed", "timeoutMs": installTransactionDeadlineMs,
+		"pluginId": pluginID, "phase": "installed", "timeoutMs": installProgressIdleTimeoutMs,
 	}); err != nil {
 		status, statusErr := cli.Call("plugin.install.status", map[string]any{"pluginId": pluginID})
 		if statusErr != nil {
@@ -48,6 +53,66 @@ func InstallPlugin(pluginID string, cli commandCaller) error {
 		}
 		return fmt.Errorf("observe install %s: %w; status: %+v", pluginID, err, status)
 	}
+	return enableInstalledPlugin(pluginID, cli)
+}
+
+func awaitArtifactInstall(pluginID string, cli commandCaller) error {
+	var sequence uint64
+	for {
+		progress, err := cli.Call("artifact_install_wait", map[string]any{
+			"rootId": pluginID, "afterSequence": sequence, "timeoutMs": installProgressIdleTimeoutMs,
+		})
+		if err != nil {
+			status, statusErr := cli.Call("artifact_install_status", map[string]any{"rootId": pluginID})
+			if statusErr != nil {
+				return fmt.Errorf("artifact progress: %w; status unavailable: %v", err, statusErr)
+			}
+			return fmt.Errorf("artifact progress: %w; status: %+v", err, status)
+		}
+		next, ok := uint64Value(progress["sequence"])
+		if !ok || next <= sequence {
+			return fmt.Errorf("artifact progress sequence is not monotonic: previous=%d progress=%+v", sequence, progress)
+		}
+		sequence = next
+		switch progress["phase"] {
+		case "committed":
+			return nil
+		case "rolled-back", "failed":
+			return fmt.Errorf("artifact transaction ended at %s: %+v", progress["phase"], progress)
+		}
+	}
+}
+
+func uint64Value(value any) (uint64, bool) {
+	switch number := value.(type) {
+	case float64:
+		if number < 0 || number != float64(uint64(number)) {
+			return 0, false
+		}
+		return uint64(number), true
+	case uint64:
+		return number, true
+	case int:
+		if number < 0 {
+			return 0, false
+		}
+		return uint64(number), true
+	default:
+		return 0, false
+	}
+}
+
+func installPhase(status map[string]any) string {
+	installs, _ := status["installs"].([]any)
+	if len(installs) != 1 {
+		return ""
+	}
+	install, _ := installs[0].(map[string]any)
+	phase, _ := install["phase"].(string)
+	return phase
+}
+
+func enableInstalledPlugin(pluginID string, cli commandCaller) error {
 	chain, err := cli.Call("plugin.consent.chain", map[string]any{"id": pluginID})
 	if err != nil {
 		return fmt.Errorf("consent chain %s: %w", pluginID, err)
