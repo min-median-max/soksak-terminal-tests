@@ -64,7 +64,7 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 			"id": component["id"], "version": component["version"],
 		})
 	}
-	plan := map[string]any{"components": []any{
+	plan := map[string]any{"budgets": map[string]any{"renderMs": 1000.0 / 60.0, "inputToPtyWriteMs": 50.0}, "components": []any{
 		map[string]any{"kind": "sidecar", "id": "soksak-sidecar-terminal-vt100", "version": "0.0.12", "artifact": "soksak-sidecar-terminal-vt100.tgz", "manifest": "sidecar.json", "target": "aarch64-apple-darwin", "sourceRepository": "https://github.com/soksak-ai/soksak-sidecar-terminal-vt100", "sourceCommit": "1111111111111111111111111111111111111111"},
 		map[string]any{"kind": "plugin", "id": "soksak-plugin-terminal-vt100", "version": "0.0.15", "artifact": "soksak-plugin-terminal-vt100.tgz", "manifest": "plugin.json", "sourceRepository": "https://github.com/soksak-ai/soksak-plugin-terminal-vt100", "sourceCommit": "2222222222222222222222222222222222222222"},
 	}}

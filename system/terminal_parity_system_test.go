@@ -1,0 +1,175 @@
+//go:build system
+
+package system
+
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+type PresentationParityReport struct {
+	Provider              string  `json:"provider"`
+	Delivery              string  `json:"delivery"`
+	RenderSequence        int     `json:"renderSequence"`
+	AcceptedInputSequence int     `json:"acceptedInputSequence"`
+	PtyWriteSequence      int     `json:"ptyWriteSequence"`
+	FocusedInput          bool    `json:"focusedInput"`
+	CursorVisible         bool    `json:"cursorVisible"`
+	CursorActive          bool    `json:"cursorActive"`
+	LastRenderDurationMs  float64 `json:"lastRenderDurationMs"`
+	MaxRenderDurationMs   float64 `json:"maxRenderDurationMs"`
+	LastInputToPtyWriteMs float64 `json:"lastInputToPtyWriteMs"`
+	WindowFocused         bool    `json:"windowFocused"`
+}
+
+func TestInstalledTerminalPresentationParity(t *testing.T) {
+	planPath := os.Getenv("SOKSAK_TEST_CANDIDATE_PLAN")
+	if planPath == "" {
+		t.Fatal("SOKSAK_TEST_CANDIDATE_PLAN is required")
+	}
+	plan, _, err := readCandidatePlan(planPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile := profileFromEnvironment(t)
+	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment(t, "parity"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(lifecycle.Close)
+	if err := lifecycle.Start(); err != nil {
+		t.Fatal(err)
+	}
+	cli := lifecycle.Client()
+	if err := InstallCandidateFleet(planPath, cli); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cli.Call("plugin.boot.wait", map[string]any{"timeoutMs": 45000}); err != nil {
+		t.Fatal(err)
+	}
+	if err := EnableCandidateTerminalFleet(profile, cli); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := lifecycle.OpenWorkspace(); err != nil {
+		t.Fatal(err)
+	}
+	cli = lifecycle.Client()
+	_, pane, err := activeWorkspacePane(cli)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reports := make([]PresentationParityReport, 0, len(profile.Plugins))
+	for _, plugin := range profile.Plugins {
+		program := strings.TrimPrefix(plugin.ID, "soksak-plugin-")
+		opened, err := cli.Call("tab.open", map[string]any{"pane": pane, "program": program, "mountTimeoutMs": 12000})
+		if err != nil {
+			t.Fatalf("open %s: %v", plugin.ID, err)
+		}
+		tab, _ := opened["tabId"].(string)
+		if tab == "" {
+			t.Fatalf("open %s returned no tab", plugin.ID)
+		}
+		if _, err := cli.Call("tab.activate", map[string]any{"tab": tab}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := cli.Call("plugin."+plugin.ID+".wait", map[string]any{"phase": "live", "view": tab, "timeoutMs": 12000}); err != nil {
+			t.Fatalf("wait %s: %v", plugin.ID, err)
+		}
+		nodes, err := exposedNodes(cli)
+		if err != nil {
+			t.Fatal(err)
+		}
+		screen := nodeAddress(nodes, "terminal-screen", plugin.ID+"\x00"+tab)
+		input := nodeAddress(nodes, "terminal-input", plugin.ID+"\x00"+tab)
+		if screen == "" || input == "" {
+			t.Fatalf("%s has no public screen/input address", plugin.ID)
+		}
+		if _, err := cli.Call("ui.input.click", map[string]any{"address": screen}); err != nil {
+			t.Fatalf("focus %s: %v", plugin.ID, err)
+		}
+		marker := "SOKSAK_PARITY_" + strings.ToUpper(strings.TrimPrefix(plugin.ID, "soksak-plugin-terminal-"))
+		command := "printf '\\033[41m R \\033[42m G \\033[44m B \\033[0m'; echo " + marker
+		if _, err := cli.Call("ui.input.fill", map[string]any{"address": input, "value": command}); err != nil {
+			t.Fatalf("fill %s: %v", plugin.ID, err)
+		}
+		if _, err := cli.Call("ui.input.key", map[string]any{"address": input, "key": "Enter"}); err != nil {
+			t.Fatalf("enter %s: %v", plugin.ID, err)
+		}
+		if _, err := cli.Call("plugin."+plugin.ID+".wait", map[string]any{
+			"phase": "live", "view": tab, "contains": marker, "timeoutMs": 12000,
+		}); err != nil {
+			t.Fatalf("keyboard round trip %s: %v", plugin.ID, err)
+		}
+		status, err := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
+		if err != nil {
+			t.Fatalf("status %s: %v", plugin.ID, err)
+		}
+		presentation, _ := status["presentation"].(map[string]any)
+		report, err := presentationReport(plugin.ID, presentation)
+		if err != nil {
+			t.Fatal(err)
+		}
+		inputState, err := cli.Call("window.input.state", map[string]any{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		report.WindowFocused, _ = inputState["windowFocused"].(bool)
+		if report.WindowFocused {
+			t.Errorf("%s capture-only window became focused", plugin.ID)
+		}
+		if !report.FocusedInput || !report.CursorVisible || !report.CursorActive ||
+			report.RenderSequence < 1 || report.AcceptedInputSequence < 2 || report.PtyWriteSequence < 2 {
+			t.Errorf("%s presentation state=%+v", plugin.ID, report)
+		}
+		if report.MaxRenderDurationMs > plan.Budgets.RenderMs {
+			t.Errorf("%s render %.3fms exceeds %.3fms", plugin.ID, report.MaxRenderDurationMs, plan.Budgets.RenderMs)
+		}
+		if report.LastInputToPtyWriteMs > plan.Budgets.InputToPtyWriteMs {
+			t.Errorf("%s input-to-PTY %.3fms exceeds %.3fms", plugin.ID, report.LastInputToPtyWriteMs, plan.Budgets.InputToPtyWriteMs)
+		}
+		if err := captureTerminal(cli, "parity-"+plugin.ID); err != nil {
+			t.Fatalf("capture %s: %v", plugin.ID, err)
+		}
+		reports = append(reports, report)
+	}
+	body, err := json.MarshalIndent(map[string]any{"budgets": plan.Budgets, "reports": reports}, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(lifecycle.config.EvidenceDir, "terminal-parity.json"), body, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := lifecycle.Finish(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func presentationReport(provider string, value map[string]any) (PresentationParityReport, error) {
+	if value == nil {
+		return PresentationParityReport{}, fmt.Errorf("%s status has no presentation", provider)
+	}
+	report := PresentationParityReport{Provider: provider}
+	report.Delivery, _ = value["delivery"].(string)
+	report.RenderSequence, _ = exactInt(value["renderSequence"])
+	report.AcceptedInputSequence, _ = exactInt(value["acceptedInputSequence"])
+	report.PtyWriteSequence, _ = exactInt(value["ptyWriteSequence"])
+	report.FocusedInput, _ = value["focusedInput"].(bool)
+	report.CursorVisible, _ = value["cursorVisible"].(bool)
+	report.CursorActive, _ = value["cursorActive"].(bool)
+	var ok bool
+	if report.LastRenderDurationMs, ok = number(value["lastRenderDurationMs"]); !ok {
+		return PresentationParityReport{}, fmt.Errorf("%s has no last render duration", provider)
+	}
+	if report.MaxRenderDurationMs, ok = number(value["maxRenderDurationMs"]); !ok {
+		return PresentationParityReport{}, fmt.Errorf("%s has no max render duration", provider)
+	}
+	if report.LastInputToPtyWriteMs, ok = number(value["lastInputToPtyWriteMs"]); !ok {
+		return PresentationParityReport{}, fmt.Errorf("%s has no input-to-PTY duration", provider)
+	}
+	return report, nil
+}

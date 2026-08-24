@@ -30,6 +30,12 @@ type CandidateComponent struct {
 
 type CandidatePlan struct {
 	Components []CandidateComponent `json:"components"`
+	Budgets    CandidateBudgets     `json:"budgets"`
+}
+
+type CandidateBudgets struct {
+	RenderMs          float64 `json:"renderMs"`
+	InputToPtyWriteMs float64 `json:"inputToPtyWriteMs"`
 }
 
 type preparedCandidate struct {
@@ -161,6 +167,9 @@ func readCandidatePlan(planPath string) (CandidatePlan, string, error) {
 	}
 	if len(plan.Components) == 0 {
 		return CandidatePlan{}, "", fmt.Errorf("candidate plan has no components")
+	}
+	if plan.Budgets.RenderMs <= 0 || plan.Budgets.InputToPtyWriteMs <= 0 {
+		return CandidatePlan{}, "", fmt.Errorf("candidate plan has invalid presentation budgets")
 	}
 	return plan, filepath.Dir(planPath), nil
 }
