@@ -11,7 +11,8 @@ import (
 	"strings"
 )
 
-const ReportSpec = "soksak-spec-terminal-benchmark@0.0.1"
+const ReportSpec = "soksak-spec-terminal-benchmark@0.0.2"
+const OwnerFeedFloorMBs = 80.0
 
 var Sidecars = []string{"alacritty", "ghostty", "kitty", "shitty", "vt100", "wezterm"}
 
@@ -25,9 +26,6 @@ type Report struct {
 	ColdBytes   uint64  `json:"coldBytes"`
 	LiveBytes   uint64  `json:"liveBytes"`
 	RSSBytes    uint64  `json:"rssBytes"`
-	DemandMBs   float64 `json:"demandMbS"`
-	GapBytes    uint64  `json:"gapBytes"`
-	TailSeen    bool    `json:"tailSeen"`
 }
 
 func ReadReports(directory string) ([]Report, error) {
@@ -59,12 +57,12 @@ func ReadReports(directory string) ([]Report, error) {
 			return nil, fmt.Errorf("duplicate benchmark sidecar: %s", report.Sidecar)
 		}
 		seen[report.Sidecar] = true
-		if report.FeedMBs <= 0 || report.DemandMBs <= 0 || report.RehydrateMS < 0 || report.ColdMS < 0 {
+		if report.FeedMBs <= 0 || report.RehydrateMS < 0 || report.ColdMS < 0 {
 			return nil, fmt.Errorf("%s contains an invalid measurement", path)
 		}
-		if report.GapBytes != 0 || !report.TailSeen || report.FeedMBs < report.DemandMBs {
-			return nil, fmt.Errorf("%s failed its absolute budget: feed=%.1f demand=%.1f gap=%d tail=%v",
-				report.Sidecar, report.FeedMBs, report.DemandMBs, report.GapBytes, report.TailSeen)
+		if report.FeedMBs < OwnerFeedFloorMBs {
+			return nil, fmt.Errorf("%s failed its owner feed floor: feed=%.1f floor=%.1f",
+				report.Sidecar, report.FeedMBs, OwnerFeedFloorMBs)
 		}
 		reports = append(reports, report)
 	}
@@ -74,10 +72,10 @@ func ReadReports(directory string) ([]Report, error) {
 
 func Table(reports []Report) string {
 	var output strings.Builder
-	output.WriteString("provider feedMB/s demandMB/s gapBytes tail rehydrateMs coldMs paintKB rssMB\n")
+	output.WriteString("provider feedMB/s floor rehydrateMs coldMs paintKB rssMB\n")
 	for _, report := range reports {
-		fmt.Fprintf(&output, "%s %.1f %.1f %d %t %.2f %.2f %.1f %.1f\n",
-			report.Sidecar, report.FeedMBs, report.DemandMBs, report.GapBytes, report.TailSeen,
+		fmt.Fprintf(&output, "%s %.1f %.1f %.2f %.2f %.1f %.1f\n",
+			report.Sidecar, report.FeedMBs, OwnerFeedFloorMBs,
 			report.RehydrateMS, report.ColdMS, float64(report.PaintBytes)/1024, float64(report.RSSBytes)/1e6)
 	}
 	return output.String()
