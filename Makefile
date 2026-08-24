@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: require-target preflight native-preflight prepare verify fleet system system-commands system-restore
+.PHONY: require-target preflight native-preflight prepare verify benchmark fleet system system-commands system-restore
 
 require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
@@ -18,6 +18,10 @@ prepare: preflight
 verify: prepare
 	@go mod tidy -diff
 	@go test -count=1 ./...
+
+benchmark: prepare
+	@test -n "$$SOKSAK_BENCH_REPORTS" || { echo 'SOKSAK_BENCH_REPORTS must name the owner-report directory' >&2; exit 2; }
+	@go test -count=1 -tags=benchmark ./benchmark -v
 
 fleet: require-target prepare
 	@set -- $$(scripts/resolve-target.sh '$(TARGET)'); \
