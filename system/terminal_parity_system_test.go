@@ -128,7 +128,9 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		presentation, _ := status["presentation"].(map[string]any)
 		report, err := presentationReport(plugin.ID, presentation)
 		if err != nil {
-			t.Fatal(err)
+			t.Errorf("%s presentation report: %v; status=%+v", plugin.ID, err, presentation)
+			report = PresentationParityReport{Provider: plugin.ID}
+			report.Delivery, _ = presentation["delivery"].(string)
 		}
 		inputState, err := cli.Call("window.input.state", map[string]any{})
 		if err != nil {
