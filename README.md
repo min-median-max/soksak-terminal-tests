@@ -63,6 +63,12 @@ sequence and gap count, and the renderer's applied output sequence. High-output 
 `<plugin-id>-output.json`. Failure names the first boundary that did not advance. A plain timeout
 without these coordinates is not a verdict.
 
+Screenshots and recordings are mandatory visual-review artifacts, but their pixels are not an
+automated pass/fail oracle. Colour parity is decided from the public `terminal-screen` computed
+foreground/background, cursor and selection properties, plus all 256 contract-owned ANSI custom
+properties. Capture generation failures are harness failures; a person still inspects the emitted
+images before completion is claimed.
+
 ## Verification identity
 
 A GREEN result belongs only to one immutable input set: Core commit, this repository commit,

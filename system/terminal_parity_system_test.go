@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -24,7 +25,7 @@ type PresentationParityReport struct {
 	MaxRenderDurationMs   float64               `json:"maxRenderDurationMs"`
 	LastInputToPtyWriteMs float64               `json:"lastInputToPtyWriteMs"`
 	WindowFocused         bool                  `json:"windowFocused"`
-	Palette               terminalPaletteCounts `json:"palette"`
+	Theme                 terminalThemeEvidence `json:"theme"`
 }
 
 func TestInstalledTerminalPresentationParity(t *testing.T) {
@@ -49,10 +50,6 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 	if err := InstallConfiguredTerminalFleet(profile, cli); err != nil {
 		t.Fatal(err)
 	}
-	palette, err := terminalPaletteExpectationFromBase(plan.PresentationContract.Data.ANSI.Base)
-	if err != nil {
-		t.Fatal(err)
-	}
 	budgets := plan.PresentationContract.Data.Budgets
 	if _, err := lifecycle.OpenWorkspace(); err != nil {
 		t.Fatal(err)
@@ -64,6 +61,7 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 	}
 
 	reports := make([]PresentationParityReport, 0, len(profile.Plugins))
+	var baselineTheme *terminalThemeEvidence
 	for _, plugin := range profile.Plugins {
 		program := strings.TrimPrefix(plugin.ID, "soksak-plugin-")
 		opened, err := cli.Call("tab.open", map[string]any{"pane": pane, "program": program, "mountTimeoutMs": 12000})
@@ -123,10 +121,6 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		if _, err := cli.Call("window.snapshot", map[string]any{"path": terminalImage, "node": screen}); err != nil {
 			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
 		}
-		paletteCounts, err := validateTerminalPaletteEvidence(terminalImage, palette)
-		if err != nil {
-			t.Errorf("%s terminal pixels: %v", plugin.ID, err)
-		}
 		status, err := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
 		if err != nil {
 			t.Fatalf("status %s: %v", plugin.ID, err)
@@ -138,7 +132,22 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			report = PresentationParityReport{Provider: plugin.ID}
 			report.Delivery, _ = presentation["delivery"].(string)
 		}
-		report.Palette = paletteCounts
+		measurement, err := cli.Call("ui.measure", map[string]any{
+			"address": screen, "props": terminalThemeMeasureProperties(plan.PresentationContract.Data),
+		})
+		if err != nil {
+			t.Errorf("%s theme measurement: %v", plugin.ID, err)
+		} else {
+			report.Theme, err = readTerminalThemeEvidence(measurement, presentation, plan.PresentationContract.Data)
+			if err != nil {
+				t.Errorf("%s theme evidence: %v", plugin.ID, err)
+			} else if baselineTheme == nil {
+				copy := report.Theme
+				baselineTheme = &copy
+			} else if !reflect.DeepEqual(*baselineTheme, report.Theme) {
+				t.Errorf("%s theme differs from fleet baseline: got=%+v want=%+v", plugin.ID, report.Theme, *baselineTheme)
+			}
+		}
 		inputState, err := cli.Call("window.input.state", map[string]any{})
 		if err != nil {
 			t.Fatal(err)
