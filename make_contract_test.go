@@ -13,7 +13,7 @@ func TestMakeOwnsAcceptanceCommands(t *testing.T) {
 	}
 	source := string(body)
 	for _, target := range []string{
-		"preflight:", "native-preflight:", "prepare:", "verify:", "fleet:",
+		"preflight:", "native-preflight:", "prepare:", "verify:", "benchmark:", "fleet:",
 		"system-commands:", "system-restore:",
 	} {
 		if !strings.Contains(source, target) {
