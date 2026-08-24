@@ -14,6 +14,17 @@ type candidateCaller struct {
 	calls []recordedCall
 }
 
+func TestCandidatePlanRequiresThePortablePresentationContract(t *testing.T) {
+	planPath := filepath.Join(t.TempDir(), "candidate-plan.json")
+	body := `{"budgets":{"renderMs":16.666666666666668,"inputToPtyWriteMs":50},"components":[{"kind":"plugin"}]}`
+	if err := os.WriteFile(planPath, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := readCandidatePlan(planPath); err == nil {
+		t.Fatal("candidate plan without its presentation contract was accepted")
+	}
+}
+
 func (caller *candidateCaller) Call(command string, params map[string]any) (map[string]any, error) {
 	caller.calls = append(caller.calls, recordedCall{command: command, params: params})
 	switch command {
