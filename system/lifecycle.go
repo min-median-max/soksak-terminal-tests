@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -308,20 +309,42 @@ func (lifecycle *Lifecycle) stopTestSidecars() error {
 	if err != nil {
 		return err
 	}
-	started, _ := value["open"].([]any)
-	for _, item := range started {
-		open, _ := item.(map[string]any)
-		name, _ := open["Name"].(string)
-		if name == "" {
-			name, _ = open["name"].(string)
+	for _, name := range ownedSidecarNames(value) {
+		if _, err := lifecycle.client(lifecycle.window).Call("sidecar_stop", map[string]any{"name": name}); err != nil {
+			return fmt.Errorf("stop sidecar %s: %w", name, err)
 		}
-		if name != "" {
-			if _, err := lifecycle.client(lifecycle.window).Call("sidecar_stop", map[string]any{"name": name}); err != nil {
-				return fmt.Errorf("stop sidecar %s: %w", name, err)
+	}
+	after, err := lifecycle.client(lifecycle.window).Call("sidecar_status", map[string]any{})
+	if err != nil {
+		return err
+	}
+	if remaining := ownedSidecarNames(after); len(remaining) > 0 {
+		return fmt.Errorf("sidecar ownership remains after stop: %v", remaining)
+	}
+	return nil
+}
+
+func ownedSidecarNames(status map[string]any) []string {
+	unique := map[string]struct{}{}
+	for _, field := range []string{"open", "recorded"} {
+		entries, _ := status[field].([]any)
+		for _, item := range entries {
+			entry, _ := item.(map[string]any)
+			name, _ := entry["name"].(string)
+			if name == "" {
+				name, _ = entry["Name"].(string)
+			}
+			if name != "" {
+				unique[name] = struct{}{}
 			}
 		}
 	}
-	return nil
+	names := make([]string, 0, len(unique))
+	for name := range unique {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 func (lifecycle *Lifecycle) Client() CLI {
