@@ -80,7 +80,9 @@ jobs:
         run: |
           make -C tests system-commands TARGET="${{ inputs.target }}"
           make -C tests system-restore TARGET="${{ inputs.target }}"
-          make -C tests system-native-input TARGET="${{ inputs.target }}"
+          make -C tests system-native-focus TARGET="${{ inputs.target }}"
+          make -C tests system-native-cursor TARGET="${{ inputs.target }}"
+          make -C tests system-native-keyboard TARGET="${{ inputs.target }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

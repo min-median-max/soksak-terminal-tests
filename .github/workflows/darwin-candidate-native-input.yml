@@ -234,7 +234,9 @@ jobs:
         run: |
           mkdir -p "$SOKSAK_TEST_HOME" "$SOKSAK_TEST_RUNTIME" "$SOKSAK_TEST_WORKSPACE" "$SOKSAK_TEST_EVIDENCE"
           make -C tests system-theme TARGET="$TARGET"
-          make -C tests system-native-input TARGET="$TARGET"
+          make -C tests system-native-focus TARGET="$TARGET"
+          make -C tests system-native-cursor TARGET="$TARGET"
+          make -C tests system-native-keyboard TARGET="$TARGET"
           make -C tests system-visibility TARGET="$TARGET"
           make -C tests system-performance TARGET="$TARGET"
           make -C tests system-commands TARGET="$TARGET"

@@ -54,7 +54,8 @@ SOKSAK_BENCH_REPORTS=/absolute/path/to/reports make benchmark
 Darwin/Linux/Windows reusable workflow도 private Go test 이름을 직접 호출하지 않고 이 공개 Make
 시나리오만 실행합니다.
 
-`make system-native-input TARGET=aarch64-apple-darwin`은 Darwin AppKit 입력 인증 gate입니다.
+`make system-native-focus`, `make system-native-cursor`, `make system-native-keyboard`에
+`TARGET=aarch64-apple-darwin`을 지정한 세 명령이 순서가 고정된 Darwin AppKit 인증 gate입니다.
 WebKit은 비활성 non-key window에 native key event를 전달하지 않으므로 이 gate는 격리된 test
 application을 의도적으로 활성화합니다. 사람이 사용 중인 local desktop에서는 실행하지 않고,
 local capture-only 개발은 `system-theme`과 `system-performance`로 사용자 focus를 보존합니다. Gate는 공개 node 좌표에
@@ -62,6 +63,7 @@ AppKit mouse/key event를 보내고 각 terminal과 PTY까지 도달했는지 �
 `SOKSAK_TEST_CANDIDATE_PLAN`이 있으면 candidate closure를 사용하고, 없으면 Core를 통해 선언된
 immutable fleet을 설치합니다.
 
-Candidate workflow 순서는 `system-theme → system-native-input → system-visibility →
+Candidate workflow 순서는 `system-theme → system-native-focus → system-native-cursor →
+system-native-keyboard → system-visibility →
 system-performance → system-commands`입니다. 따라서 뒤의 성능 RED가 색상이나 native input 인증을
 막지 않습니다.

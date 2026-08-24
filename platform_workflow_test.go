@@ -13,7 +13,7 @@ func TestNativePlatformWorkflowsRunTheSameInstalledScenarios(t *testing.T) {
 			"SOKSAK_TEST_PLATFORM: darwin", "SOKSAK_TEST_TARGET: ${{ inputs.target }}", "name: ${{ inputs.artifact }}",
 			"chmod +x core/sok core/soksak.app/Contents/MacOS/soksak", "test \"$(uname -m)\" = \"${{ inputs.architecture }}\"",
 			"lipo -archs", "SOKSAK_TEST_RUNTIME: /tmp/soksak-runtime", "make -C tests system-commands",
-			"make -C tests system-native-input",
+			"make -C tests system-native-focus", "make -C tests system-native-cursor", "make -C tests system-native-keyboard",
 		},
 		".github/workflows/linux-system.yml": {
 			"runs-on: ${{ inputs.runner }}", "architecture:", "target:", "SOKSAK_TEST_PLATFORM: linux", "SOKSAK_TEST_TARGET: ${{ inputs.target }}",
