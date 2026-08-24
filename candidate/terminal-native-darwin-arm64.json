@@ -78,14 +78,14 @@
     {
       "id": "soksak-sidecar-terminal-kitty",
       "repository": "soksak-ai/soksak-sidecar-terminal-kitty",
-      "sourceCommit": "0e22fb5a53cd76ce9b47fb34eb15aad70e5787e9",
+      "sourceCommit": "432df9a77337db9a3b608485712a5df54993cadb",
       "language": "rust",
       "profile": "kitty"
     },
     {
       "id": "soksak-sidecar-terminal-shitty",
       "repository": "soksak-ai/soksak-sidecar-terminal-shitty",
-      "sourceCommit": "6df3b8a1ccf21fdb81baa1ebd15665385dc79777",
+      "sourceCommit": "231785f40138a7be9d9231b8638de321a81b3d87",
       "language": "rust",
       "profile": "shitty"
     },
