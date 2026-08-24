@@ -44,8 +44,8 @@ func nodeSample(
 	}
 	return map[string]any{
 		"address": address, "connected": connected,
-		"rect": map[string]any{"w": width, "h": height},
-		"style": map[string]any{"display": display, "visibility": visibility, "opacity": opacity},
+		"rect":    map[string]any{"w": width, "h": height},
+		"style":   map[string]any{"display": display, "visibility": visibility, "opacity": opacity},
 		"dataset": dataset,
 	}
 }
