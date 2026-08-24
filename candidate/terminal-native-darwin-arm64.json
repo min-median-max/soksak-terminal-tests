@@ -4,12 +4,12 @@
   "spec": {
     "id": "soksak-spec",
     "repository": "soksak-ai/soksak-spec",
-    "sourceCommit": "f2b9357fac03a87440d019fdb5bc291f281d0636"
+    "sourceCommit": "2f42bee86fd26ff5d0aface3f0c290c6ad96051c"
   },
   "contract": {
     "id": "soksak-contract-plugin-terminal",
     "repository": "soksak-ai/soksak-contract-plugin-terminal",
-    "sourceCommit": "3e8d01dac85d8e3c7db4311bf57642280d15d113"
+    "sourceCommit": "5bfe384892cdf03997ed3d682e0a6571e96a8e31"
   },
   "kit": {
     "id": "soksak-kit-plugin-terminal",

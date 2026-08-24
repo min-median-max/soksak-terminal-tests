@@ -3,6 +3,7 @@ name: darwin-candidate-native-input
 on:
   workflow_call:
     inputs:
+      tests_repository: { required: true, type: string }
       tests_ref: { required: true, type: string }
       core_artifact_name: { required: true, type: string }
       core_source_commit: { required: true, type: string }
@@ -15,7 +16,7 @@ jobs:
   plan:
     runs-on: ubuntu-24.04
     outputs:
-      tests_repository: ${{ steps.tests-owner.outputs.repository }}
+      tests_repository: ${{ inputs.tests_repository }}
       spec_repository: ${{ steps.plan.outputs.spec_repository }}
       spec_commit: ${{ steps.plan.outputs.spec_commit }}
       contract_repository: ${{ steps.plan.outputs.contract_repository }}
@@ -25,19 +26,10 @@ jobs:
       plugins: ${{ steps.plan.outputs.plugins }}
       sidecars: ${{ steps.plan.outputs.sidecars }}
     steps:
-      - name: Resolve this workflow's owner repository
-        id: tests-owner
-        shell: bash
-        env:
-          WORKFLOW_REF: ${{ github.workflow_ref }}
-        run: |
-          repository=${WORKFLOW_REF%%/.github/workflows/*}
-          case "$repository" in */*) ;; *) echo "workflow_ref has no owner repository" >&2; exit 1 ;; esac
-          echo "repository=$repository" >> "$GITHUB_OUTPUT"
       - name: Check out the exact product tests
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          repository: ${{ steps.tests-owner.outputs.repository }}
+          repository: ${{ inputs.tests_repository }}
           ref: ${{ inputs.tests_ref }}
           path: tests
           fetch-depth: 0
@@ -45,8 +37,10 @@ jobs:
       - name: Bind and verify the product configuration
         shell: bash
         env:
+          TESTS_REPOSITORY: ${{ inputs.tests_repository }}
           TESTS_REF: ${{ inputs.tests_ref }}
         run: |
+          case "$TESTS_REPOSITORY" in [A-Za-z0-9_.-]*/[A-Za-z0-9_.-]*) ;; *) echo "tests_repository must be owner/name" >&2; exit 1 ;; esac
           case "$TESTS_REF" in *[!a-f0-9]*|'') echo "tests_ref is invalid" >&2; exit 1 ;; esac
           test "${#TESTS_REF}" -eq 40
           test "$(git -C tests rev-parse HEAD)" = "$TESTS_REF"
@@ -67,14 +61,16 @@ jobs:
 
   spec:
     needs: plan
-    uses: soksak-ai/soksak-spec/.github/workflows/candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
+    uses: soksak-ai/soksak-spec/.github/workflows/candidate.yml@2f42bee86fd26ff5d0aface3f0c290c6ad96051c
     with:
+      source_repository: ${{ needs.plan.outputs.spec_repository }}
       source_ref: ${{ needs.plan.outputs.spec_commit }}
 
   contract:
     needs: [plan, spec]
-    uses: soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@3e8d01dac85d8e3c7db4311bf57642280d15d113
+    uses: soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@5bfe384892cdf03997ed3d682e0a6571e96a8e31
     with:
+      source_repository: ${{ needs.plan.outputs.contract_repository }}
       source_ref: ${{ needs.plan.outputs.contract_commit }}
       spec_artifact_name: ${{ needs.spec.outputs.artifact_name }}
       spec_artifact_digest: ${{ needs.spec.outputs.artifact_digest }}
@@ -83,7 +79,7 @@ jobs:
 
   kit:
     needs: [plan, spec, contract]
-    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
+    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@2f42bee86fd26ff5d0aface3f0c290c6ad96051c
     with:
       source_repository: ${{ needs.plan.outputs.kit_repository }}
       source_ref: ${{ needs.plan.outputs.kit_commit }}
@@ -107,7 +103,7 @@ jobs:
       fail-fast: false
       matrix:
         component: ${{ fromJSON(needs.plan.outputs.plugins) }}
-    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
+    uses: soksak-ai/soksak-spec/.github/workflows/node-candidate.yml@2f42bee86fd26ff5d0aface3f0c290c6ad96051c
     with:
       source_repository: ${{ matrix.component.repository }}
       source_ref: ${{ matrix.component.sourceCommit }}
@@ -137,7 +133,7 @@ jobs:
       fail-fast: false
       matrix:
         component: ${{ fromJSON(needs.plan.outputs.sidecars) }}
-    uses: soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@f2b9357fac03a87440d019fdb5bc291f281d0636
+    uses: soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@2f42bee86fd26ff5d0aface3f0c290c6ad96051c
     with:
       source_repository: ${{ matrix.component.repository }}
       source_ref: ${{ matrix.component.sourceCommit }}
