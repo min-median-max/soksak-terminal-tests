@@ -14,7 +14,7 @@ func TestMakeOwnsAcceptanceCommands(t *testing.T) {
 	source := string(body)
 	for _, target := range []string{
 		"preflight:", "native-preflight:", "prepare:", "verify:", "benchmark:", "fleet:",
-		"system-commands:", "system-restore:", "system-parity:", "system-visibility:",
+		"system-commands:", "system-restore:", "system-parity:", "system-visibility:", "system-native-input:",
 	} {
 		if !strings.Contains(source, target) {
 			t.Errorf("Makefile omits %s", target)
@@ -25,6 +25,7 @@ func TestMakeOwnsAcceptanceCommands(t *testing.T) {
 		"TestInstalledTerminalWarmAndArchivedRestore",
 		"TestInstalledTerminalPresentationParity",
 		"TestInstalledTerminalVisibilityMatrix",
+		"TestInstalledTerminalNativeInputMatrix",
 	} {
 		if !strings.Contains(source, scenario) {
 			t.Errorf("Makefile omits system scenario mapping %s", scenario)

@@ -26,9 +26,6 @@ type nativeInputReport struct {
 
 func TestInstalledTerminalNativeInputMatrix(t *testing.T) {
 	planPath := os.Getenv("SOKSAK_TEST_CANDIDATE_PLAN")
-	if planPath == "" {
-		t.Fatal("SOKSAK_TEST_CANDIDATE_PLAN is required")
-	}
 	profile := profileFromEnvironment(t)
 	if profile.Platform != "darwin" {
 		t.Fatalf("native AppKit input matrix requires darwin, got %s", profile.Platform)
@@ -42,14 +39,20 @@ func TestInstalledTerminalNativeInputMatrix(t *testing.T) {
 		t.Fatal(err)
 	}
 	cli := lifecycle.Client()
-	if err := InstallCandidateFleet(planPath, cli); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := cli.Call("plugin.boot.wait", map[string]any{"timeoutMs": 45000}); err != nil {
-		t.Fatal(err)
-	}
-	if err := EnableCandidateTerminalFleet(profile, cli); err != nil {
-		t.Fatal(err)
+	if planPath == "" {
+		if err := InstallTerminalFleet(profile, cli); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		if err := InstallCandidateFleet(planPath, cli); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := cli.Call("plugin.boot.wait", map[string]any{"timeoutMs": 45000}); err != nil {
+			t.Fatal(err)
+		}
+		if err := EnableCandidateTerminalFleet(profile, cli); err != nil {
+			t.Fatal(err)
+		}
 	}
 	window, err := lifecycle.OpenWorkspace()
 	if err != nil {

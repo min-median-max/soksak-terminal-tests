@@ -48,6 +48,14 @@ repository's owner tests. `go.mod` is the only Go-version owner. `fleet TARGET=<
 immutable artifact fleet from another host, but `system-*` additionally requires the target to match
 the actual host runtime. A cross-compiled test binary is never accepted as native runtime evidence.
 
+`make system-native-input TARGET=aarch64-apple-darwin` is the Darwin AppKit input certification
+gate. It deliberately activates its isolated test application because WebKit does not deliver
+native key events to an inactive, non-key window. Run it only on an unattended native runner; local
+capture-only development must use `system-parity` and must not take the user's focus. The gate sends
+AppKit mouse and key events to public-node coordinates and proves the route reaches each terminal
+and PTY. It consumes `SOKSAK_TEST_CANDIDATE_PLAN` when supplied and otherwise installs the declared
+immutable fleet through Core.
+
 Every terminal resize writes `<plugin-id>-resize.json` under `SOKSAK_TEST_EVIDENCE`. The record
 contains the pane resize receipt, the exposed terminal root's wide and narrow CSS-pixel rectangles,
 the requested PTY size, PTY observation and absolute output sequence, recovery observation, output

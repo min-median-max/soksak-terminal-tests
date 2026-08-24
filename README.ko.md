@@ -53,3 +53,11 @@ SOKSAK_BENCH_REPORTS=/absolute/path/to/reports make benchmark
 합니다. cross-compile된 test binary는 native runtime 증거로 인정하지 않습니다. GitHub의
 Darwin/Linux/Windows reusable workflow도 private Go test 이름을 직접 호출하지 않고 이 공개 Make
 시나리오만 실행합니다.
+
+`make system-native-input TARGET=aarch64-apple-darwin`은 Darwin AppKit 입력 인증 gate입니다.
+WebKit은 비활성 non-key window에 native key event를 전달하지 않으므로 이 gate는 격리된 test
+application을 의도적으로 활성화합니다. 사람이 사용 중인 local desktop에서는 실행하지 않고,
+local capture-only 개발은 `system-parity`로 사용자 focus를 보존합니다. Gate는 공개 node 좌표에
+AppKit mouse/key event를 보내고 각 terminal과 PTY까지 도달했는지 증명합니다.
+`SOKSAK_TEST_CANDIDATE_PLAN`이 있으면 candidate closure를 사용하고, 없으면 Core를 통해 선언된
+immutable fleet을 설치합니다.
