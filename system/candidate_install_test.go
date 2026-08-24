@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -36,9 +37,17 @@ func (caller *candidateCaller) Call(command string, params map[string]any) (map[
 	}
 }
 
-func (caller *candidateCaller) CallValue(command string, _ map[string]any) (any, error) {
+func (caller *candidateCaller) CallValue(command string, params map[string]any) (any, error) {
+	caller.calls = append(caller.calls, recordedCall{command: command, params: params})
 	if command == "environment_get" {
 		return map[string]any{"revision": 0, "plugins": map[string]any{}, "sidecars": map[string]any{}, "kits": map[string]any{}, "contracts": map[string]any{}, "specs": map[string]any{}}, nil
+	}
+	if command == "artifact_install_read_utf8" {
+		handle, _ := params["handle"].(string)
+		if strings.Contains(handle, "sidecar") {
+			return `{"id":"soksak-sidecar-terminal-vt100","version":"0.0.12"}`, nil
+		}
+		return `{"id":"soksak-plugin-terminal-vt100","version":"0.0.15"}`, nil
 	}
 	return nil, nil
 }
@@ -72,7 +81,7 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 	for _, call := range caller.calls {
 		commands = append(commands, call.command)
 	}
-	want := []string{"artifact_install_begin", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_commit"}
+	want := []string{"environment_get", "artifact_install_begin", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_commit"}
 	if len(commands) != len(want) {
 		t.Fatalf("commands=%v", commands)
 	}
