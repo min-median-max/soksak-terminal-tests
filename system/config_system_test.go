@@ -18,7 +18,20 @@ func profileFromEnvironment(t *testing.T) fleet.Profile {
 	if err != nil {
 		t.Fatal(err)
 	}
-	fingerprint, err := profile.Fingerprint()
+	var fingerprint string
+	if planPath := os.Getenv("SOKSAK_TEST_CANDIDATE_PLAN"); planPath != "" {
+		plan, _, planErr := readCandidatePlan(planPath)
+		if planErr != nil {
+			t.Fatal(planErr)
+		}
+		profile, planErr = applyCandidateProfile(profile, plan)
+		if planErr != nil {
+			t.Fatal(planErr)
+		}
+		fingerprint, err = candidatePlanFingerprint(planPath)
+	} else {
+		fingerprint, err = profile.Fingerprint()
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
