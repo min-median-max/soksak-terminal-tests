@@ -27,7 +27,7 @@ source. Real PTY demand, recovery gaps, tail delivery and attached end-to-end th
 the installed system scenarios here:
 
 ```sh
-SOKSAK_BENCH_REPORTS=/absolute/path/to/reports go test -tags=benchmark ./benchmark -v
+SOKSAK_BENCH_REPORTS=/absolute/path/to/reports make benchmark
 ```
 
 The default test suite validates the harness. Native system tests require the application and CLI:
@@ -40,8 +40,13 @@ SOKSAK_TEST_RUNTIME=/absolute/path/to/runtime \
 SOKSAK_TEST_WORKSPACE=/absolute/path/to/workspace \
 SOKSAK_TEST_IDENTIFIER=com.soksak.systemtest \
 SOKSAK_TEST_EVIDENCE=/absolute/path/to/evidence \
-go test -tags=system ./system
+make system-commands TARGET=x86_64-unknown-linux-gnu
 ```
+
+Run `make system-restore TARGET=<native-target>` for the restore scenario and `make verify` for this
+repository's owner tests. `go.mod` is the only Go-version owner. `fleet TARGET=<target>` may audit an
+immutable artifact fleet from another host, but `system-*` additionally requires the target to match
+the actual host runtime. A cross-compiled test binary is never accepted as native runtime evidence.
 
 Every terminal resize writes `<plugin-id>-resize.json` under `SOKSAK_TEST_EVIDENCE`. The record
 contains the pane resize receipt, the exposed terminal root's wide and narrow CSS-pixel rectangles,
@@ -72,5 +77,5 @@ runner. The runner declares `/bin/bash` as the login shell. All `SOKSAK_TEST_*` 
 `go test`.
 
 ```sh
-scripts/run-linux-system.sh -run TestInstalledTerminalCommands -v
+make system-commands TARGET=x86_64-unknown-linux-gnu
 ```

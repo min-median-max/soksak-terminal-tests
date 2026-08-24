@@ -37,3 +37,19 @@ OS/architecture가 같은 하나의 immutable 입력 묶음에만 유효합니�
 결과는 무효이며 canonical local gate부터 다시 실행합니다. 같은 묶음의 결과가 달라지면
 멱등성 또는 관측 결함이며 성공할 때까지 재실행한 결과는 인정하지 않습니다. provider 예외,
 timeout 증가, retry loop는 이 기준을 충족하지 못합니다.
+
+## 빌드와 검증 명령 계약
+
+Go 버전 정본은 `go.mod` 하나이며 owner test는 다음 명령으로 실행합니다.
+
+```sh
+make verify
+SOKSAK_BENCH_REPORTS=/absolute/path/to/reports make benchmark
+```
+
+`make fleet TARGET=<target>`은 다른 host에서도 immutable artifact fleet을 정적으로 감사할 수
+있습니다. 반면 `make system-commands TARGET=<native-target>`와
+`make system-restore TARGET=<native-target>`는 target과 실제 Go host OS/architecture가 같아야
+합니다. cross-compile된 test binary는 native runtime 증거로 인정하지 않습니다. GitHub의
+Darwin/Linux/Windows reusable workflow도 private Go test 이름을 직접 호출하지 않고 이 공개 Make
+시나리오만 실행합니다.
