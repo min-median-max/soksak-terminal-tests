@@ -234,9 +234,9 @@ jobs:
         run: |
           mkdir -p "$SOKSAK_TEST_HOME" "$SOKSAK_TEST_RUNTIME" "$SOKSAK_TEST_WORKSPACE" "$SOKSAK_TEST_EVIDENCE"
           make -C tests system-parity TARGET="$TARGET"
+          make -C tests system-native-input TARGET="$TARGET"
           make -C tests system-visibility TARGET="$TARGET"
           make -C tests system-commands TARGET="$TARGET"
-          make -C tests system-native-input TARGET="$TARGET"
       - name: Upload native candidate evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
