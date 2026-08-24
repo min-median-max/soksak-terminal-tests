@@ -28,7 +28,7 @@ func TestDarwinCandidateWorkflowUsesTheExactOwnerWorkflowsAndNativeGate(t *testi
 		"soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@" + plan.Spec.SourceCommit,
 		"soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@" + plan.Contract.SourceCommit,
 		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
-		"make -C tests compose-candidate-plan", "system-parity", "system-visibility", "system-commands", "system-native-input", "candidate-actions-artifacts.json",
+		"make -C tests compose-candidate-plan", "system-theme", "system-visibility", "system-performance", "system-commands", "system-native-input", "candidate-actions-artifacts.json",
 		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
 		"if-no-files-found: error",
 	} {
@@ -36,7 +36,7 @@ func TestDarwinCandidateWorkflowUsesTheExactOwnerWorkflowsAndNativeGate(t *testi
 			t.Errorf("candidate workflow omits %q", required)
 		}
 	}
-	order := []string{"system-parity", "system-native-input", "system-visibility", "system-commands"}
+	order := []string{"system-theme", "system-native-input", "system-visibility", "system-performance", "system-commands"}
 	for index := 1; index < len(order); index++ {
 		if strings.Index(workflow, order[index-1]) > strings.Index(workflow, order[index]) {
 			t.Errorf("candidate matrix order is not %s before %s", order[index-1], order[index])
