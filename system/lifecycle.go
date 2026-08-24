@@ -30,6 +30,8 @@ type Lifecycle struct {
 	window string
 }
 
+const testControlReadyEvent = "soksak.control.ready"
+
 func NewLifecycle(config LifecycleConfig) (*Lifecycle, error) {
 	for name, path := range map[string]string{
 		"app": config.App, "CLI": config.CLI, "socket": config.Socket, "home": config.Home,
@@ -73,42 +75,63 @@ func (lifecycle *Lifecycle) Start() error {
 		_ = log.Close()
 		return err
 	}
-	cmd.Stdout, cmd.Stderr = log, log
+	ready := newControlReadyWriter()
+	cmd.Stdout, cmd.Stderr = io.MultiWriter(log, ready), log
 	if err := cmd.Start(); err != nil {
 		_ = log.Close()
 		return err
 	}
 	lifecycle.cmd, lifecycle.stdin, lifecycle.log = cmd, stdin, log
 	expectedWindow := lifecycle.window
-	deadline := time.Now().Add(45 * time.Second)
-	var readinessErr error
-	for time.Now().Before(deadline) {
-		value, err := lifecycle.client("main").CallValue("window_list", map[string]any{})
-		if err == nil {
-			windows, _ := value.([]any)
-			for _, candidate := range windows {
-				window, _ := candidate.(string)
-				if !strings.HasPrefix(window, "win-") || (expectedWindow != "" && window != expectedWindow) {
-					continue
-				}
-				if _, readinessErr = lifecycle.client(window).Call("window_renderer_wait", map[string]any{"targetWindow": window, "timeoutMs": 45000}); readinessErr != nil {
-					continue
-				}
-				_, readinessErr = lifecycle.client(window).Call("app.boot.wait", map[string]any{"timeoutMs": 45000})
-				if readinessErr == nil {
-					lifecycle.window = window
-					return nil
-				}
-			}
-		} else {
-			readinessErr = err
-		}
-		time.Sleep(250 * time.Millisecond)
+	var announcement controlReadyEvent
+	select {
+	case announcement = <-ready.events:
+	case <-time.After(45 * time.Second):
+		return fmt.Errorf("application did not announce control readiness within 45 seconds: %s", lifecycle.lastLog())
 	}
-	return fmt.Errorf("application did not answer within 45 seconds: %v: %s", readinessErr, lifecycle.lastLog())
+	if announcement.Protocol != 1 || announcement.Socket != lifecycle.config.Socket ||
+		announcement.Identifier != lifecycle.config.Identifier || announcement.PID != cmd.Process.Pid {
+		return fmt.Errorf("control readiness does not own this run: %+v", announcement)
+	}
+	targetWindow := expectedWindow
+	if targetWindow == "" {
+		targetWindow = "main"
+	}
+	if _, err := lifecycle.client("main").Call("window_renderer_wait", map[string]any{
+		"targetWindow": targetWindow, "timeoutMs": 45000,
+	}); err != nil {
+		return fmt.Errorf("wait for renderer %s: %w: %s", targetWindow, err, lifecycle.lastLog())
+	}
+	lifecycle.window = targetWindow
+	if _, err := lifecycle.client(targetWindow).Call("app.boot.wait", map[string]any{"timeoutMs": 45000}); err != nil {
+		return fmt.Errorf("wait for application %s: %w: %s", targetWindow, err, lifecycle.lastLog())
+	}
+	if expectedWindow != "" {
+		return lifecycle.AwaitWindow()
+	}
+	opened, err := lifecycle.client("main").Call("window.open", map[string]any{
+		"root": lifecycle.config.Workspace, "focus": false,
+	})
+	if err != nil {
+		return err
+	}
+	window, _ := opened["label"].(string)
+	if window == "" {
+		return fmt.Errorf("window.open returned no label")
+	}
+	lifecycle.window = window
+	if _, err := lifecycle.client(window).Call("window_renderer_wait", map[string]any{
+		"targetWindow": window, "timeoutMs": 45000,
+	}); err != nil {
+		return err
+	}
+	return lifecycle.AwaitWindow()
 }
 
 func (lifecycle *Lifecycle) OpenWorkspace() (string, error) {
+	if lifecycle.window != "" && lifecycle.window != "main" {
+		return lifecycle.window, lifecycle.AwaitWindow()
+	}
 	if lifecycle.window == "" {
 		return "", fmt.Errorf("ready window is not known")
 	}
