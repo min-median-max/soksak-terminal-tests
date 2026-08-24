@@ -21,6 +21,27 @@ func TestLifecycleStartupUsesTheOwnedReadinessEventWithoutPolling(t *testing.T) 
 	}
 }
 
+func TestLifecyclePublishesProcessWindowAndSidecarOwnershipEvidence(t *testing.T) {
+	body, err := os.ReadFile("lifecycle.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(body)
+	for _, required := range []string{
+		"process-window-ownership.json",
+		"app.environment",
+		"window_list",
+		"window.monitors",
+		"window.input.state",
+		"sidecar_status",
+		"applicationExited",
+	} {
+		if !strings.Contains(source, required) {
+			t.Errorf("lifecycle ownership evidence omits %q", required)
+		}
+	}
+}
+
 func TestLifecycleRequiresDeclaredAbsoluteInputs(t *testing.T) {
 	_, err := NewLifecycle(LifecycleConfig{
 		App: "soksak", CLI: "/bin/sok", Socket: "/tmp/s.sock", Home: "/tmp/home",
