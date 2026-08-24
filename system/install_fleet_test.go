@@ -19,6 +19,8 @@ type recordingCaller struct {
 func (caller *recordingCaller) Call(command string, params map[string]any) (map[string]any, error) {
 	caller.calls = append(caller.calls, recordedCall{command, params})
 	switch command {
+	case "artifact_install_wait":
+		return map[string]any{"phase": "committed", "sequence": float64(1)}, nil
 	case "plugin.consent.chain":
 		return map[string]any{"pending": []any{params["id"]}}, nil
 	case "plugin.consent.grant":
@@ -44,9 +46,9 @@ func TestInstallTerminalFleetUsesPublicInstallConsentAndActivationCommands(t *te
 		t.Fatalf("first call = %+v", caller.calls[0])
 	}
 	for _, plugin := range profile.Plugins {
-		started, observed := false, false
+		started, materialized, observed := false, false, false
 		for _, call := range caller.calls {
-			if call.params["pluginId"] != plugin.ID {
+			if call.params["pluginId"] != plugin.ID && call.params["rootId"] != plugin.ID {
 				continue
 			}
 			switch call.command {
@@ -60,16 +62,21 @@ func TestInstallTerminalFleetUsesPublicInstallConsentAndActivationCommands(t *te
 				}
 			case "plugin.install.wait":
 				observed = true
-				if call.params["phase"] != "installed" || call.params["timeoutMs"] != 180000 {
+				if call.params["phase"] != "installed" || call.params["timeoutMs"] != 30000 {
 					t.Fatalf("%s install wait params = %+v", plugin.ID, call.params)
+				}
+			case "artifact_install_wait":
+				materialized = true
+				if call.params["rootId"] != plugin.ID || call.params["afterSequence"] != uint64(0) || call.params["timeoutMs"] != 30000 {
+					t.Fatalf("%s artifact wait params = %+v", plugin.ID, call.params)
 				}
 			}
 			if _, legacy := call.params["sidecars"]; legacy {
 				t.Fatalf("%s install request selects sidecars", plugin.ID)
 			}
 		}
-		if !started || !observed {
-			t.Errorf("%s transaction started=%t observed=%t", plugin.ID, started, observed)
+		if !started || !materialized || !observed {
+			t.Errorf("%s transaction started=%t materialized=%t observed=%t", plugin.ID, started, materialized, observed)
 		}
 	}
 }
