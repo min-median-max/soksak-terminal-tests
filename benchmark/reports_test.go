@@ -12,9 +12,9 @@ func TestReadsSixOwnerReportsAndBuildsAComparisonTable(t *testing.T) {
 	directory := t.TempDir()
 	for index, sidecar := range Sidecars {
 		report := Report{
-			Spec: ReportSpec, Sidecar: "soksak-sidecar-terminal-" + sidecar, FeedMBs: 100 + float64(index), DemandMBs: 75,
+			Spec: ReportSpec, Sidecar: "soksak-sidecar-terminal-" + sidecar, FeedMBs: 100 + float64(index),
 			RehydrateMS: 1, PaintBytes: 1024, ColdMS: 2, ColdBytes: 1024,
-			LiveBytes: 2048, RSSBytes: 3_000_000, GapBytes: 0, TailSeen: true,
+			LiveBytes: 2048, RSSBytes: 3_000_000,
 		}
 		body, err := json.Marshal(report)
 		if err != nil {
@@ -39,7 +39,7 @@ func TestReadsSixOwnerReportsAndBuildsAComparisonTable(t *testing.T) {
 	}
 }
 
-func TestRejectsMissingProviderAndMeasuredLoss(t *testing.T) {
+func TestRejectsMissingProviderAndOwnerFloor(t *testing.T) {
 	if _, err := ReadReports(t.TempDir()); err == nil {
 		t.Fatal("missing reports were accepted")
 	}
@@ -48,7 +48,7 @@ func TestRejectsMissingProviderAndMeasuredLoss(t *testing.T) {
 func TestRejectsTrailingReportData(t *testing.T) {
 	directory := t.TempDir()
 	for _, sidecar := range Sidecars {
-		body := "{\"spec\":\"soksak-spec-terminal-benchmark@0.0.1\",\"sidecar\":\"soksak-sidecar-terminal-" + sidecar + "\",\"feedMbS\":100,\"rehydrateMs\":1,\"paintBytes\":1,\"coldMs\":1,\"coldBytes\":1,\"liveBytes\":1,\"rssBytes\":1,\"demandMbS\":75,\"gapBytes\":0,\"tailSeen\":true}"
+		body := "{\"spec\":\"soksak-spec-terminal-benchmark@0.0.2\",\"sidecar\":\"soksak-sidecar-terminal-" + sidecar + "\",\"feedMbS\":100,\"rehydrateMs\":1,\"paintBytes\":1,\"coldMs\":1,\"coldBytes\":1,\"liveBytes\":1,\"rssBytes\":1}"
 		if sidecar == Sidecars[0] {
 			body += "{}"
 		}
