@@ -1,7 +1,8 @@
 # soksak-terminal-tests
 
 Soksak이 사용하는 터미널 구현을 검증하는 비제품 품질 저장소입니다. 설치 대상이나
-registry 항목이 아닙니다. benchmark는 복원 구현의 성능·RSS·손실을 비교하고 system은 공개
+registry 항목이 아닙니다. benchmark는 복원 구현 owner의 feed·직렬화·RSS를 비교하고 system은 설치된
+PTY와 provider의 demand·gap·tail·end-to-end 처리량을 공개
 명령으로 release component를 설치한 뒤 복원 시나리오를 검증합니다.
 
 플러그인과 사이드카 저장소는 각자의 conformance와 release gate를 소유합니다. 이 저장소는

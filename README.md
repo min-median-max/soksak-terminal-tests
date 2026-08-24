@@ -21,8 +21,10 @@ The suite reads every consent summary, grants consent, enables each plugin, and 
 the resulting `environment.json` through the public control surface. This repository never writes
 product installation state.
 
-Provider repositories produce versioned `*.bench.json` reports. This repository reads those
-reports and never runs provider source:
+Provider repositories produce versioned `*.bench.json` owner reports containing feed,
+serialization and memory costs only. This repository reads those reports and never runs provider
+source. Real PTY demand, recovery gaps, tail delivery and attached end-to-end throughput belong to
+the installed system scenarios here:
 
 ```sh
 SOKSAK_BENCH_REPORTS=/absolute/path/to/reports go test -tags=benchmark ./benchmark -v
