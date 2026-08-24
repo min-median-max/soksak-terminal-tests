@@ -13,6 +13,10 @@ type commandCaller interface {
 	CallValue(command string, params map[string]any) (any, error)
 }
 
+// This bounds observation of the complete, event-driven install transaction. It is
+// deliberately not a renderer RPC deadline: plugin.install only admits and starts work.
+const installTransactionDeadlineMs = 180000
+
 func InstallTerminalFleet(profile fleet.Profile, cli commandCaller) error {
 	if _, err := cli.Call("plugin.catalog", map[string]any{"refresh": true}); err != nil {
 		return fmt.Errorf("refresh plugin catalogue: %w", err)
@@ -27,13 +31,22 @@ func InstallTerminalFleet(profile fleet.Profile, cli commandCaller) error {
 
 func InstallPlugin(pluginID string, cli commandCaller) error {
 	if _, err := cli.Call("plugin.install", map[string]any{
-		"registryId": "official", "pluginId": pluginID, "timeoutMs": 60000,
+		"registryId": "official", "pluginId": pluginID,
 	}); err != nil {
 		status, statusErr := cli.Call("plugin.install.status", map[string]any{"pluginId": pluginID})
 		if statusErr != nil {
 			return fmt.Errorf("install %s: %w; status unavailable: %v", pluginID, err, statusErr)
 		}
 		return fmt.Errorf("install %s: %w; status: %+v", pluginID, err, status)
+	}
+	if _, err := cli.Call("plugin.install.wait", map[string]any{
+		"pluginId": pluginID, "phase": "installed", "timeoutMs": installTransactionDeadlineMs,
+	}); err != nil {
+		status, statusErr := cli.Call("plugin.install.status", map[string]any{"pluginId": pluginID})
+		if statusErr != nil {
+			return fmt.Errorf("observe install %s: %w; status unavailable: %v", pluginID, err, statusErr)
+		}
+		return fmt.Errorf("observe install %s: %w; status: %+v", pluginID, err, status)
 	}
 	chain, err := cli.Call("plugin.consent.chain", map[string]any{"id": pluginID})
 	if err != nil {
