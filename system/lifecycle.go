@@ -66,7 +66,7 @@ func (lifecycle *Lifecycle) Start() error {
 		"SOKSAK_HOME="+lifecycle.config.Home,
 		"SOKSAK_IDENTIFIER="+lifecycle.config.Identifier,
 		"SOKSAK_RUNTIME="+lifecycle.config.Runtime,
-		"SOKSAK_UNATTENDED=1",
+		"SOKSAK_PRESENTATION=capture-only",
 	)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
