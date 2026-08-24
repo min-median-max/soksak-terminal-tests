@@ -7,28 +7,26 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 )
 
-type PresentationParityReport struct {
-	Provider              string                `json:"provider"`
-	Delivery              string                `json:"delivery"`
-	RenderSequence        int                   `json:"renderSequence"`
-	AcceptedInputSequence int                   `json:"acceptedInputSequence"`
-	PtyWriteSequence      int                   `json:"ptyWriteSequence"`
-	FocusedInput          bool                  `json:"focusedInput"`
-	CursorVisible         bool                  `json:"cursorVisible"`
-	CursorActive          bool                  `json:"cursorActive"`
-	LastRenderDurationMs  float64               `json:"lastRenderDurationMs"`
-	MaxRenderDurationMs   float64               `json:"maxRenderDurationMs"`
-	LastInputToPtyWriteMs float64               `json:"lastInputToPtyWriteMs"`
-	WindowFocused         bool                  `json:"windowFocused"`
-	Theme                 terminalThemeEvidence `json:"theme"`
+type presentationPerformanceReport struct {
+	Provider              string  `json:"provider"`
+	Delivery              string  `json:"delivery"`
+	RenderSequence        int     `json:"renderSequence"`
+	AcceptedInputSequence int     `json:"acceptedInputSequence"`
+	PtyWriteSequence      int     `json:"ptyWriteSequence"`
+	FocusedInput          bool    `json:"focusedInput"`
+	CursorVisible         bool    `json:"cursorVisible"`
+	CursorActive          bool    `json:"cursorActive"`
+	LastRenderDurationMs  float64 `json:"lastRenderDurationMs"`
+	MaxRenderDurationMs   float64 `json:"maxRenderDurationMs"`
+	LastInputToPtyWriteMs float64 `json:"lastInputToPtyWriteMs"`
+	WindowFocused         bool    `json:"windowFocused"`
 }
 
-func TestInstalledTerminalPresentationParity(t *testing.T) {
+func TestInstalledTerminalPresentationPerformance(t *testing.T) {
 	planPath := os.Getenv("SOKSAK_TEST_CANDIDATE_PLAN")
 	if planPath == "" {
 		t.Fatal("SOKSAK_TEST_CANDIDATE_PLAN is required")
@@ -38,7 +36,7 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		t.Fatal(err)
 	}
 	profile := profileFromEnvironment(t)
-	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment(t, "parity"))
+	lifecycle, err := NewLifecycle(lifecycleConfigFromEnvironment(t, "performance"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,8 +58,7 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	reports := make([]PresentationParityReport, 0, len(profile.Plugins))
-	var baselineTheme *terminalThemeEvidence
+	reports := make([]presentationPerformanceReport, 0, len(profile.Plugins))
 	for _, plugin := range profile.Plugins {
 		program := strings.TrimPrefix(plugin.ID, "soksak-plugin-")
 		opened, err := cli.Call("tab.open", map[string]any{"pane": pane, "program": program, "mountTimeoutMs": 12000})
@@ -90,13 +87,13 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		if _, err := cli.Call("ui.input.click", map[string]any{"address": screen}); err != nil {
 			t.Fatalf("focus %s: %v", plugin.ID, err)
 		}
-		marker := "SOKSAK_PARITY_" + strings.ToUpper(strings.TrimPrefix(plugin.ID, "soksak-plugin-terminal-"))
+		marker := "SOKSAK_PERFORMANCE_" + strings.ToUpper(strings.TrimPrefix(plugin.ID, "soksak-plugin-terminal-"))
 		command, err := terminalPaletteCommand(profile.Platform, marker)
 		if err != nil {
 			t.Fatal(err)
 		}
 		if strings.Contains(command, marker) {
-			t.Fatalf("%s palette input contains its awaited output marker", plugin.ID)
+			t.Fatalf("%s performance input contains its awaited output marker", plugin.ID)
 		}
 		for _, key := range command {
 			if _, err := cli.Call("ui.input.key", map[string]any{"address": input, "key": string(key)}); err != nil {
@@ -111,42 +108,19 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		}); err != nil {
 			status, statusErr := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
 			read, readErr := cli.Call("plugin."+plugin.ID+".read", map[string]any{"view": tab, "lines": 8})
-			t.Fatalf("keyboard round trip %s: %v; status=%+v statusErr=%v; read=%+v readErr=%v",
+			t.Fatalf("browser-input round trip %s: %v; status=%+v statusErr=%v; read=%+v readErr=%v",
 				plugin.ID, err, status, statusErr, read, readErr)
-		}
-		if err := captureTerminal(cli, "parity-"+plugin.ID); err != nil {
-			t.Fatalf("capture %s: %v", plugin.ID, err)
-		}
-		terminalImage := filepath.Join(lifecycle.config.EvidenceDir, "parity-"+plugin.ID+"-screen.png")
-		if _, err := cli.Call("window.snapshot", map[string]any{"path": terminalImage, "node": screen}); err != nil {
-			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
 		}
 		status, err := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
 		if err != nil {
 			t.Fatalf("status %s: %v", plugin.ID, err)
 		}
 		presentation, _ := status["presentation"].(map[string]any)
-		report, err := presentationReport(plugin.ID, presentation)
+		report, err := presentationPerformance(plugin.ID, presentation)
 		if err != nil {
-			t.Errorf("%s presentation report: %v; status=%+v", plugin.ID, err, presentation)
-			report = PresentationParityReport{Provider: plugin.ID}
+			t.Errorf("%s performance report: %v; status=%+v", plugin.ID, err, presentation)
+			report = presentationPerformanceReport{Provider: plugin.ID}
 			report.Delivery, _ = presentation["delivery"].(string)
-		}
-		measurement, err := cli.Call("ui.measure", map[string]any{
-			"address": screen, "props": terminalThemeMeasureProperties(plan.PresentationContract.Data),
-		})
-		if err != nil {
-			t.Errorf("%s theme measurement: %v", plugin.ID, err)
-		} else {
-			report.Theme, err = readTerminalThemeEvidence(measurement, presentation, plan.PresentationContract.Data)
-			if err != nil {
-				t.Errorf("%s theme evidence: %v", plugin.ID, err)
-			} else if baselineTheme == nil {
-				copy := report.Theme
-				baselineTheme = &copy
-			} else if !reflect.DeepEqual(*baselineTheme, report.Theme) {
-				t.Errorf("%s theme differs from fleet baseline: got=%+v want=%+v", plugin.ID, report.Theme, *baselineTheme)
-			}
 		}
 		inputState, err := cli.Call("window.input.state", map[string]any{})
 		if err != nil {
@@ -174,12 +148,12 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			"sourceRepository": plan.PresentationContract.SourceRepository,
 			"sourceCommit":     plan.PresentationContract.SourceCommit,
 		},
-		"budgets": budgets, "ansiBase": plan.PresentationContract.Data.ANSI.Base, "reports": reports,
+		"budgets": budgets, "reports": reports,
 	}, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(lifecycle.config.EvidenceDir, "terminal-parity.json"), body, 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(lifecycle.config.EvidenceDir, "terminal-performance.json"), body, 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := lifecycle.Finish(); err != nil {
@@ -187,11 +161,11 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 	}
 }
 
-func presentationReport(provider string, value map[string]any) (PresentationParityReport, error) {
+func presentationPerformance(provider string, value map[string]any) (presentationPerformanceReport, error) {
 	if value == nil {
-		return PresentationParityReport{}, fmt.Errorf("%s status has no presentation", provider)
+		return presentationPerformanceReport{}, fmt.Errorf("%s status has no presentation", provider)
 	}
-	report := PresentationParityReport{Provider: provider}
+	report := presentationPerformanceReport{Provider: provider}
 	report.Delivery, _ = value["delivery"].(string)
 	report.RenderSequence, _ = exactInt(value["renderSequence"])
 	report.AcceptedInputSequence, _ = exactInt(value["acceptedInputSequence"])
@@ -201,13 +175,13 @@ func presentationReport(provider string, value map[string]any) (PresentationPari
 	report.CursorActive, _ = value["cursorActive"].(bool)
 	var ok bool
 	if report.LastRenderDurationMs, ok = number(value["lastRenderDurationMs"]); !ok {
-		return PresentationParityReport{}, fmt.Errorf("%s has no last render duration", provider)
+		return presentationPerformanceReport{}, fmt.Errorf("%s has no last render duration", provider)
 	}
 	if report.MaxRenderDurationMs, ok = number(value["maxRenderDurationMs"]); !ok {
-		return PresentationParityReport{}, fmt.Errorf("%s has no max render duration", provider)
+		return presentationPerformanceReport{}, fmt.Errorf("%s has no max render duration", provider)
 	}
 	if report.LastInputToPtyWriteMs, ok = number(value["lastInputToPtyWriteMs"]); !ok {
-		return PresentationParityReport{}, fmt.Errorf("%s has no input-to-PTY duration", provider)
+		return presentationPerformanceReport{}, fmt.Errorf("%s has no input-to-PTY duration", provider)
 	}
 	return report, nil
 }

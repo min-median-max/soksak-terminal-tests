@@ -51,7 +51,7 @@ the actual host runtime. A cross-compiled test binary is never accepted as nativ
 `make system-native-input TARGET=aarch64-apple-darwin` is the Darwin AppKit input certification
 gate. It deliberately activates its isolated test application because WebKit does not deliver
 native key events to an inactive, non-key window. Run it only on an unattended native runner; local
-capture-only development must use `system-parity` and must not take the user's focus. The gate sends
+capture-only development uses `system-theme` and `system-performance` and must not take the user's focus. The gate sends
 AppKit mouse and key events to public-node coordinates and proves the route reaches each terminal
 and PTY. It consumes `SOKSAK_TEST_CANDIDATE_PLAN` when supplied and otherwise installs the declared
 immutable fleet through Core.
@@ -68,6 +68,10 @@ automated pass/fail oracle. Colour parity is decided from the public `terminal-s
 foreground/background, cursor and selection properties, plus all 256 contract-owned ANSI custom
 properties. Capture generation failures are harness failures; a person still inspects the emitted
 images before completion is claimed.
+
+The candidate workflow runs `system-theme → system-native-input → system-visibility →
+system-performance → system-commands`. Theme and native input are therefore not blocked by a later
+performance RED.
 
 ## Verification identity
 
