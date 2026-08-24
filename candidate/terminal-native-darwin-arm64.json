@@ -57,7 +57,7 @@
     {
       "id": "soksak-sidecar-pty",
       "repository": "soksak-ai/soksak-sidecar-pty",
-      "sourceCommit": "6fec0377350a546ef235d5598b8c6559d10f9714",
+      "sourceCommit": "80fabca5f1d26db7679d2426cced5866d70fe370",
       "language": "go",
       "profile": "standard"
     },
