@@ -62,6 +62,21 @@ type CandidatePresentationData struct {
 		} `json:"grayscale"`
 	} `json:"ansi"`
 	Budgets CandidateBudgets `json:"budgets"`
+	Theme   struct {
+		Tokens struct {
+			Foreground          string `json:"foreground"`
+			Background          string `json:"background"`
+			Cursor              string `json:"cursor"`
+			CursorAccent        string `json:"cursorAccent"`
+			SelectionBackground string `json:"selectionBackground"`
+		} `json:"tokens"`
+		Properties struct {
+			Cursor              string `json:"cursor"`
+			CursorAccent        string `json:"cursorAccent"`
+			SelectionBackground string `json:"selectionBackground"`
+			ANSIPrefix          string `json:"ansiPrefix"`
+		} `json:"properties"`
+	} `json:"theme"`
 }
 
 type preparedCandidate struct {
@@ -204,6 +219,22 @@ func readCandidatePlan(planPath string) (CandidatePlan, string, error) {
 }
 
 var candidateColour = regexp.MustCompile(`^#[0-9a-f]{6}$`)
+var candidateCSSProperty = regexp.MustCompile(`^--[a-z][a-z0-9-]*$`)
+
+func completeCandidateTheme(data CandidatePresentationData) bool {
+	values := []string{
+		data.Theme.Tokens.Foreground, data.Theme.Tokens.Background, data.Theme.Tokens.Cursor,
+		data.Theme.Tokens.CursorAccent, data.Theme.Tokens.SelectionBackground,
+		data.Theme.Properties.Cursor, data.Theme.Properties.CursorAccent,
+		data.Theme.Properties.SelectionBackground, data.Theme.Properties.ANSIPrefix,
+	}
+	for _, value := range values {
+		if !candidateCSSProperty.MatchString(value) {
+			return false
+		}
+	}
+	return strings.HasSuffix(data.Theme.Properties.ANSIPrefix, "-")
+}
 
 func readCandidatePresentation(root string, reference CandidatePresentation) (CandidatePresentationData, error) {
 	if reference.ID != "soksak-contract-plugin-terminal" || !candidateVersion.MatchString(reference.Version) ||
@@ -264,9 +295,9 @@ func readCandidatePresentation(root string, reference CandidatePresentation) (Ca
 	if err := decoder.Decode(&data); err != nil {
 		return CandidatePresentationData{}, fmt.Errorf("invalid presentation contract data: %w", err)
 	}
-	if data.Version != 1 || len(data.ANSI.Base) != 16 ||
+	if data.Version != 2 || len(data.ANSI.Base) != 16 ||
 		data.Budgets.RenderMs <= 0 || data.Budgets.InputToPtyWriteMs <= 0 ||
-		len(data.ANSI.Cube) != 6 || data.ANSI.Grayscale.Count != 24 {
+		len(data.ANSI.Cube) != 6 || data.ANSI.Grayscale.Count != 24 || !completeCandidateTheme(data) {
 		return CandidatePresentationData{}, fmt.Errorf("presentation contract data is incomplete")
 	}
 	for _, colour := range data.ANSI.Base {
