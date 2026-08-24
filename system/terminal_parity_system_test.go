@@ -223,6 +223,9 @@ func nativeClickExposedNode(cli CLI, window, address string) (string, error) {
 	if focused, _ := receipt["windowFocused"].(bool); focused {
 		return "", fmt.Errorf("native pointer click focused the capture-only window: %+v", receipt)
 	}
+	if preserved, _ := receipt["foregroundPreserved"].(bool); !preserved {
+		return "", fmt.Errorf("native pointer click changed the foreground application: %+v", receipt)
+	}
 	return route, nil
 }
 
@@ -240,6 +243,9 @@ func nativePressWindowKey(cli CLI, window, key string) (string, error) {
 	}
 	if focused, _ := receipt["windowFocused"].(bool); focused {
 		return "", fmt.Errorf("native key press focused the capture-only window: %+v", receipt)
+	}
+	if preserved, _ := receipt["foregroundPreserved"].(bool); !preserved {
+		return "", fmt.Errorf("native key press changed the foreground application: %+v", receipt)
 	}
 	return route, nil
 }
