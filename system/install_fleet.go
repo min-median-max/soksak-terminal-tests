@@ -3,6 +3,7 @@ package system
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/min-median-max/soksak-terminal-tests/fleet"
 	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
@@ -14,6 +15,18 @@ type commandCaller interface {
 }
 
 const installProgressIdleTimeoutMs = 30000
+const pluginBootTimeoutMs = 45000
+
+func InstallConfiguredTerminalFleet(profile fleet.Profile, cli commandCaller) error {
+	plan := os.Getenv("SOKSAK_TEST_CANDIDATE_PLAN")
+	if plan == "" {
+		return InstallTerminalFleet(profile, cli)
+	}
+	if err := InstallCandidateFleet(plan, cli); err != nil {
+		return err
+	}
+	return EnableCandidateTerminalFleet(profile, cli)
+}
 
 func InstallTerminalFleet(profile fleet.Profile, cli commandCaller) error {
 	if _, err := cli.Call("plugin.catalog", map[string]any{"refresh": true}); err != nil {
@@ -24,7 +37,7 @@ func InstallTerminalFleet(profile fleet.Profile, cli commandCaller) error {
 			return err
 		}
 	}
-	return nil
+	return awaitTerminalFleetBoot(cli)
 }
 
 func EnableCandidateTerminalFleet(profile fleet.Profile, cli commandCaller) error {
@@ -32,6 +45,13 @@ func EnableCandidateTerminalFleet(profile fleet.Profile, cli commandCaller) erro
 		if err := enableInstalledPlugin(plugin.ID, cli); err != nil {
 			return err
 		}
+	}
+	return awaitTerminalFleetBoot(cli)
+}
+
+func awaitTerminalFleetBoot(cli commandCaller) error {
+	if _, err := cli.Call("plugin.boot.wait", map[string]any{"timeoutMs": pluginBootTimeoutMs}); err != nil {
+		return fmt.Errorf("wait for enabled terminal fleet: %w", err)
 	}
 	return nil
 }

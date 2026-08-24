@@ -46,13 +46,7 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		t.Fatal(err)
 	}
 	cli := lifecycle.Client()
-	if err := InstallCandidateFleet(planPath, cli); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := cli.Call("plugin.boot.wait", map[string]any{"timeoutMs": 45000}); err != nil {
-		t.Fatal(err)
-	}
-	if err := EnableCandidateTerminalFleet(profile, cli); err != nil {
+	if err := InstallConfiguredTerminalFleet(profile, cli); err != nil {
 		t.Fatal(err)
 	}
 	palette, err := terminalPaletteExpectationFromBase(plan.PresentationContract.Data.ANSI.Base)

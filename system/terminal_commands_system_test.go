@@ -14,7 +14,7 @@ func TestInstalledTerminalCommands(t *testing.T) {
 	if err := lifecycle.Start(); err != nil {
 		t.Fatal(err)
 	}
-	if err := InstallTerminalFleet(profile, lifecycle.Client()); err != nil {
+	if err := InstallConfiguredTerminalFleet(profile, lifecycle.Client()); err != nil {
 		t.Fatal(err)
 	}
 	environment, err := ReadRuntimeEnvironment(lifecycle.Client())
