@@ -28,13 +28,16 @@ func TestDarwinCandidateWorkflowUsesTheExactOwnerWorkflowsAndNativeGate(t *testi
 		"soksak-ai/soksak-spec/.github/workflows/sidecar-candidate.yml@" + plan.Spec.SourceCommit,
 		"soksak-ai/soksak-contract-plugin-terminal/.github/workflows/candidate.yml@" + plan.Contract.SourceCommit,
 		"actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
-		"make -C tests compose-candidate-plan", "system-native-input", "candidate-actions-artifacts.json",
+		"make -C tests compose-candidate-plan", "system-commands", "system-native-input", "candidate-actions-artifacts.json",
 		"actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
 		"if-no-files-found: error",
 	} {
 		if !strings.Contains(workflow, required) {
 			t.Errorf("candidate workflow omits %q", required)
 		}
+	}
+	if strings.Index(workflow, "system-commands") > strings.Index(workflow, "system-native-input") {
+		t.Error("candidate command matrix must pass before native input certification")
 	}
 	for _, forbidden := range []string{
 		"contents: write", "create-github-app-token", "publish-canonical-release", "gh release create",
