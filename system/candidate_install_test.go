@@ -69,12 +69,24 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 	writeCandidateEntries(t, contractArchive, map[string]any{
 		"package/contract.json": map[string]any{"id": "soksak-contract-plugin-terminal", "version": "0.0.7"},
 		"package/presentation.json": map[string]any{
-			"version": 1,
+			"version": 2,
 			"ansi": map[string]any{
 				"base": []string{"#2e3436", "#cc0000", "#4e9a06", "#c4a000", "#3465a4", "#75507b", "#06989a", "#d3d7cf", "#555753", "#ef2929", "#8ae234", "#fce94f", "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec"},
 				"cube": []int{0, 95, 135, 175, 215, 255}, "grayscale": map[string]any{"start": 8, "step": 10, "count": 24},
 			},
 			"budgets": map[string]any{"renderMs": 1000.0 / 60.0, "inputToPtyWriteMs": 50.0},
+			"theme": map[string]any{
+				"tokens": map[string]any{
+					"foreground": "--fg", "background": "--card", "cursor": "--acc",
+					"cursorAccent": "--card", "selectionBackground": "--fg3",
+				},
+				"properties": map[string]any{
+					"cursor": "--soksak-terminal-cursor",
+					"cursorAccent": "--soksak-terminal-cursor-accent",
+					"selectionBackground": "--soksak-terminal-selection-background",
+					"ansiPrefix": "--soksak-terminal-ansi-",
+				},
+			},
 		},
 	})
 	components := []map[string]string{
