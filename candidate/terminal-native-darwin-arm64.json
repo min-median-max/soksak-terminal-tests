@@ -14,7 +14,7 @@
   "kit": {
     "id": "soksak-kit-plugin-terminal",
     "repository": "soksak-ai/soksak-kit-plugin-terminal",
-    "sourceCommit": "57deb089328b912b271b60d5649a101d7b0fcb32"
+    "sourceCommit": "69f13e53327448035997b6b842013dc3f3853569"
   },
   "plugins": [
     {
