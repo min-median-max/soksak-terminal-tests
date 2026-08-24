@@ -52,6 +52,23 @@ func TestTerminalPaletteEvidenceRequiresAllThreePaintedSwatches(t *testing.T) {
 	}
 }
 
+func TestTerminalPaletteEvidenceAcceptsOneSharedFocusLightingTransform(t *testing.T) {
+	expected, err := terminalPaletteExpectationFromBase([]string{
+		"#2e3436", "#cc0000", "#4e9a06", "#c4a000", "#3465a4", "#75507b", "#06989a", "#d3d7cf",
+		"#555753", "#ef2929", "#8ae234", "#fce94f", "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	painted := image.NewRGBA(image.Rect(0, 0, 36, 12))
+	paintBlock(painted, image.Rect(0, 0, 12, 12), color.RGBA{R: 0xbb, G: 0x27, B: 0x1a, A: 255})
+	paintBlock(painted, image.Rect(12, 0, 24, 12), color.RGBA{R: 0x61, G: 0x98, B: 0x2d, A: 255})
+	paintBlock(painted, image.Rect(24, 0, 36, 12), color.RGBA{R: 0x40, G: 0x64, B: 0x9f, A: 255})
+	if _, err := validateTerminalPaletteEvidence(writeCaptureFixture(t, "focus-lit-palette.png", painted), expected); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func paintBlock(target *image.RGBA, bounds image.Rectangle, value color.Color) {
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
