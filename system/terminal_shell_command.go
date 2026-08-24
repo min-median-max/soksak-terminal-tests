@@ -34,6 +34,22 @@ func terminalHighOutputCommand(platform, marker string) (string, error) {
 	}
 }
 
+func terminalPaletteCommand(platform, marker string) (string, error) {
+	prefix, suffix, err := splitMarker(marker)
+	if err != nil {
+		return "", err
+	}
+	switch platform {
+	case "windows":
+		script := "$prefix='" + prefix + "'; [Console]::Out.Write('`e[41m R `e[42m G `e[44m B `e[0m'); [Console]::Out.WriteLine($prefix + '" + suffix + "')"
+		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
+	case "darwin", "linux":
+		return "prefix=" + prefix + "; printf '\\033[41m R \\033[42m G \\033[44m B \\033[0m'; printf '%s%s\\n' \"$prefix\" " + suffix, nil
+	default:
+		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
+	}
+}
+
 func splitMarker(marker string) (string, string, error) {
 	cut := strings.LastIndex(marker, "_") + 1
 	if cut < 1 || cut >= len(marker) {

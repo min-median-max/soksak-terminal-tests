@@ -16,7 +16,7 @@ type candidateCaller struct {
 
 func TestCandidatePlanRequiresThePortablePresentationContract(t *testing.T) {
 	planPath := filepath.Join(t.TempDir(), "candidate-plan.json")
-	body := `{"budgets":{"renderMs":16.666666666666668,"inputToPtyWriteMs":50},"components":[{"kind":"plugin"}]}`
+	body := `{"components":[{"kind":"plugin"}]}`
 	if err := os.WriteFile(planPath, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -65,6 +65,18 @@ func (caller *candidateCaller) CallValue(command string, params map[string]any) 
 
 func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 	root := t.TempDir()
+	contractArchive := filepath.Join(root, "presentation-contract.tgz")
+	writeCandidateEntries(t, contractArchive, map[string]any{
+		"package/contract.json": map[string]any{"id": "soksak-contract-plugin-terminal", "version": "0.0.7"},
+		"package/presentation.json": map[string]any{
+			"version": 1,
+			"ansi": map[string]any{
+				"base": []string{"#2e3436", "#cc0000", "#4e9a06", "#c4a000", "#3465a4", "#75507b", "#06989a", "#d3d7cf", "#555753", "#ef2929", "#8ae234", "#fce94f", "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec"},
+				"cube": []int{0, 95, 135, 175, 215, 255}, "grayscale": map[string]any{"start": 8, "step": 10, "count": 24},
+			},
+			"budgets": map[string]any{"renderMs": 1000.0 / 60.0, "inputToPtyWriteMs": 50.0},
+		},
+	})
 	components := []map[string]string{
 		{"kind": "sidecar", "id": "soksak-sidecar-terminal-vt100", "version": "0.0.12", "manifest": "sidecar.json"},
 		{"kind": "plugin", "id": "soksak-plugin-terminal-vt100", "version": "0.0.15", "manifest": "plugin.json"},
@@ -75,7 +87,10 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 			"id": component["id"], "version": component["version"],
 		})
 	}
-	plan := map[string]any{"budgets": map[string]any{"renderMs": 1000.0 / 60.0, "inputToPtyWriteMs": 50.0}, "components": []any{
+	plan := map[string]any{"presentationContract": map[string]any{
+		"id": "soksak-contract-plugin-terminal", "version": "0.0.7", "artifact": "presentation-contract.tgz",
+		"sourceRepository": "https://github.com/soksak-ai/soksak-contract-plugin-terminal", "sourceCommit": "3333333333333333333333333333333333333333",
+	}, "components": []any{
 		map[string]any{"kind": "sidecar", "id": "soksak-sidecar-terminal-vt100", "version": "0.0.12", "artifact": "soksak-sidecar-terminal-vt100.tgz", "manifest": "sidecar.json", "target": "aarch64-apple-darwin", "sourceRepository": "https://github.com/soksak-ai/soksak-sidecar-terminal-vt100", "sourceCommit": "1111111111111111111111111111111111111111"},
 		map[string]any{"kind": "plugin", "id": "soksak-plugin-terminal-vt100", "version": "0.0.15", "artifact": "soksak-plugin-terminal-vt100.tgz", "manifest": "plugin.json", "sourceRepository": "https://github.com/soksak-ai/soksak-plugin-terminal-vt100", "sourceCommit": "2222222222222222222222222222222222222222"},
 	}}
@@ -104,6 +119,10 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 }
 
 func writeCandidateArchive(t *testing.T, path, manifest string, value map[string]any) {
+	writeCandidateEntries(t, path, map[string]any{manifest: value})
+}
+
+func writeCandidateEntries(t *testing.T, path string, entries map[string]any) {
 	t.Helper()
 	file, err := os.Create(path)
 	if err != nil {
@@ -111,12 +130,14 @@ func writeCandidateArchive(t *testing.T, path, manifest string, value map[string
 	}
 	gzipWriter := gzip.NewWriter(file)
 	tarWriter := tar.NewWriter(gzipWriter)
-	body, _ := json.Marshal(value)
-	if err := tarWriter.WriteHeader(&tar.Header{Name: manifest, Mode: 0o600, Size: int64(len(body)), Typeflag: tar.TypeReg}); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := tarWriter.Write(body); err != nil {
-		t.Fatal(err)
+	for name, value := range entries {
+		body, _ := json.Marshal(value)
+		if err := tarWriter.WriteHeader(&tar.Header{Name: name, Mode: 0o600, Size: int64(len(body)), Typeflag: tar.TypeReg}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tarWriter.Write(body); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if err := tarWriter.Close(); err != nil {
 		t.Fatal(err)

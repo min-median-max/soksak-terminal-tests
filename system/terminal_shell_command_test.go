@@ -54,6 +54,28 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 	}
 }
 
+func TestTerminalPaletteCommandHidesTheAwaitedMarkerFromShellEcho(t *testing.T) {
+	const marker = "SOKSAK_PARITY_XTERM"
+	for _, platform := range []string{"darwin", "linux", "windows"} {
+		command, err := terminalPaletteCommand(platform, marker)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(command, marker) {
+			t.Fatalf("%s palette command exposes the awaited marker: %s", platform, command)
+		}
+	}
+	unix, _ := terminalPaletteCommand("darwin", marker)
+	for _, sequence := range []string{"\\033[41m", "\\033[42m", "\\033[44m", "\\033[0m"} {
+		if !strings.Contains(unix, sequence) {
+			t.Errorf("palette command omits %q: %s", sequence, unix)
+		}
+	}
+	if _, err := terminalPaletteCommand("unknown", marker); err == nil {
+		t.Fatal("unsupported palette platform was accepted")
+	}
+}
+
 func TestDetachedMarkerCommandsUseThePlatformShell(t *testing.T) {
 	windows, err := detachedMarkerCommand("windows", "SOKSAK_DETACHED_7", "SOKSAK_SCHEDULED_7")
 	if err != nil {

@@ -1,11 +1,14 @@
 package system
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -29,13 +32,36 @@ type CandidateComponent struct {
 }
 
 type CandidatePlan struct {
-	Components []CandidateComponent `json:"components"`
-	Budgets    CandidateBudgets     `json:"budgets"`
+	Components           []CandidateComponent  `json:"components"`
+	PresentationContract CandidatePresentation `json:"presentationContract"`
 }
 
 type CandidateBudgets struct {
 	RenderMs          float64 `json:"renderMs"`
 	InputToPtyWriteMs float64 `json:"inputToPtyWriteMs"`
+}
+
+type CandidatePresentation struct {
+	ID               string                    `json:"id"`
+	Version          string                    `json:"version"`
+	Artifact         string                    `json:"artifact"`
+	SourceRepository string                    `json:"sourceRepository"`
+	SourceCommit     string                    `json:"sourceCommit"`
+	Data             CandidatePresentationData `json:"-"`
+}
+
+type CandidatePresentationData struct {
+	Version int `json:"version"`
+	ANSI    struct {
+		Base      []string `json:"base"`
+		Cube      []int    `json:"cube"`
+		Grayscale struct {
+			Start int `json:"start"`
+			Step  int `json:"step"`
+			Count int `json:"count"`
+		} `json:"grayscale"`
+	} `json:"ansi"`
+	Budgets CandidateBudgets `json:"budgets"`
 }
 
 type preparedCandidate struct {
@@ -168,10 +194,87 @@ func readCandidatePlan(planPath string) (CandidatePlan, string, error) {
 	if len(plan.Components) == 0 {
 		return CandidatePlan{}, "", fmt.Errorf("candidate plan has no components")
 	}
-	if plan.Budgets.RenderMs <= 0 || plan.Budgets.InputToPtyWriteMs <= 0 {
-		return CandidatePlan{}, "", fmt.Errorf("candidate plan has invalid presentation budgets")
+	root := filepath.Dir(planPath)
+	presentation, err := readCandidatePresentation(root, plan.PresentationContract)
+	if err != nil {
+		return CandidatePlan{}, "", err
 	}
-	return plan, filepath.Dir(planPath), nil
+	plan.PresentationContract.Data = presentation
+	return plan, root, nil
+}
+
+var candidateColour = regexp.MustCompile(`^#[0-9a-f]{6}$`)
+
+func readCandidatePresentation(root string, reference CandidatePresentation) (CandidatePresentationData, error) {
+	if reference.ID != "soksak-contract-plugin-terminal" || !candidateVersion.MatchString(reference.Version) ||
+		!candidateCommit.MatchString(reference.SourceCommit) ||
+		reference.SourceRepository != "https://github.com/soksak-ai/soksak-contract-plugin-terminal" {
+		return CandidatePresentationData{}, fmt.Errorf("invalid candidate presentation contract: %+v", reference)
+	}
+	path, err := candidateArtifactPath(root, reference.Artifact)
+	if err != nil {
+		return CandidatePresentationData{}, err
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return CandidatePresentationData{}, err
+	}
+	defer file.Close()
+	gzipReader, err := gzip.NewReader(file)
+	if err != nil {
+		return CandidatePresentationData{}, fmt.Errorf("presentation contract is not gzip: %w", err)
+	}
+	defer gzipReader.Close()
+	tarReader := tar.NewReader(gzipReader)
+	var identityBody, presentationBody []byte
+	for {
+		header, nextErr := tarReader.Next()
+		if nextErr == io.EOF {
+			break
+		}
+		if nextErr != nil {
+			return CandidatePresentationData{}, nextErr
+		}
+		if header.Typeflag != tar.TypeReg || header.Size < 0 || header.Size > 1<<20 {
+			continue
+		}
+		body, readErr := io.ReadAll(io.LimitReader(tarReader, header.Size))
+		if readErr != nil {
+			return CandidatePresentationData{}, readErr
+		}
+		switch header.Name {
+		case "package/contract.json":
+			if identityBody != nil {
+				return CandidatePresentationData{}, fmt.Errorf("presentation contract repeats contract.json")
+			}
+			identityBody = body
+		case "package/presentation.json":
+			if presentationBody != nil {
+				return CandidatePresentationData{}, fmt.Errorf("presentation contract repeats presentation.json")
+			}
+			presentationBody = body
+		}
+	}
+	if !candidateManifestIdentity(identityBody, reference.ID, reference.Version) {
+		return CandidatePresentationData{}, fmt.Errorf("presentation contract identity mismatch")
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(presentationBody)))
+	decoder.DisallowUnknownFields()
+	var data CandidatePresentationData
+	if err := decoder.Decode(&data); err != nil {
+		return CandidatePresentationData{}, fmt.Errorf("invalid presentation contract data: %w", err)
+	}
+	if data.Version != 1 || len(data.ANSI.Base) != 16 ||
+		data.Budgets.RenderMs <= 0 || data.Budgets.InputToPtyWriteMs <= 0 ||
+		len(data.ANSI.Cube) != 6 || data.ANSI.Grayscale.Count != 24 {
+		return CandidatePresentationData{}, fmt.Errorf("presentation contract data is incomplete")
+	}
+	for _, colour := range data.ANSI.Base {
+		if !candidateColour.MatchString(colour) {
+			return CandidatePresentationData{}, fmt.Errorf("presentation contract has invalid colour: %s", colour)
+		}
+	}
+	return data, nil
 }
 
 func prepareCandidate(root string, component CandidateComponent) (preparedCandidate, error) {
@@ -190,14 +293,9 @@ func prepareCandidate(root string, component CandidateComponent) (preparedCandid
 			return preparedCandidate{}, fmt.Errorf("candidate dependency commit is invalid: %s=%s", id, commit)
 		}
 	}
-	clean := filepath.Clean(component.Artifact)
-	if clean == "." || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
-		return preparedCandidate{}, fmt.Errorf("candidate artifact path escapes the plan: %s", component.Artifact)
-	}
-	path := filepath.Join(root, clean)
-	info, err := os.Lstat(path)
-	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
-		return preparedCandidate{}, fmt.Errorf("candidate artifact is not a regular file: %s", path)
+	path, err := candidateArtifactPath(root, component.Artifact)
+	if err != nil {
+		return preparedCandidate{}, err
 	}
 	body, err := os.ReadFile(path)
 	if err != nil {
@@ -207,6 +305,19 @@ func prepareCandidate(root string, component CandidateComponent) (preparedCandid
 	return preparedCandidate{
 		CandidateComponent: component, path: path, size: int64(len(body)), digest: hex.EncodeToString(digest[:]),
 	}, nil
+}
+
+func candidateArtifactPath(root, artifact string) (string, error) {
+	clean := filepath.Clean(artifact)
+	if clean == "." || filepath.IsAbs(clean) || clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("candidate artifact path escapes the plan: %s", artifact)
+	}
+	path := filepath.Join(root, clean)
+	info, err := os.Lstat(path)
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
+		return "", fmt.Errorf("candidate artifact is not a regular file: %s", path)
+	}
+	return path, nil
 }
 
 func startCandidateServer(root string) (*http.Server, string, error) {

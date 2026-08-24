@@ -54,6 +54,11 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 	if err := EnableCandidateTerminalFleet(profile, cli); err != nil {
 		t.Fatal(err)
 	}
+	palette, err := terminalPaletteExpectationFromBase(plan.PresentationContract.Data.ANSI.Base)
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgets := plan.PresentationContract.Data.Budgets
 	if _, err := lifecycle.OpenWorkspace(); err != nil {
 		t.Fatal(err)
 	}
@@ -93,9 +98,17 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			t.Fatalf("focus %s: %v", plugin.ID, err)
 		}
 		marker := "SOKSAK_PARITY_" + strings.ToUpper(strings.TrimPrefix(plugin.ID, "soksak-plugin-terminal-"))
-		command := "printf '\\033[41m R \\033[42m G \\033[44m B \\033[0m'; echo " + marker
-		if _, err := cli.Call("ui.input.fill", map[string]any{"address": input, "value": command}); err != nil {
-			t.Fatalf("fill %s: %v", plugin.ID, err)
+		command, err := terminalPaletteCommand(profile.Platform, marker)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(command, marker) {
+			t.Fatalf("%s palette input contains its awaited output marker", plugin.ID)
+		}
+		for _, key := range command {
+			if _, err := cli.Call("ui.input.key", map[string]any{"address": input, "key": string(key)}); err != nil {
+				t.Fatalf("type %s key %q: %v", plugin.ID, key, err)
+			}
 		}
 		if _, err := cli.Call("ui.input.key", map[string]any{"address": input, "key": "Enter"}); err != nil {
 			t.Fatalf("enter %s: %v", plugin.ID, err)
@@ -103,7 +116,10 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		if _, err := cli.Call("plugin."+plugin.ID+".wait", map[string]any{
 			"phase": "live", "view": tab, "contains": marker, "timeoutMs": 12000,
 		}); err != nil {
-			t.Fatalf("keyboard round trip %s: %v", plugin.ID, err)
+			status, statusErr := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
+			read, readErr := cli.Call("plugin."+plugin.ID+".read", map[string]any{"view": tab, "lines": 8})
+			t.Fatalf("keyboard round trip %s: %v; status=%+v statusErr=%v; read=%+v readErr=%v",
+				plugin.ID, err, status, statusErr, read, readErr)
 		}
 		status, err := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
 		if err != nil {
@@ -126,18 +142,32 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			report.RenderSequence < 1 || report.AcceptedInputSequence < 2 || report.PtyWriteSequence < 2 {
 			t.Errorf("%s presentation state=%+v", plugin.ID, report)
 		}
-		if report.MaxRenderDurationMs > plan.Budgets.RenderMs {
-			t.Errorf("%s render %.3fms exceeds %.3fms", plugin.ID, report.MaxRenderDurationMs, plan.Budgets.RenderMs)
+		if report.MaxRenderDurationMs > budgets.RenderMs {
+			t.Errorf("%s render %.3fms exceeds %.3fms", plugin.ID, report.MaxRenderDurationMs, budgets.RenderMs)
 		}
-		if report.LastInputToPtyWriteMs > plan.Budgets.InputToPtyWriteMs {
-			t.Errorf("%s input-to-PTY %.3fms exceeds %.3fms", plugin.ID, report.LastInputToPtyWriteMs, plan.Budgets.InputToPtyWriteMs)
+		if report.LastInputToPtyWriteMs > budgets.InputToPtyWriteMs {
+			t.Errorf("%s input-to-PTY %.3fms exceeds %.3fms", plugin.ID, report.LastInputToPtyWriteMs, budgets.InputToPtyWriteMs)
 		}
 		if err := captureTerminal(cli, "parity-"+plugin.ID); err != nil {
 			t.Fatalf("capture %s: %v", plugin.ID, err)
 		}
+		terminalImage := filepath.Join(lifecycle.config.EvidenceDir, "parity-"+plugin.ID+"-screen.png")
+		if _, err := cli.Call("window.snapshot", map[string]any{"path": terminalImage, "node": screen}); err != nil {
+			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
+		}
+		if _, err := validateTerminalPaletteEvidence(terminalImage, palette); err != nil {
+			t.Fatalf("%s terminal pixels: %v", plugin.ID, err)
+		}
 		reports = append(reports, report)
 	}
-	body, err := json.MarshalIndent(map[string]any{"budgets": plan.Budgets, "reports": reports}, "", "  ")
+	body, err := json.MarshalIndent(map[string]any{
+		"presentationContract": map[string]any{
+			"id": plan.PresentationContract.ID, "version": plan.PresentationContract.Version,
+			"sourceRepository": plan.PresentationContract.SourceRepository,
+			"sourceCommit":     plan.PresentationContract.SourceCommit,
+		},
+		"budgets": budgets, "ansiBase": plan.PresentationContract.Data.ANSI.Base, "reports": reports,
+	}, "", "  ")
 	if err != nil {
 		t.Fatal(err)
 	}
