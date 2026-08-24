@@ -49,7 +49,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends dbus-x11 gnome-keyring inotify-tools openbox xvfb libgtk-4-1 libwebkitgtk-6.0-4
           mkdir -p stage/evidence stage/system-home stage/runtime stage/workspace
           test "$(go env GOARCH)" = "${{ inputs.architecture }}"
-          go run -C tests ./cmd/verify-fleet -platform linux -target "${{ inputs.target }}"
+          make -C tests fleet TARGET="${{ inputs.target }}"
       - env:
           SOKSAK_TEST_CLI: ${{ github.workspace }}/core/sok
           SOKSAK_TEST_APP: ${{ github.workspace }}/core/soksak
@@ -58,9 +58,8 @@ jobs:
           SOKSAK_TEST_WORKSPACE: ${{ github.workspace }}/stage/workspace
           SOKSAK_TEST_EVIDENCE: ${{ github.workspace }}/stage/evidence
         run: |
-          cd tests
-          scripts/run-linux-system.sh -run '^TestInstalledTerminalCommands$' -v
-          scripts/run-linux-system.sh -run '^TestInstalledTerminalWarmAndArchivedRestore$' -v
+          make -C tests system-commands TARGET="${{ inputs.target }}"
+          make -C tests system-restore TARGET="${{ inputs.target }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

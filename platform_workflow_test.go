@@ -12,11 +12,11 @@ func TestNativePlatformWorkflowsRunTheSameInstalledScenarios(t *testing.T) {
 			"runs-on: ${{ inputs.runner }}", "artifact:", "architecture:", "target:", "variant:",
 			"SOKSAK_TEST_PLATFORM: darwin", "SOKSAK_TEST_TARGET: ${{ inputs.target }}", "name: ${{ inputs.artifact }}",
 			"chmod +x core/sok core/soksak.app/Contents/MacOS/soksak", "test \"$(uname -m)\" = \"${{ inputs.architecture }}\"",
-			"lipo -archs", "SOKSAK_TEST_RUNTIME: /tmp/soksak-runtime", "scripts/run-darwin-system.sh",
+			"lipo -archs", "SOKSAK_TEST_RUNTIME: /tmp/soksak-runtime", "make -C tests system-commands",
 		},
 		".github/workflows/linux-system.yml": {
 			"runs-on: ${{ inputs.runner }}", "architecture:", "target:", "SOKSAK_TEST_PLATFORM: linux", "SOKSAK_TEST_TARGET: ${{ inputs.target }}",
-			"core-linux-${{ inputs.architecture }}-artifact", "chmod +x core/sok core/soksak", "test \"$(go env GOARCH)\"", "scripts/run-linux-system.sh", "xvfb", "gnome-keyring",
+			"core-linux-${{ inputs.architecture }}-artifact", "chmod +x core/sok core/soksak", "test \"$(go env GOARCH)\"", "make -C tests system-commands", "xvfb", "gnome-keyring",
 		},
 	}
 	for path, required := range checks {
@@ -25,7 +25,7 @@ func TestNativePlatformWorkflowsRunTheSameInstalledScenarios(t *testing.T) {
 			t.Fatal(err)
 		}
 		text := string(body)
-		for _, token := range append(required, "workflow_call:", "tests_ref:", "go-version-file: tests/go.mod", "TestInstalledTerminalCommands", "TestInstalledTerminalWarmAndArchivedRestore", "if-no-files-found: error") {
+		for _, token := range append(required, "workflow_call:", "tests_ref:", "go-version-file: tests/go.mod", "system-commands", "system-restore", "if-no-files-found: error") {
 			if !strings.Contains(text, token) {
 				t.Errorf("%s omits %q", path, token)
 			}

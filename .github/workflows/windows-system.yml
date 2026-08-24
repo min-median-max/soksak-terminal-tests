@@ -27,6 +27,8 @@ jobs:
         with:
           go-version-file: tests/go.mod
           cache-dependency-path: tests/go.sum
+      - shell: pwsh
+        run: choco install make --version=4.4.1 --no-progress --yes
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: core-windows-artifact
@@ -34,7 +36,7 @@ jobs:
       - shell: pwsh
         run: |
           New-Item -ItemType Directory -Force stage/evidence | Out-Null
-          go run -C tests ./cmd/verify-fleet -platform windows -target x86_64-pc-windows-msvc
+          make -C tests fleet TARGET=x86_64-pc-windows-msvc
       - shell: pwsh
         env:
           SOKSAK_TEST_CLI: ${{ github.workspace }}\core\sok.exe
@@ -46,8 +48,8 @@ jobs:
           SOKSAK_TEST_EVIDENCE: ${{ github.workspace }}\stage\evidence
         run: |
           New-Item -ItemType Directory -Force $env:SOKSAK_TEST_HOME,$env:SOKSAK_TEST_RUNTIME,$env:SOKSAK_TEST_WORKSPACE,$env:SOKSAK_TEST_EVIDENCE|Out-Null
-          go test -C tests -count=1 -tags=system ./system -run '^TestInstalledTerminalCommands$' -v
-          go test -C tests -count=1 -tags=system ./system -run '^TestInstalledTerminalWarmAndArchivedRestore$' -v
+          make -C tests system-commands TARGET=x86_64-pc-windows-msvc
+          make -C tests system-restore TARGET=x86_64-pc-windows-msvc
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:

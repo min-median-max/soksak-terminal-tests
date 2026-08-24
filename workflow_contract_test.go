@@ -12,7 +12,7 @@ func TestWindowsWorkflowUsesRepositoryRunners(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := string(body)
-	if !strings.Contains(source, "go run -C tests ./cmd/verify-fleet -platform windows -target x86_64-pc-windows-msvc") {
+	if !strings.Contains(source, "make -C tests fleet TARGET=x86_64-pc-windows-msvc") {
 		t.Fatal("Windows workflow does not use the fleet release verifier")
 	}
 	for _, obsolete := range []string{"install-windows-fleet.ps1", "prepare-development.exe", "development-input.json"} {
@@ -27,7 +27,7 @@ func TestDockerPreflightUsesTheSameFleetCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(body), "go run ./cmd/verify-fleet -platform windows -target x86_64-pc-windows-msvc") {
+	if !strings.Contains(string(body), "make fleet TARGET=x86_64-pc-windows-msvc") {
 		t.Fatal("Docker preflight does not use the fleet release verifier")
 	}
 }

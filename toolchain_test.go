@@ -18,7 +18,8 @@ func TestGoModIsTheOnlyToolchainVersionSource(t *testing.T) {
 	}
 	version := string(match[1])
 	checks := map[string][]string{
-		"scripts/windows-preflight.sh":         {"required=$(awk", "go env GOVERSION"},
+		"scripts/check-build-environment.sh":   {"go_expected=$(awk", "go env GOVERSION"},
+		"scripts/windows-preflight.sh":         {"make verify", "make fleet TARGET=x86_64-pc-windows-msvc"},
 		".github/workflows/windows-system.yml": {"go-version-file: tests/go.mod"},
 	}
 	for path, required := range checks {

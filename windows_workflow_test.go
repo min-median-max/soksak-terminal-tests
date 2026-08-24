@@ -22,7 +22,7 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 			t.Errorf("Windows workflow does not pin Node 24 action %s", v)
 		}
 	}
-	for _, v := range []string{"workflow_call:", "tests_ref:", "ref: ${{ inputs.tests_ref }}", "cache-dependency-path: tests/go.sum", "windows-2025", "SOKSAK_TEST_PLATFORM: windows", "SOKSAK_TEST_TARGET: x86_64-pc-windows-msvc", "TestInstalledTerminalCommands", "TestInstalledTerminalWarmAndArchivedRestore"} {
+	for _, v := range []string{"workflow_call:", "tests_ref:", "ref: ${{ inputs.tests_ref }}", "cache-dependency-path: tests/go.sum", "windows-2025", "SOKSAK_TEST_PLATFORM: windows", "SOKSAK_TEST_TARGET: x86_64-pc-windows-msvc", "system-commands", "system-restore"} {
 		if !strings.Contains(s, v) {
 			t.Errorf("missing %s", v)
 		}
@@ -42,7 +42,7 @@ func TestWindowsWorkflowConsumesOwnerArtifacts(t *testing.T) {
 	if strings.Contains(string(installer), "gh run download") {
 		t.Fatal("Windows fleet installs a workflow artifact instead of an immutable release")
 	}
-	if !strings.Contains(s, "go run -C tests ./cmd/verify-fleet -platform windows -target x86_64-pc-windows-msvc") {
+	if !strings.Contains(s, "make -C tests fleet TARGET=x86_64-pc-windows-msvc") {
 		t.Error("Windows workflow does not verify the declared release fleet")
 	}
 	if !strings.Contains(string(installer), "plugin.install") {

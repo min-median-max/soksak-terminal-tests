@@ -69,7 +69,7 @@ jobs:
             test "$cli_arches" = "${{ inputs.architecture }}"
           fi
           mkdir -p stage/evidence stage/system-home stage/workspace /tmp/soksak-runtime
-          go run -C tests ./cmd/verify-fleet -platform darwin -target "${{ inputs.target }}"
+          make -C tests fleet TARGET="${{ inputs.target }}"
       - env:
           SOKSAK_TEST_CLI: ${{ github.workspace }}/core/sok
           SOKSAK_TEST_APP: ${{ github.workspace }}/core/soksak.app/Contents/MacOS/soksak
@@ -78,9 +78,8 @@ jobs:
           SOKSAK_TEST_WORKSPACE: ${{ github.workspace }}/stage/workspace
           SOKSAK_TEST_EVIDENCE: ${{ github.workspace }}/stage/evidence
         run: |
-          cd tests
-          scripts/run-darwin-system.sh -run '^TestInstalledTerminalCommands$' -v
-          scripts/run-darwin-system.sh -run '^TestInstalledTerminalWarmAndArchivedRestore$' -v
+          make -C tests system-commands TARGET="${{ inputs.target }}"
+          make -C tests system-restore TARGET="${{ inputs.target }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
