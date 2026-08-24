@@ -1,10 +1,25 @@
 package system
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestLifecycleStartupUsesTheOwnedReadinessEventWithoutPolling(t *testing.T) {
+	body, err := os.ReadFile("lifecycle.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(body)
+	if strings.Contains(source, "time.Sleep(") {
+		t.Fatal("lifecycle startup still polls with time.Sleep")
+	}
+	if !strings.Contains(source, "soksak.control.ready") {
+		t.Fatal("lifecycle startup does not consume the owned readiness event")
+	}
+}
 
 func TestLifecycleRequiresDeclaredAbsoluteInputs(t *testing.T) {
 	_, err := NewLifecycle(LifecycleConfig{
