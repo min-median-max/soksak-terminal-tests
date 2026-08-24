@@ -79,6 +79,39 @@ func TestInstallTerminalFleetUsesPublicInstallConsentAndActivationCommands(t *te
 			t.Errorf("%s transaction started=%t materialized=%t observed=%t", plugin.ID, started, materialized, observed)
 		}
 	}
+	last := caller.calls[len(caller.calls)-1]
+	if last.command != "plugin.boot.wait" || last.params["timeoutMs"] != 45000 {
+		t.Fatalf("fleet install did not end at the boot barrier: %+v", last)
+	}
+}
+
+func TestCandidateFleetEnablesEveryPluginBeforeTheBootBarrier(t *testing.T) {
+	profile, err := fleet.ForTarget("windows", "x86_64-pc-windows-msvc")
+	if err != nil {
+		t.Fatal(err)
+	}
+	caller := &recordingCaller{}
+	if err := EnableCandidateTerminalFleet(profile, caller); err != nil {
+		t.Fatal(err)
+	}
+	last := caller.calls[len(caller.calls)-1]
+	if last.command != "plugin.boot.wait" || last.params["timeoutMs"] != 45000 {
+		t.Fatalf("candidate enable did not end at the boot barrier: %+v", last)
+	}
+	enabled := map[string]bool{}
+	for _, call := range caller.calls[:len(caller.calls)-1] {
+		if call.command == "plugin.enable" {
+			enabled[fmt.Sprint(call.params["id"])] = true
+		}
+		if call.command == "plugin.boot.wait" {
+			t.Fatalf("candidate boot barrier ran before enable completed: %+v", call)
+		}
+	}
+	for _, plugin := range profile.Plugins {
+		if !enabled[plugin.ID] {
+			t.Errorf("candidate plugin was not enabled: %s", plugin.ID)
+		}
+	}
 }
 
 type environmentCaller struct {
