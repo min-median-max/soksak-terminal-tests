@@ -36,22 +36,28 @@ func validateCaptureEvidence(path string) error {
 }
 
 type terminalPaletteCounts struct {
-	Red   int
-	Green int
-	Blue  int
+	Red         int `json:"red"`
+	Green       int `json:"green"`
+	Blue        int `json:"blue"`
+	BrightRed   int `json:"brightRed"`
+	BrightGreen int `json:"brightGreen"`
+	BrightBlue  int `json:"brightBlue"`
 }
 
 type terminalPaletteExpectation struct {
-	Red   [3]uint8
-	Green [3]uint8
-	Blue  [3]uint8
+	Red         [3]uint8
+	Green       [3]uint8
+	Blue        [3]uint8
+	BrightRed   [3]uint8
+	BrightGreen [3]uint8
+	BrightBlue  [3]uint8
 }
 
 // validateTerminalPaletteEvidence reads only the public terminal-screen rectangle. Window chrome
 // is deliberately excluded: a drawn tab bar around a blank renderer is still a blank terminal.
-// The fixture uses ANSI red, green and blue background cells. Shared focus lighting may dim those
-// pixels, so the verdict uses hue dominance and a minimum painted area rather than one exact RGB
-// byte value. All providers are judged by this one rule.
+// The fixture uses base and bright ANSI red, green and blue background cells. The capture-only
+// document path has no compositor lighting transform, so every provider must paint the contract's
+// exact RGB bytes. Hue similarity would hide the provider difference this gate exists to detect.
 func validateTerminalPaletteEvidence(path string, expected terminalPaletteExpectation) (terminalPaletteCounts, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -64,10 +70,11 @@ func validateTerminalPaletteEvidence(path string, expected terminalPaletteExpect
 	}
 	counts := countTerminalPalettePixels(pixels, expected)
 	const minimumSwatchPixels = 100
-	if counts.Red < minimumSwatchPixels || counts.Green < minimumSwatchPixels || counts.Blue < minimumSwatchPixels {
+	if counts.Red < minimumSwatchPixels || counts.Green < minimumSwatchPixels || counts.Blue < minimumSwatchPixels ||
+		counts.BrightRed < minimumSwatchPixels || counts.BrightGreen < minimumSwatchPixels || counts.BrightBlue < minimumSwatchPixels {
 		return counts, fmt.Errorf(
-			"terminal palette is not painted: red=%d green=%d blue=%d, each must cover at least %d pixels",
-			counts.Red, counts.Green, counts.Blue, minimumSwatchPixels,
+			"terminal palette is not painted exactly: red=%d green=%d blue=%d brightRed=%d brightGreen=%d brightBlue=%d, each must cover at least %d pixels",
+			counts.Red, counts.Green, counts.Blue, counts.BrightRed, counts.BrightGreen, counts.BrightBlue, minimumSwatchPixels,
 		)
 	}
 	return counts, nil
@@ -89,7 +96,22 @@ func terminalPaletteExpectationFromBase(base []string) (terminalPaletteExpectati
 	if err != nil {
 		return terminalPaletteExpectation{}, err
 	}
-	return terminalPaletteExpectation{Red: red, Green: green, Blue: blue}, nil
+	brightRed, err := parseTerminalColour(base[9])
+	if err != nil {
+		return terminalPaletteExpectation{}, err
+	}
+	brightGreen, err := parseTerminalColour(base[10])
+	if err != nil {
+		return terminalPaletteExpectation{}, err
+	}
+	brightBlue, err := parseTerminalColour(base[12])
+	if err != nil {
+		return terminalPaletteExpectation{}, err
+	}
+	return terminalPaletteExpectation{
+		Red: red, Green: green, Blue: blue,
+		BrightRed: brightRed, BrightGreen: brightGreen, BrightBlue: brightBlue,
+	}, nil
 }
 
 func parseTerminalColour(value string) ([3]uint8, error) {
@@ -109,9 +131,12 @@ func parseTerminalColour(value string) ([3]uint8, error) {
 
 func countTerminalPalettePixels(pixels image.Image, expected terminalPaletteExpectation) terminalPaletteCounts {
 	return terminalPaletteCounts{
-		Red:   largestPaletteRegion(pixels, expected.Red),
-		Green: largestPaletteRegion(pixels, expected.Green),
-		Blue:  largestPaletteRegion(pixels, expected.Blue),
+		Red:         largestPaletteRegion(pixels, expected.Red),
+		Green:       largestPaletteRegion(pixels, expected.Green),
+		Blue:        largestPaletteRegion(pixels, expected.Blue),
+		BrightRed:   largestPaletteRegion(pixels, expected.BrightRed),
+		BrightGreen: largestPaletteRegion(pixels, expected.BrightGreen),
+		BrightBlue:  largestPaletteRegion(pixels, expected.BrightBlue),
 	}
 }
 
@@ -123,7 +148,7 @@ func largestPaletteRegion(pixels image.Image, expected [3]uint8) int {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
 			r16, g16, b16, _ := pixels.At(x, y).RGBA()
 			colour := [3]uint8{uint8(r16 >> 8), uint8(g16 >> 8), uint8(b16 >> 8)}
-			matched[(y-bounds.Min.Y)*width+x-bounds.Min.X] = sameDominantHue(colour, expected)
+			matched[(y-bounds.Min.Y)*width+x-bounds.Min.X] = colour == expected
 		}
 	}
 	largest := 0
@@ -157,22 +182,6 @@ func largestPaletteRegion(pixels image.Image, expected [3]uint8) int {
 		}
 	}
 	return largest
-}
-
-func sameDominantHue(colour, expected [3]uint8) bool {
-	dominant := 0
-	for index := 1; index < len(expected); index++ {
-		if expected[index] > expected[dominant] {
-			dominant = index
-		}
-	}
-	second := uint8(0)
-	for index, value := range colour {
-		if index != dominant && value > second {
-			second = value
-		}
-	}
-	return colour[dominant] >= 64 && int(colour[dominant])-int(second) >= 24
 }
 
 func abs(value int) int {

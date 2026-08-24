@@ -12,18 +12,19 @@ import (
 )
 
 type PresentationParityReport struct {
-	Provider              string  `json:"provider"`
-	Delivery              string  `json:"delivery"`
-	RenderSequence        int     `json:"renderSequence"`
-	AcceptedInputSequence int     `json:"acceptedInputSequence"`
-	PtyWriteSequence      int     `json:"ptyWriteSequence"`
-	FocusedInput          bool    `json:"focusedInput"`
-	CursorVisible         bool    `json:"cursorVisible"`
-	CursorActive          bool    `json:"cursorActive"`
-	LastRenderDurationMs  float64 `json:"lastRenderDurationMs"`
-	MaxRenderDurationMs   float64 `json:"maxRenderDurationMs"`
-	LastInputToPtyWriteMs float64 `json:"lastInputToPtyWriteMs"`
-	WindowFocused         bool    `json:"windowFocused"`
+	Provider              string                `json:"provider"`
+	Delivery              string                `json:"delivery"`
+	RenderSequence        int                   `json:"renderSequence"`
+	AcceptedInputSequence int                   `json:"acceptedInputSequence"`
+	PtyWriteSequence      int                   `json:"ptyWriteSequence"`
+	FocusedInput          bool                  `json:"focusedInput"`
+	CursorVisible         bool                  `json:"cursorVisible"`
+	CursorActive          bool                  `json:"cursorActive"`
+	LastRenderDurationMs  float64               `json:"lastRenderDurationMs"`
+	MaxRenderDurationMs   float64               `json:"maxRenderDurationMs"`
+	LastInputToPtyWriteMs float64               `json:"lastInputToPtyWriteMs"`
+	WindowFocused         bool                  `json:"windowFocused"`
+	Palette               terminalPaletteCounts `json:"palette"`
 }
 
 func TestInstalledTerminalPresentationParity(t *testing.T) {
@@ -128,7 +129,8 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 		if _, err := cli.Call("window.snapshot", map[string]any{"path": terminalImage, "node": screen}); err != nil {
 			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
 		}
-		if _, err := validateTerminalPaletteEvidence(terminalImage, palette); err != nil {
+		paletteCounts, err := validateTerminalPaletteEvidence(terminalImage, palette)
+		if err != nil {
 			t.Errorf("%s terminal pixels: %v", plugin.ID, err)
 		}
 		status, err := cli.Call("plugin."+plugin.ID+".status", map[string]any{"view": tab})
@@ -142,6 +144,7 @@ func TestInstalledTerminalPresentationParity(t *testing.T) {
 			report = PresentationParityReport{Provider: plugin.ID}
 			report.Delivery, _ = presentation["delivery"].(string)
 		}
+		report.Palette = paletteCounts
 		inputState, err := cli.Call("window.input.state", map[string]any{})
 		if err != nil {
 			t.Fatal(err)

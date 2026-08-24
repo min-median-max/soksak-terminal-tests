@@ -41,10 +41,10 @@ func terminalPaletteCommand(platform, marker string) (string, error) {
 	}
 	switch platform {
 	case "windows":
-		script := "$prefix='" + prefix + "'; [Console]::Out.Write('`e[41m R `e[42m G `e[44m B `e[0m'); [Console]::Out.WriteLine($prefix + '" + suffix + "')"
+		script := "$prefix='" + prefix + "'; [Console]::Out.Write('`e[41m R `e[42m G `e[44m B `e[101m r `e[102m g `e[104m b `e[0m'); [Console]::Out.WriteLine($prefix + '" + suffix + "')"
 		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
 	case "darwin", "linux":
-		return "prefix=" + prefix + "; printf '\\033[41m R \\033[42m G \\033[44m B \\033[0m'; printf '%s%s\\n' \"$prefix\" " + suffix, nil
+		return "prefix=" + prefix + "; printf '\\033[41m R \\033[42m G \\033[44m B \\033[101m r \\033[102m g \\033[104m b \\033[0m'; printf '%s%s\\n' \"$prefix\" " + suffix, nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}
