@@ -219,7 +219,7 @@ jobs:
           chmod +x core/sok core/soksak.app/Contents/MacOS/soksak
           test "$(lipo -archs core/sok)" = arm64
           test "$(lipo -archs core/soksak.app/Contents/MacOS/soksak)" = arm64
-      - name: Run the unattended AppKit input matrix
+      - name: Run the candidate command and unattended AppKit input matrices
         env:
           SOKSAK_TEST_PLATFORM: darwin
           SOKSAK_TEST_TARGET: aarch64-apple-darwin
@@ -233,6 +233,7 @@ jobs:
           SOKSAK_TEST_CANDIDATE_PLAN: ${{ github.workspace }}/candidate-plan.json
         run: |
           mkdir -p "$SOKSAK_TEST_HOME" "$SOKSAK_TEST_RUNTIME" "$SOKSAK_TEST_WORKSPACE" "$SOKSAK_TEST_EVIDENCE"
+          make -C tests system-commands TARGET="$TARGET"
           make -C tests system-native-input TARGET="$TARGET"
       - name: Upload native candidate evidence
         if: always()
