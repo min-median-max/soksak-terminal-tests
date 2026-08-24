@@ -233,6 +233,8 @@ jobs:
           SOKSAK_TEST_CANDIDATE_PLAN: ${{ github.workspace }}/candidate-plan.json
         run: |
           mkdir -p "$SOKSAK_TEST_HOME" "$SOKSAK_TEST_RUNTIME" "$SOKSAK_TEST_WORKSPACE" "$SOKSAK_TEST_EVIDENCE"
+          make -C tests system-parity TARGET="$TARGET"
+          make -C tests system-visibility TARGET="$TARGET"
           make -C tests system-commands TARGET="$TARGET"
           make -C tests system-native-input TARGET="$TARGET"
       - name: Upload native candidate evidence
