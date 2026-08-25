@@ -4,6 +4,7 @@ package system
 
 import (
 	"encoding/json"
+	"image/png"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -50,7 +51,9 @@ func TestInstalledTerminalThemeParity(t *testing.T) {
 	}
 
 	reports := make([]terminalThemeReport, 0, len(profile.Plugins))
+	pixelReports := make([]map[string]any, 0, len(profile.Plugins))
 	var baseline *terminalThemeEvidence
+	var pixelBaseline *terminalThemePixels
 	for _, plugin := range profile.Plugins {
 		program := strings.TrimPrefix(plugin.ID, "soksak-plugin-")
 		opened, err := cli.Call("tab.open", map[string]any{"pane": pane, "program": program, "mountTimeoutMs": 12000})
@@ -98,6 +101,29 @@ func TestInstalledTerminalThemeParity(t *testing.T) {
 		if _, err := cli.Call("window.snapshot", map[string]any{"path": screenImage, "node": screen}); err != nil {
 			t.Fatalf("capture %s terminal screen: %v", plugin.ID, err)
 		}
+		file, err := os.Open(screenImage)
+		if err != nil {
+			t.Fatalf("open %s terminal screen: %v", plugin.ID, err)
+		}
+		pixels, decodeErr := png.Decode(file)
+		closeErr := file.Close()
+		if decodeErr != nil || closeErr != nil {
+			t.Fatalf("decode %s terminal screen: decode=%v close=%v", plugin.ID, decodeErr, closeErr)
+		}
+		pixelTheme, err := readTerminalThemePixels(pixels)
+		if err != nil {
+			t.Fatalf("%s rendered theme pixels: %v", plugin.ID, err)
+		}
+		if pixelBaseline == nil {
+			copy := pixelTheme
+			pixelBaseline = &copy
+		} else if err := compareTerminalThemePixels(pixelTheme, *pixelBaseline); err != nil {
+			t.Fatalf("%s %v", plugin.ID, err)
+		}
+		pixelReports = append(pixelReports, map[string]any{
+			"provider": plugin.ID, "background": pixelTheme.Background,
+			"foreground": pixelTheme.Foreground, "cursor": pixelTheme.Cursor,
+		})
 		status, err := terminal(cli, plugin.ID, "status", tab, nil)
 		if err != nil {
 			t.Fatalf("status %s: %v", plugin.ID, err)
@@ -138,7 +164,7 @@ func TestInstalledTerminalThemeParity(t *testing.T) {
 			"sourceRepository": plan.PresentationContract.SourceRepository,
 			"sourceCommit":     plan.PresentationContract.SourceCommit,
 		},
-		"ansiBase": plan.PresentationContract.Data.ANSI.Base, "reports": reports,
+		"ansiBase": plan.PresentationContract.Data.ANSI.Base, "reports": reports, "pixelReports": pixelReports,
 	}, "", "  ")
 	if err != nil {
 		t.Fatal(err)

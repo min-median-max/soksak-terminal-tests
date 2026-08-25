@@ -32,14 +32,14 @@ func paneSwitchSample(
 		"nodes": []any{
 			map[string]any{
 				"address": tabAddress, "connected": connected, "nodeIdentity": identity,
-				"rect": map[string]any{"w": width, "h": height},
-				"style": map[string]any{"display": "block", "visibility": visibility, "opacity": opacity},
+				"rect":    map[string]any{"w": width, "h": height},
+				"style":   map[string]any{"display": "block", "visibility": visibility, "opacity": opacity},
 				"dataset": map[string]any{"contentVisible": "true"},
 			},
 			map[string]any{
 				"address": screenAddress, "connected": connected, "nodeIdentity": identity + "-screen",
-				"rect": map[string]any{"w": width, "h": height},
-				"style": map[string]any{"display": "block", "visibility": visibility, "opacity": opacity},
+				"rect":    map[string]any{"w": width, "h": height},
+				"style":   map[string]any{"display": "block", "visibility": visibility, "opacity": opacity},
 				"dataset": map[string]any{},
 			},
 		},
