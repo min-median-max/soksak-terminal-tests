@@ -15,6 +15,9 @@ func VerifyTerminalTabCloseReaps(cli CLI, view TerminalResult) error {
 	if !ok {
 		return fmt.Errorf("PTY has no session for closing pane %s", view.Pane)
 	}
+	if err := captureTerminal(cli, "tab-close-before-"+view.Plugin); err != nil {
+		return err
+	}
 	if _, err := cli.Call("tab.close", map[string]any{"tab": view.View}); err != nil {
 		return err
 	}
@@ -33,5 +36,5 @@ func VerifyTerminalTabCloseReaps(cli CLI, view TerminalResult) error {
 	if err != nil || !gone {
 		return fmt.Errorf("closed tab left shell %d alive: gone=%v err=%v", owned.ShellPID, gone, err)
 	}
-	return nil
+	return captureTerminal(cli, "tab-close-after-"+view.Plugin)
 }
