@@ -141,6 +141,11 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 	if strings.Join(files, "\n") != strings.Join(wantFiles, "\n") {
 		t.Fatalf("staged artifact files=%v want=%v", files, wantFiles)
 	}
+	begin := caller.calls[1].params
+	store, _ := begin["localStore"].(string)
+	if begin["registryId"] != "local" || !filepath.IsAbs(store) {
+		t.Fatalf("candidate transaction is not local-store backed: %+v", begin)
+	}
 }
 
 func writeCandidateArchive(t *testing.T, path, manifest string, value map[string]any) {
