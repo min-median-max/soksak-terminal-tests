@@ -20,14 +20,14 @@ func TestInstalledTerminalPluginReloadLifetime(t *testing.T) {
 	if _, err := lifecycle.OpenWorkspace(); err != nil {
 		t.Fatal(err)
 	}
-	views, err := VerifyTerminalCommands(profile, lifecycle.Client())
+	if len(profile.Plugins) == 0 {
+		t.Fatal("terminal fleet has no plugins")
+	}
+	view, err := openTerminalForScenario(lifecycle.Client(), profile.Plugins[0])
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(views) == 0 {
-		t.Fatal("terminal fleet opened no views")
-	}
-	if err := VerifyPluginReloadLifetime(profile.Platform, lifecycle.Client(), views[0], 3); err != nil {
+	if err := VerifyPluginReloadLifetime(profile.Platform, lifecycle.Client(), view, 3); err != nil {
 		t.Fatal(err)
 	}
 	if err := lifecycle.Finish(); err != nil {
