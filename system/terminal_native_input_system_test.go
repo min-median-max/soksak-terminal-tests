@@ -161,6 +161,9 @@ func TestInstalledTerminalNativeKeyboardMatrix(t *testing.T) {
 			report.PTYWriteDelta != report.ExpectedInputCount {
 			t.Fatalf("native keyboard did not reach %s PTY: %+v", plugin.ID, report)
 		}
+		if err := captureTerminal(matrix.cli, "native-keyboard-"+plugin.ID); err != nil {
+			t.Fatalf("capture %s keyboard result: %v", plugin.ID, err)
+		}
 		reports = append(reports, report)
 	}
 	writeNativeReport(t, matrix.lifecycle, "terminal-native-keyboard.json", reports)
