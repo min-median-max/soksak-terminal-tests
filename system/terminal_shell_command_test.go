@@ -12,8 +12,11 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if windowsMarker != "echo MARKER" || strings.Contains(windowsMarker, "printf") {
+	if !strings.HasPrefix(windowsMarker, "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ") || strings.Contains(windowsMarker, "MARKER") {
 		t.Fatalf("Windows marker command = %q", windowsMarker)
+	}
+	if script := decodePowerShellForTest(t, windowsMarker[strings.LastIndex(windowsMarker, " ")+1:]); !strings.Contains(script, "MARKER") {
+		t.Fatalf("Windows marker payload = %q", script)
 	}
 	const highOutputMarker = "SOKSAK_HIGH_OUTPUT_TAIL_7"
 	windowsOutput, err := terminalHighOutputCommand("windows", highOutputMarker)
@@ -24,13 +27,13 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 		t.Fatalf("Windows output command = %q", windowsOutput)
 	}
 	script := decodePowerShellForTest(t, windowsOutput[strings.LastIndex(windowsOutput, " ")+1:])
-	for _, required := range []string{"'X' * 262144", "$prefix", "'7'"} {
+	for _, required := range []string{"'X' * 262144", highOutputMarker} {
 		if !strings.Contains(script, required) {
 			t.Errorf("Windows output script omits %q: %s", required, script)
 		}
 	}
-	if strings.Contains(windowsOutput, highOutputMarker) || strings.Contains(script, highOutputMarker) {
-		t.Fatalf("Windows high-output command exposes the awaited marker: %s", script)
+	if strings.Contains(windowsOutput, highOutputMarker) {
+		t.Fatalf("Windows high-output command exposes the awaited marker: %s", windowsOutput)
 	}
 	if strings.Contains(windowsOutput, "yes X") || strings.Contains(windowsOutput, "head -c") {
 		t.Fatalf("Windows output command uses POSIX utilities: %s", windowsOutput)
@@ -87,7 +90,11 @@ func TestDetachedMarkerCommandsUseThePlatformShell(t *testing.T) {
 	if !strings.HasPrefix(windows, `start "" /b powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand `) {
 		t.Fatalf("Windows detached command = %q", windows)
 	}
-	background := strings.Split(windows, " & echo ")[0]
+	parts := strings.Split(windows, " & powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ")
+	if len(parts) != 2 {
+		t.Fatalf("Windows detached command has no encoded ready boundary: %s", windows)
+	}
+	background := parts[0]
 	fields := strings.Fields(background)
 	script := decodePowerShellForTest(t, fields[len(fields)-1])
 	for _, required := range []string{
@@ -98,14 +105,15 @@ func TestDetachedMarkerCommandsUseThePlatformShell(t *testing.T) {
 			t.Errorf("Windows detached script omits %q: %s", required, script)
 		}
 	}
-	if !strings.HasSuffix(windows, " & echo SOKSAK_SCHEDULED_7\r") || strings.Contains(windows, "sleep 10") {
+	ready := decodePowerShellForTest(t, parts[1])
+	if !strings.Contains(ready, "SOKSAK_SCHEDULED_7") || strings.Contains(windows, "SOKSAK_SCHEDULED_7") || strings.Contains(windows, "sleep 10") {
 		t.Fatalf("Windows detached command mixes shell syntax: %s", windows)
 	}
 	unix, err := detachedMarkerCommand("linux", "SOKSAK_DETACHED_7", "SOKSAK_SCHEDULED_7")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(unix, "(sleep 10; printf '\n%s\n'") || strings.Contains(unix, "SOKSAK_DETACHED_7") {
+	if !strings.Contains(unix, "(sleep 10; printf '\\n'; printf %s") || strings.Contains(unix, "SOKSAK_DETACHED_7") {
 		t.Fatalf("Linux detached command = %q", unix)
 	}
 }

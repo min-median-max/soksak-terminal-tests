@@ -75,7 +75,7 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
 			return nil, fmt.Errorf("%s live wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, err, status, statusErr, read, readErr, sidecars, sidecarErr)
 		}
-		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": markerCommand + "\r"}); err != nil {
+		if err := typeTerminalCommand(cli, plugin, view, markerCommand); err != nil {
 			return nil, err
 		}
 		ready, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": marker, "timeoutMs": 8000})
@@ -122,7 +122,7 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err != nil {
 			return nil, err
 		}
-		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": resizeCommand + "\r"}); err != nil {
+		if err := typeTerminalCommand(cli, plugin, view, resizeCommand); err != nil {
 			return nil, err
 		}
 		resized, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": resizeMarker, "timeoutMs": 8000})
@@ -180,7 +180,7 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			return nil, err
 		}
 		started := time.Now()
-		if _, err := terminal(cli, plugin, "send", view, map[string]any{"data": highOutputCommand + "\r"}); err != nil {
+		if err := typeTerminalCommand(cli, plugin, view, highOutputCommand); err != nil {
 			return nil, err
 		}
 		_, waitErr := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": tail, "timeoutMs": 20000})

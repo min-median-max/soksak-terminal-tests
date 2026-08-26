@@ -86,7 +86,7 @@ func TestInstalledTerminalThemeParity(t *testing.T) {
 		if strings.Contains(command, marker) {
 			t.Fatalf("%s theme command contains its awaited output marker", plugin.ID)
 		}
-		if _, err := terminal(cli, plugin.ID, "send", tab, map[string]any{"data": command + "\r"}); err != nil {
+		if err := typeTerminalCommand(cli, plugin.ID, tab, command); err != nil {
 			t.Fatalf("send theme fixture %s: %v", plugin.ID, err)
 		}
 		if _, err := terminal(cli, plugin.ID, "wait", tab, map[string]any{

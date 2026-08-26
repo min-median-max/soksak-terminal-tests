@@ -3,74 +3,59 @@ package system
 import (
 	"encoding/base64"
 	"fmt"
-	"strings"
 	"unicode/utf16"
 )
 
 func terminalPrintCommand(platform, marker string) (string, error) {
+	payload := base64.StdEncoding.EncodeToString([]byte(marker + "\n"))
 	switch platform {
 	case "windows":
-		return "echo " + marker, nil
+		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " +
+			encodePowerShell("[Console]::Out.WriteLine('"+marker+"')"), nil
 	case "darwin", "linux":
-		return "printf '%s\n' " + marker, nil
+		return "printf %s " + payload + " | base64 -d", nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}
 }
 
 func terminalHighOutputCommand(platform, marker string) (string, error) {
-	prefix, suffix, err := splitMarker(marker)
-	if err != nil {
-		return "", err
-	}
+	payload := base64.StdEncoding.EncodeToString([]byte(marker + "\n"))
 	switch platform {
 	case "windows":
-		script := "$prefix='" + prefix + "'; [Console]::Out.Write(('X' * 262144)); [Console]::Out.WriteLine(); [Console]::Out.WriteLine($prefix + '" + suffix + "')"
+		script := "[Console]::Out.Write(('X' * 262144)); [Console]::Out.WriteLine(); [Console]::Out.WriteLine('" + marker + "')"
 		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
 	case "darwin", "linux":
-		return "prefix=" + prefix + "; head -c 262144 /dev/zero | tr '\\0' X; printf '\\n%s%s\\n' \"$prefix\" " + suffix, nil
+		return "head -c 262144 /dev/zero | tr '\\0' X; printf '\\n'; printf %s " + payload + " | base64 -d", nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}
 }
 
 func terminalPaletteCommand(platform, marker string) (string, error) {
-	prefix, suffix, err := splitMarker(marker)
-	if err != nil {
-		return "", err
-	}
+	payload := base64.StdEncoding.EncodeToString([]byte(marker + "\n"))
 	switch platform {
 	case "windows":
-		script := "$prefix='" + prefix + "'; [Console]::Out.Write('`e[41m R `e[42m G `e[44m B `e[101m r `e[102m g `e[104m b `e[0m'); [Console]::Out.WriteLine($prefix + '" + suffix + "')"
+		script := "[Console]::Out.Write('`e[41m R `e[42m G `e[44m B `e[101m r `e[102m g `e[104m b `e[0m'); [Console]::Out.WriteLine('" + marker + "')"
 		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
 	case "darwin", "linux":
-		return "prefix=" + prefix + "; printf '\\033[41m R \\033[42m G \\033[44m B \\033[101m r \\033[102m g \\033[104m b \\033[0m'; printf '%s%s\\n' \"$prefix\" " + suffix, nil
+		return "printf '\\033[41m R \\033[42m G \\033[44m B \\033[101m r \\033[102m g \\033[104m b \\033[0m'; printf %s " + payload + " | base64 -d", nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}
-}
-
-func splitMarker(marker string) (string, string, error) {
-	cut := strings.LastIndex(marker, "_") + 1
-	if cut < 1 || cut >= len(marker) {
-		return "", "", fmt.Errorf("marker has no suffix: %s", marker)
-	}
-	return marker[:cut], marker[cut:], nil
 }
 
 func detachedMarkerCommand(platform, marker, scheduled string) (string, error) {
 	switch platform {
 	case "windows":
 		script := "Start-Sleep -Seconds 10; [Console]::Out.WriteLine(); [Console]::Out.WriteLine('" + marker + "')"
+		ready := "[Console]::Out.WriteLine('" + scheduled + "')"
 		return `start "" /b powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ` +
-			encodePowerShell(script) + " & echo " + scheduled + "\r", nil
+			encodePowerShell(script) + " & powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(ready), nil
 	case "darwin", "linux":
-		cut := strings.LastIndex(marker, "_") + 1
-		if cut < 1 || cut >= len(marker) {
-			return "", fmt.Errorf("detached marker has no suffix: %s", marker)
-		}
-		return "prefix=" + marker[:cut] + "; (sleep 10; printf '\n%s\n' \"${prefix}" + marker[cut:] +
-			"\") & printf '%s\n' " + scheduled + "\r", nil
+		markerPayload := base64.StdEncoding.EncodeToString([]byte(marker + "\n"))
+		readyPayload := base64.StdEncoding.EncodeToString([]byte(scheduled + "\n"))
+		return "(sleep 10; printf '\\n'; printf %s " + markerPayload + " | base64 -d) & printf %s " + readyPayload + " | base64 -d", nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}

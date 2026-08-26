@@ -85,7 +85,7 @@ func VerifyPluginReloadLifetime(platform string, cli CLI, view TerminalResult, a
 	if err != nil {
 		return err
 	}
-	if _, err := terminal(cli, view.Plugin, "send", view.View, map[string]any{"data": command + "\r"}); err != nil {
+	if err := typeTerminalCommand(cli, view.Plugin, view.View, command); err != nil {
 		return err
 	}
 	if _, err := terminal(cli, view.Plugin, "wait", view.View, map[string]any{

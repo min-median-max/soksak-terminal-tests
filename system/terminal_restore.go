@@ -31,9 +31,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if err != nil {
 			return err
 		}
-		if _, err := terminal(cli, view.Plugin, "send", view.View, map[string]any{
-			"data": detached,
-		}); err != nil {
+		if err := typeTerminalCommand(cli, view.Plugin, view.View, detached); err != nil {
 			return err
 		}
 		if _, err := terminal(cli, view.Plugin, "wait", view.View, map[string]any{"phase": "live", "contains": scheduled, "timeoutMs": 8000}); err != nil {
@@ -115,12 +113,26 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if archived["recoveryOutcome"] != "archived" || archived["fidelity"] != "complete" {
 			return fmt.Errorf("%s archived restore is incomplete: %+v", view.Plugin, archived)
 		}
-		sent, err := terminal(cli, view.Plugin, "send", view.View, map[string]any{"data": "ARCHIVED_INPUT_MUST_FAIL"})
-		if err != nil || sent["sent"] != false {
-			return fmt.Errorf("%s accepted archived input: %v %+v", view.Plugin, err, sent)
+		before, err := terminal(cli, view.Plugin, "status", view.View, nil)
+		if err != nil {
+			return err
+		}
+		beforeWrites := presentationSequence(before, "ptyWriteSequence")
+		if err := typeTerminalCommand(cli, view.Plugin, view.View, "ARCHIVED_INPUT_MUST_FAIL"); err != nil {
+			return err
+		}
+		after, err := terminal(cli, view.Plugin, "status", view.View, nil)
+		if err != nil || presentationSequence(after, "ptyWriteSequence") != beforeWrites {
+			return fmt.Errorf("%s accepted archived keyboard input: %v before=%+v after=%+v", view.Plugin, err, before, after)
 		}
 	}
 	return nil
+}
+
+func presentationSequence(status map[string]any, name string) int {
+	presentation, _ := status["presentation"].(map[string]any)
+	value, _ := exactInt(presentation[name])
+	return value
 }
 
 func terminalRestoreDiagnostic(cli CLI, view RestoreView, stage string, cause error) error {
