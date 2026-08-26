@@ -3,20 +3,15 @@ package system
 import (
 	"archive/tar"
 	"compress/gzip"
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"time"
 )
 
 type CandidateComponent struct {
@@ -116,18 +111,15 @@ func InstallCandidateFleet(planPath string, cli commandCaller) error {
 	if err != nil {
 		return err
 	}
-	server, baseURL, err := startCandidateServer(root)
+	store, err := materializeCandidateStore(prepared)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = server.Shutdown(ctx)
-	}()
+	defer func() { _ = os.RemoveAll(store) }()
 
 	started, err := cli.Call("artifact_install_begin", map[string]any{
-		"registryId": "candidate",
+		"registryId": "local",
+		"localStore": store,
 		"root":       map[string]any{"kind": transactionRoot.Kind, "id": transactionRoot.ID, "version": transactionRoot.Version},
 	})
 	if err != nil {
@@ -146,12 +138,11 @@ func InstallCandidateFleet(planPath string, cli commandCaller) error {
 
 	components := make([]map[string]any, 0, len(prepared))
 	for _, candidate := range prepared {
-		artifactURL := baseURL + "/" + escapeCandidatePath(candidate.Artifact)
 		identity := map[string]any{"kind": candidate.Kind, "id": candidate.ID, "version": candidate.Version}
 		staged, err := cli.Call("artifact_install_stage", map[string]any{
-			"transactionId": transactionID, "registryId": "candidate", "identity": identity,
+			"transactionId": transactionID, "registryId": "local", "identity": identity,
 			"artifact": map[string]any{
-				"file": filepath.Base(candidate.Artifact), "url": artifactURL,
+				"file": filepath.Base(candidate.Artifact),
 				"size": candidate.size, "sha256": candidate.digest,
 				"format": "tgz", "manifest": candidate.Manifest, "entrypoints": []string{candidate.Manifest},
 			},
@@ -175,8 +166,8 @@ func InstallCandidateFleet(planPath string, cli commandCaller) error {
 		}
 		component := map[string]any{
 			"kind": candidate.Kind, "id": candidate.ID, "version": candidate.Version,
-			"registryId": "candidate", "sourceRepository": candidate.SourceRepository,
-			"sourceCommit": candidate.SourceCommit, "artifactUrl": artifactURL,
+			"registryId": "local", "sourceRepository": candidate.SourceRepository,
+			"sourceCommit":   candidate.SourceCommit,
 			"artifactSha256": candidate.digest, "stagedHandle": handle,
 		}
 		if candidate.Kind == "sidecar" {
@@ -352,22 +343,43 @@ func candidateArtifactPath(root, artifact string) (string, error) {
 	return path, nil
 }
 
-func startCandidateServer(root string) (*http.Server, string, error) {
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
+func materializeCandidateStore(candidates []preparedCandidate) (string, error) {
+	store, err := os.MkdirTemp("", "soksak-candidate-store-")
 	if err != nil {
-		return nil, "", err
+		return "", err
 	}
-	server := &http.Server{Handler: http.FileServer(http.Dir(root)), ReadHeaderTimeout: 5 * time.Second}
-	go func() { _ = server.Serve(listener) }()
-	return server, "http://" + listener.Addr().String(), nil
-}
-
-func escapeCandidatePath(value string) string {
-	parts := strings.Split(filepath.ToSlash(value), "/")
-	for index := range parts {
-		parts[index] = url.PathEscape(parts[index])
+	fail := func(cause error) (string, error) {
+		_ = os.RemoveAll(store)
+		return "", cause
 	}
-	return strings.Join(parts, "/")
+	for _, candidate := range candidates {
+		directory := filepath.Join(store, candidate.Kind+"s", candidate.ID, candidate.Version)
+		if err := os.MkdirAll(directory, 0o700); err != nil {
+			return fail(err)
+		}
+		input, err := os.Open(candidate.path)
+		if err != nil {
+			return fail(err)
+		}
+		output, err := os.OpenFile(filepath.Join(directory, filepath.Base(candidate.Artifact)), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		if err != nil {
+			_ = input.Close()
+			return fail(err)
+		}
+		_, copyErr := io.Copy(output, input)
+		inputErr := input.Close()
+		outputErr := output.Close()
+		if copyErr != nil {
+			return fail(copyErr)
+		}
+		if inputErr != nil {
+			return fail(inputErr)
+		}
+		if outputErr != nil {
+			return fail(outputErr)
+		}
+	}
+	return store, nil
 }
 
 func candidateEnvironmentRevision(cli commandCaller) (uint64, error) {
