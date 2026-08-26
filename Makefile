@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: require-target preflight native-preflight prepare verify benchmark fleet compose-candidate-plan system system-commands system-restore system-pty-fault system-plugin-reload system-tab-close system-theme system-performance system-visibility system-native-focus system-native-cursor system-native-keyboard
+.PHONY: require-target preflight native-preflight prepare verify benchmark fleet compose-candidate-plan compose-local-candidate-plan system system-commands system-restore system-pty-fault system-plugin-reload system-tab-close system-theme system-performance system-visibility system-native-focus system-native-cursor system-native-keyboard
 
 require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
@@ -31,6 +31,11 @@ compose-candidate-plan: prepare
 	@test '$(origin SOURCE_PLAN)' = 'command line' && test '$(origin ARTIFACTS)' = 'command line' && test '$(origin OUT)' = 'command line' || { echo 'SOURCE_PLAN, ARTIFACTS and OUT must be explicit Make command-line variables' >&2; exit 2; }
 	@case '$(SOURCE_PLAN):$(ARTIFACTS):$(OUT)' in /*:/*:/*) ;; *) echo 'candidate composition paths must be absolute' >&2; exit 2 ;; esac
 	@go run ./cmd/compose-candidate-plan -source-plan '$(SOURCE_PLAN)' -artifacts '$(ARTIFACTS)' -out '$(OUT)'
+
+compose-local-candidate-plan: prepare
+	@test '$(origin SOURCE_PLAN)' = 'command line' && test '$(origin STORE)' = 'command line' && test '$(origin REGISTRY_STORAGE)' = 'command line' && test '$(origin SOURCE_WORKSPACE)' = 'command line' && test '$(origin OUT)' = 'command line' || { echo 'SOURCE_PLAN, STORE, REGISTRY_STORAGE, SOURCE_WORKSPACE and OUT must be explicit Make command-line variables' >&2; exit 2; }
+	@case '$(SOURCE_PLAN):$(STORE):$(REGISTRY_STORAGE):$(SOURCE_WORKSPACE):$(OUT)' in /*:/*:/*:/*:/*) ;; *) echo 'local candidate composition paths must be absolute' >&2; exit 2 ;; esac
+	@go run ./cmd/compose-local-candidate-plan -source-plan '$(SOURCE_PLAN)' -store '$(STORE)' -registry '$(REGISTRY_STORAGE)' -workspace '$(SOURCE_WORKSPACE)' -out '$(OUT)'
 
 system-commands: TEST_NAME := TestInstalledTerminalCommands
 system-commands: system

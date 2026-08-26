@@ -27,8 +27,18 @@ type candidateSourcePlan struct {
 	Sidecars []candidateSource `json:"sidecars"`
 }
 
-func TestTerminalNativeCandidateSourcePlanIsExactAndPortable(t *testing.T) {
-	body, err := os.ReadFile("candidate/terminal-native-darwin-arm64.json")
+func TestTerminalNativeCandidateSourcePlansAreExactAndPortable(t *testing.T) {
+	for name, path := range map[string]string{
+		"remote": "candidate/terminal-native-darwin-arm64.json",
+		"local":  "candidate/terminal-native-local-darwin-arm64.json",
+	} {
+		t.Run(name, func(t *testing.T) { assertCandidateSourcePlan(t, path) })
+	}
+}
+
+func assertCandidateSourcePlan(t *testing.T, path string) {
+	t.Helper()
+	body, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}

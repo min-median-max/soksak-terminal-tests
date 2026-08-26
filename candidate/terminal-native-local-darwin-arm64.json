@@ -1,0 +1,107 @@
+{
+  "schema": "soksak-terminal-native-candidate-v1",
+  "target": "aarch64-apple-darwin",
+  "spec": {
+    "id": "soksak-spec",
+    "repository": "soksak-ai/soksak-spec",
+    "sourceCommit": "0a871c9d20360eb5088cd0e7ea5d15faf01ec3b2"
+  },
+  "contract": {
+    "id": "soksak-contract-plugin-terminal",
+    "repository": "soksak-ai/soksak-contract-plugin-terminal",
+    "sourceCommit": "47eaac8ae10c1916b055fd23f936d6dd5324d52d"
+  },
+  "kit": {
+    "id": "soksak-kit-plugin-terminal",
+    "repository": "soksak-ai/soksak-kit-plugin-terminal",
+    "sourceCommit": "f33ec5a59d14d7545169fd9ae48d54239bbb645e"
+  },
+  "plugins": [
+    {
+      "id": "soksak-plugin-terminal-alacritty",
+      "repository": "soksak-ai/soksak-plugin-terminal-alacritty",
+      "sourceCommit": "085ab7e9728557197adb060315741951e1a662fe"
+    },
+    {
+      "id": "soksak-plugin-terminal-ghostty",
+      "repository": "soksak-ai/soksak-plugin-terminal-ghostty",
+      "sourceCommit": "9ddad8142daf624bad9a134f6d627c0e3262e37d"
+    },
+    {
+      "id": "soksak-plugin-terminal-kitty",
+      "repository": "soksak-ai/soksak-plugin-terminal-kitty",
+      "sourceCommit": "c6e82b2aa2d84b56627b1fcf2e9ae19da31023fd"
+    },
+    {
+      "id": "soksak-plugin-terminal-shitty",
+      "repository": "soksak-ai/soksak-plugin-terminal-shitty",
+      "sourceCommit": "b1d934a73267c210737c2a832f13e8b084700fbd"
+    },
+    {
+      "id": "soksak-plugin-terminal-vt100",
+      "repository": "soksak-ai/soksak-plugin-terminal-vt100",
+      "sourceCommit": "e93fc869ac6ca1c0d7a982d8eb3138b33027a1ac"
+    },
+    {
+      "id": "soksak-plugin-terminal-wezterm",
+      "repository": "soksak-ai/soksak-plugin-terminal-wezterm",
+      "sourceCommit": "496c6b59f116b9a9ee234d94461187ec6990739b"
+    },
+    {
+      "id": "soksak-plugin-terminal-xterm",
+      "repository": "soksak-ai/soksak-plugin-terminal-xterm",
+      "sourceCommit": "22d9a1907c8641eaa0da64189a8e6989cb2fd557"
+    }
+  ],
+  "sidecars": [
+    {
+      "id": "soksak-sidecar-pty",
+      "repository": "soksak-ai/soksak-sidecar-pty",
+      "sourceCommit": "0d2ec3e580c7998c83b0d54c4b5eb97eb4046fea",
+      "language": "go",
+      "profile": "standard"
+    },
+    {
+      "id": "soksak-sidecar-terminal-alacritty",
+      "repository": "soksak-ai/soksak-sidecar-terminal-alacritty",
+      "sourceCommit": "49810832d59224a268f1c89eb734de06f0c61436",
+      "language": "rust",
+      "profile": "standard"
+    },
+    {
+      "id": "soksak-sidecar-terminal-ghostty",
+      "repository": "soksak-ai/soksak-sidecar-terminal-ghostty",
+      "sourceCommit": "9972fa35851c083b458da7a197f921cf8f87c968",
+      "language": "rust",
+      "profile": "ghostty"
+    },
+    {
+      "id": "soksak-sidecar-terminal-kitty",
+      "repository": "soksak-ai/soksak-sidecar-terminal-kitty",
+      "sourceCommit": "8ba1f12a7ee4116702d70157ca61fd14f071a31d",
+      "language": "rust",
+      "profile": "kitty"
+    },
+    {
+      "id": "soksak-sidecar-terminal-shitty",
+      "repository": "soksak-ai/soksak-sidecar-terminal-shitty",
+      "sourceCommit": "33b2714e70592b6760f7e04f46f6cd069a233f3d",
+      "language": "rust",
+      "profile": "shitty"
+    },
+    {
+      "id": "soksak-sidecar-terminal-vt100",
+      "repository": "soksak-ai/soksak-sidecar-terminal-vt100",
+      "sourceCommit": "6ba0503f5b2a7821a8301d2787aa375469b146b7",
+      "language": "rust",
+      "profile": "standard"
+    },
+    {
+      "id": "soksak-sidecar-terminal-wezterm",
+      "repository": "soksak-ai/soksak-sidecar-terminal-wezterm",
+      "sourceCommit": "1ec34bf9b8487e0bbf8a88642f55d829da6180e2",
+      "language": "rust",
+      "profile": "standard"
+    }
+  ]
+}

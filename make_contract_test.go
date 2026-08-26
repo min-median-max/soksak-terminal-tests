@@ -14,7 +14,7 @@ func TestMakeOwnsAcceptanceCommands(t *testing.T) {
 	source := string(body)
 	for _, target := range []string{
 		"preflight:", "native-preflight:", "prepare:", "verify:", "benchmark:", "fleet:",
-		"compose-candidate-plan:", "system-commands:", "system-restore:", "system-theme:", "system-performance:", "system-visibility:", "system-native-focus:", "system-native-cursor:", "system-native-keyboard:",
+		"compose-candidate-plan:", "compose-local-candidate-plan:", "system-commands:", "system-restore:", "system-theme:", "system-performance:", "system-visibility:", "system-native-focus:", "system-native-cursor:", "system-native-keyboard:",
 	} {
 		if !strings.Contains(source, target) {
 			t.Errorf("Makefile omits %s", target)
