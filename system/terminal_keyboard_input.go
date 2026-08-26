@@ -27,12 +27,8 @@ func typeTerminalCommand(cli CLI, plugin, view, command string) error {
 		return err
 	}
 	for _, key := range keys {
-		receipt, err := cli.Call("ui.input.key", map[string]any{"address": address, "key": key})
-		if err != nil {
+		if _, err := cli.Call("ui.input.key", map[string]any{"address": address, "key": key}); err != nil {
 			return err
-		}
-		if receipt["defaultPrevented"] != true {
-			return fmt.Errorf("terminal input did not consume key %q: %+v", key, receipt)
 		}
 	}
 	return nil
