@@ -192,21 +192,24 @@ func exposedNodes(cli CLI) ([]any, error) {
 
 func nodeAddress(nodes []any, nodePath, contains string) string {
 	parts := strings.Split(contains, "\x00")
-	for _, value := range nodes {
-		node, _ := value.(map[string]any)
-		dataset, _ := node["dataset"].(map[string]any)
-		address, _ := node["address"].(string)
-		if dataset["node"] != nodePath {
-			continue
-		}
-		matched := true
-		for _, part := range parts {
-			if part != "" && !strings.Contains(address, part) {
-				matched = false
+	for _, dynamic := range []bool{false, true} {
+		for _, value := range nodes {
+			node, _ := value.(map[string]any)
+			dataset, _ := node["dataset"].(map[string]any)
+			address, _ := node["address"].(string)
+			actual, _ := dataset["node"].(string)
+			if actual != nodePath && (!dynamic || !strings.HasPrefix(actual, nodePath+"/")) {
+				continue
 			}
-		}
-		if matched {
-			return address
+			matched := true
+			for _, part := range parts {
+				if part != "" && !strings.Contains(address, part) {
+					matched = false
+				}
+			}
+			if matched {
+				return address
+			}
 		}
 	}
 	return ""
