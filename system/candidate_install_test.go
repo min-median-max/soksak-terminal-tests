@@ -43,6 +43,8 @@ func (caller *candidateCaller) Call(command string, params map[string]any) (map[
 		return map[string]any{"text": "unused"}, nil
 	case "artifact_install_commit":
 		return map[string]any{"revision": float64(1)}, nil
+	case "plugin.reload":
+		return map[string]any{"reloaded": float64(1), "rejected": []any{}}, nil
 	default:
 		return map[string]any{}, nil
 	}
