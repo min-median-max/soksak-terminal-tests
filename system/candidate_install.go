@@ -181,6 +181,9 @@ func InstallCandidateFleet(planPath string, cli commandCaller) error {
 		return fmt.Errorf("commit candidate transaction: %w", err)
 	}
 	committed = true
+	if _, err := cli.Call("plugin.reload", map[string]any{}); err != nil {
+		return fmt.Errorf("reload committed candidate records: %w", err)
+	}
 	return nil
 }
 
