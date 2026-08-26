@@ -16,6 +16,16 @@ func TestTerminalNodeAddressRequiresTheSelectedPluginViewAndNode(t *testing.T) {
 	}
 }
 
+func TestTerminalNodeAddressAcceptsPaneQualifiedDynamicNodes(t *testing.T) {
+	tree := map[string]any{"nodes": []any{
+		map[string]any{"address": "win/w/view/plugin-a.content/tab/view-a/node/terminal-screen/1", "nodePath": "terminal-screen/1"},
+	}}
+	address, err := terminalNodeAddress(tree, "plugin-a", "view-a", "terminal-screen")
+	if err != nil || address != "win/w/view/plugin-a.content/tab/view-a/node/terminal-screen/1" {
+		t.Fatalf("address=%q err=%v", address, err)
+	}
+}
+
 func TestResizeEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 	evidence := terminalResizeEvidence{
 		Wide:   terminalResizeSample{DOM: terminalDOMSize{Width: 720, Height: 400}, ReportedCols: 90, ReportedRows: 25},

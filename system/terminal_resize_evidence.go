@@ -89,15 +89,22 @@ func (evidence terminalResizeEvidence) failureBoundary() string {
 
 func terminalNodeAddress(tree map[string]any, plugin, view, nodePath string) (string, error) {
 	nodes, _ := tree["nodes"].([]any)
-	for _, value := range nodes {
-		node, _ := value.(map[string]any)
-		address, _ := node["address"].(string)
-		path, _ := node["nodePath"].(string)
-		if path == nodePath && strings.Contains(address, plugin) && strings.Contains(address, view) {
-			return address, nil
+	for _, dynamic := range []bool{false, true} {
+		for _, value := range nodes {
+			node, _ := value.(map[string]any)
+			address, _ := node["address"].(string)
+			path, _ := node["nodePath"].(string)
+			matches := path == nodePath || dynamic && strings.HasPrefix(path, nodePath+"/")
+			if matches && strings.Contains(address, plugin) && strings.Contains(address, view) {
+				return address, nil
+			}
 		}
 	}
 	return "", fmt.Errorf("%s view %s exposes no %s", plugin, view, nodePath)
+}
+
+func terminalNodePathMatches(actual, declared string) bool {
+	return actual == declared || strings.HasPrefix(actual, declared+"/")
 }
 
 func measureTerminalResize(cli CLI, plugin, view, address string) (terminalResizeSample, error) {

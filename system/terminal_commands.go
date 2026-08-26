@@ -295,13 +295,18 @@ func verifyTerminalNodes(cli CLI, plugin, view string) error {
 		if !strings.Contains(address, plugin) || !strings.Contains(address, view) {
 			continue
 		}
-		if _, exists := wanted[path]; exists {
-			wanted[path] = true
+		declared := ""
+		for candidate := range wanted {
+			if terminalNodePathMatches(path, candidate) {
+				declared = candidate
+				wanted[candidate] = true
+				break
+			}
 		}
-		if path == "terminal-screen" && (node["role"] != "log" || node["ariaLive"] != "polite") {
+		if declared == "terminal-screen" && (node["role"] != "log" || node["ariaLive"] != "polite") {
 			return fmt.Errorf("%s terminal screen accessibility is incomplete: %+v", plugin, node)
 		}
-		if path == "terminal-input" {
+		if declared == "terminal-input" {
 			label, _ := node["ariaLabel"].(string)
 			if label == "" {
 				return fmt.Errorf("%s terminal input has no accessible label", plugin)
