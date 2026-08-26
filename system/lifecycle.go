@@ -313,16 +313,29 @@ func (lifecycle *Lifecycle) Close() {
 }
 
 func (lifecycle *Lifecycle) stopTestSidecars() error {
-	value, err := lifecycle.client(lifecycle.window).Call("sidecar_status", map[string]any{})
+	return quiesceTestRuntime(lifecycle.client(lifecycle.window))
+}
+
+func quiesceTestRuntime(cli commandCaller) error {
+	plugins, err := cli.Call("plugin.list", map[string]any{})
+	if err != nil {
+		return err
+	}
+	for _, id := range enabledPluginNames(plugins) {
+		if _, err := cli.Call("plugin.disable", map[string]any{"id": id}); err != nil {
+			return fmt.Errorf("disable plugin %s: %w", id, err)
+		}
+	}
+	value, err := cli.Call("sidecar_status", map[string]any{})
 	if err != nil {
 		return err
 	}
 	for _, name := range ownedSidecarNames(value) {
-		if _, err := lifecycle.client(lifecycle.window).Call("sidecar_stop", map[string]any{"name": name}); err != nil {
+		if _, err := cli.Call("sidecar_stop", map[string]any{"name": name}); err != nil {
 			return fmt.Errorf("stop sidecar %s: %w", name, err)
 		}
 	}
-	after, err := lifecycle.client(lifecycle.window).Call("sidecar_status", map[string]any{})
+	after, err := cli.Call("sidecar_status", map[string]any{})
 	if err != nil {
 		return err
 	}
@@ -330,6 +343,20 @@ func (lifecycle *Lifecycle) stopTestSidecars() error {
 		return fmt.Errorf("sidecar ownership remains after stop: %v", remaining)
 	}
 	return nil
+}
+
+func enabledPluginNames(status map[string]any) []string {
+	entries, _ := status["plugins"].([]any)
+	names := []string{}
+	for _, item := range entries {
+		plugin, _ := item.(map[string]any)
+		id, _ := plugin["id"].(string)
+		if id != "" && plugin["status"] == "enabled" {
+			names = append(names, id)
+		}
+	}
+	sort.Strings(names)
+	return names
 }
 
 func ownedSidecarNames(status map[string]any) []string {

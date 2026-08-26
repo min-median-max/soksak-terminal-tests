@@ -1,11 +1,50 @@
 package system
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+type lifecycleCleanupCaller struct {
+	calls      []string
+	statusRead int
+}
+
+func (caller *lifecycleCleanupCaller) Call(command string, params map[string]any) (map[string]any, error) {
+	id, _ := params["id"].(string)
+	name, _ := params["name"].(string)
+	caller.calls = append(caller.calls, command+":"+id+name)
+	switch command {
+	case "plugin.list":
+		return map[string]any{"plugins": []any{
+			map[string]any{"id": "plugin-b", "status": "enabled"},
+			map[string]any{"id": "plugin-disabled", "status": "disabled"},
+			map[string]any{"id": "plugin-a", "status": "enabled"},
+		}}, nil
+	case "plugin.disable":
+		return map[string]any{"id": id, "status": "disabled"}, nil
+	case "sidecar_status":
+		caller.statusRead++
+		if caller.statusRead == 1 {
+			return map[string]any{
+				"open":     []any{map[string]any{"name": "sidecar-b"}},
+				"recorded": []any{map[string]any{"name": "sidecar-a"}},
+			}, nil
+		}
+		return map[string]any{"open": []any{}, "recorded": []any{}}, nil
+	case "sidecar_stop":
+		return map[string]any{"name": name, "running": false}, nil
+	default:
+		return nil, fmt.Errorf("unexpected command %s", command)
+	}
+}
+
+func (caller *lifecycleCleanupCaller) CallValue(string, map[string]any) (any, error) {
+	return nil, fmt.Errorf("unexpected value command")
+}
 
 func TestLifecycleStartupUsesTheOwnedReadinessEventWithoutPolling(t *testing.T) {
 	body, err := os.ReadFile("lifecycle.go")
@@ -55,6 +94,20 @@ func TestOwnedSidecarNamesIncludesOpenAndRecordedWithoutDuplicates(t *testing.T)
 	names := ownedSidecarNames(status)
 	if strings.Join(names, ",") != "soksak-sidecar-pty,soksak-sidecar-terminal-vt100" {
 		t.Fatalf("names=%v", names)
+	}
+}
+
+func TestLifecycleDisablesPluginsBeforeStoppingPersistentSidecars(t *testing.T) {
+	caller := &lifecycleCleanupCaller{}
+	if err := quiesceTestRuntime(caller); err != nil {
+		t.Fatal(err)
+	}
+	want := strings.Join([]string{
+		"plugin.list:", "plugin.disable:plugin-a", "plugin.disable:plugin-b",
+		"sidecar_status:", "sidecar_stop:sidecar-a", "sidecar_stop:sidecar-b", "sidecar_status:",
+	}, ",")
+	if got := strings.Join(caller.calls, ","); got != want {
+		t.Fatalf("cleanup order=%s want=%s", got, want)
 	}
 }
 
