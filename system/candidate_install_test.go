@@ -81,10 +81,10 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 					"cursorAccent": "--card", "selectionBackground": "--fg3",
 				},
 				"properties": map[string]any{
-					"cursor": "--soksak-terminal-cursor",
-					"cursorAccent": "--soksak-terminal-cursor-accent",
+					"cursor":              "--soksak-terminal-cursor",
+					"cursorAccent":        "--soksak-terminal-cursor-accent",
 					"selectionBackground": "--soksak-terminal-selection-background",
-					"ansiPrefix": "--soksak-terminal-ansi-",
+					"ansiPrefix":          "--soksak-terminal-ansi-",
 				},
 			},
 		},
@@ -127,6 +127,19 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 		if commands[index] != want[index] {
 			t.Fatalf("commands=%v want=%v", commands, want)
 		}
+	}
+	files := []string{}
+	for _, call := range caller.calls {
+		if call.command != "artifact_install_stage" {
+			continue
+		}
+		artifact, _ := call.params["artifact"].(map[string]any)
+		file, _ := artifact["file"].(string)
+		files = append(files, file)
+	}
+	wantFiles := []string{"soksak-sidecar-terminal-vt100.tgz", "soksak-plugin-terminal-vt100.tgz"}
+	if strings.Join(files, "\n") != strings.Join(wantFiles, "\n") {
+		t.Fatalf("staged artifact files=%v want=%v", files, wantFiles)
 	}
 }
 
