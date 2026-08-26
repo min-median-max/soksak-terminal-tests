@@ -317,6 +317,9 @@ func (lifecycle *Lifecycle) stopTestSidecars() error {
 }
 
 func quiesceTestRuntime(cli commandCaller) error {
+	if err := closeTestPluginTabs(cli); err != nil {
+		return err
+	}
 	plugins, err := cli.Call("plugin.list", map[string]any{})
 	if err != nil {
 		return err
@@ -341,6 +344,46 @@ func quiesceTestRuntime(cli commandCaller) error {
 	}
 	if remaining := ownedSidecarNames(after); len(remaining) > 0 {
 		return fmt.Errorf("sidecar ownership remains after stop: %v", remaining)
+	}
+	return nil
+}
+
+func closeTestPluginTabs(cli commandCaller) error {
+	tree, err := cli.Call("state.tree", map[string]any{})
+	if err != nil {
+		return err
+	}
+	unique := map[string]struct{}{}
+	workspaces, _ := tree["workspaces"].([]any)
+	for _, workspaceValue := range workspaces {
+		workspace, _ := workspaceValue.(map[string]any)
+		spaces, _ := workspace["spaces"].([]any)
+		for _, spaceValue := range spaces {
+			space, _ := spaceValue.(map[string]any)
+			panes, _ := space["panes"].([]any)
+			for _, paneValue := range panes {
+				pane, _ := paneValue.(map[string]any)
+				tabs, _ := pane["tabs"].([]any)
+				for _, tabValue := range tabs {
+					tab, _ := tabValue.(map[string]any)
+					id, _ := tab["id"].(string)
+					plugin, _ := tab["plugin"].(string)
+					if id != "" && plugin != "" {
+						unique[id] = struct{}{}
+					}
+				}
+			}
+		}
+	}
+	ids := make([]string, 0, len(unique))
+	for id := range unique {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	for _, id := range ids {
+		if _, err := cli.Call("tab.close", map[string]any{"tab": id}); err != nil {
+			return fmt.Errorf("close plugin tab %s: %w", id, err)
+		}
 	}
 	return nil
 }

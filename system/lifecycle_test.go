@@ -16,8 +16,25 @@ type lifecycleCleanupCaller struct {
 func (caller *lifecycleCleanupCaller) Call(command string, params map[string]any) (map[string]any, error) {
 	id, _ := params["id"].(string)
 	name, _ := params["name"].(string)
-	caller.calls = append(caller.calls, command+":"+id+name)
+	tab, _ := params["tab"].(string)
+	caller.calls = append(caller.calls, command+":"+id+name+tab)
 	switch command {
+	case "state.tree":
+		return map[string]any{
+			"workspaces": []any{map[string]any{
+				"spaces": []any{map[string]any{
+					"panes": []any{map[string]any{
+						"tabs": []any{
+							map[string]any{"id": "tab-b", "plugin": "plugin-b"},
+							map[string]any{"id": "plain-tab", "plugin": ""},
+							map[string]any{"id": "tab-a", "plugin": "plugin-a"},
+						},
+					}},
+				}},
+			}},
+		}, nil
+	case "tab.close":
+		return map[string]any{"tabId": tab, "closed": true}, nil
 	case "plugin.list":
 		return map[string]any{"plugins": []any{
 			map[string]any{"id": "plugin-b", "status": "enabled"},
@@ -103,6 +120,7 @@ func TestLifecycleDisablesPluginsBeforeStoppingPersistentSidecars(t *testing.T) 
 		t.Fatal(err)
 	}
 	want := strings.Join([]string{
+		"state.tree:", "tab.close:tab-a", "tab.close:tab-b",
 		"plugin.list:", "plugin.disable:plugin-a", "plugin.disable:plugin-b",
 		"sidecar_status:", "sidecar_stop:sidecar-a", "sidecar_stop:sidecar-b", "sidecar_status:",
 	}, ",")
