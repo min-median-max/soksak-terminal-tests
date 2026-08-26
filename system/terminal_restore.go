@@ -21,7 +21,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if err != nil {
 			return err
 		}
-		pid, err := shellPID(status, view.View)
+		pid, err := shellPID(status, view.Pane)
 		if err != nil {
 			return fmt.Errorf("%s: %w", view.Plugin, err)
 		}
@@ -68,7 +68,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if err != nil {
 			return err
 		}
-		pid, err := shellPID(status, view.View)
+		pid, err := shellPID(status, view.Pane)
 		if err != nil || pid != view.ShellPID {
 			return fmt.Errorf("%s shell PID changed: %d -> %d: %v", view.Plugin, view.ShellPID, pid, err)
 		}
@@ -81,7 +81,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if err != nil || archived["archived"] != true || bytes < 1 {
 			return fmt.Errorf("%s archive failed: %v %+v", view.Plugin, err, archived)
 		}
-		if err := closePaneSession(cli, view.View); err != nil {
+		if err := closePaneSession(cli, view.Pane); err != nil {
 			return err
 		}
 	}

@@ -1,6 +1,6 @@
 SHELL := /bin/sh
 
-.PHONY: require-target preflight native-preflight prepare verify benchmark fleet compose-candidate-plan system system-commands system-restore system-theme system-performance system-visibility system-native-focus system-native-cursor system-native-keyboard
+.PHONY: require-target preflight native-preflight prepare verify benchmark fleet compose-candidate-plan system system-commands system-restore system-pty-fault system-theme system-performance system-visibility system-native-focus system-native-cursor system-native-keyboard
 
 require-target:
 	@test '$(origin TARGET)' = 'command line' && test -n '$(TARGET)' || { echo 'TARGET must be an explicit Make command-line variable' >&2; exit 2; }
@@ -37,6 +37,9 @@ system-commands: system
 
 system-restore: TEST_NAME := TestInstalledTerminalWarmAndArchivedRestore
 system-restore: system
+
+system-pty-fault: TEST_NAME := TestInstalledTerminalPtyFaultRecovery
+system-pty-fault: system
 
 system-theme: TEST_NAME := TestInstalledTerminalThemeParity
 system-theme: system

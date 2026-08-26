@@ -13,6 +13,7 @@ import (
 type TerminalResult struct {
 	Plugin string
 	View   string
+	Pane   string
 }
 
 func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, error) {
@@ -211,7 +212,11 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err := captureTerminal(cli, plugin); err != nil {
 			return nil, err
 		}
-		results = append(results, TerminalResult{Plugin: plugin, View: view})
+		pane, _ := ready["pane"].(string)
+		if pane == "" {
+			return nil, fmt.Errorf("%s live status returned no pane key: %+v", plugin, ready)
+		}
+		results = append(results, TerminalResult{Plugin: plugin, View: view, Pane: pane})
 	}
 	return results, nil
 }
