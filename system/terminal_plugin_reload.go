@@ -59,7 +59,13 @@ func VerifyPluginReloadLifetime(platform string, cli CLI, view TerminalResult, a
 		if _, err := terminal(cli, view.Plugin, "wait", view.View, map[string]any{
 			"phase": "live", "timeoutMs": 30000,
 		}); err != nil {
-			return err
+			status, statusErr := terminal(cli, view.Plugin, "status", view.View, nil)
+			recovery, recoveryErr := terminal(cli, view.Plugin, "recovery-status", view.View, nil)
+			pty, ptyErr := ptyStatus(cli)
+			health, healthErr := cli.Call("state.health", map[string]any{})
+			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+			return fmt.Errorf("reload %d live wait failed: %w; status=%+v statusErr=%v recovery=%+v recoveryErr=%v pty=%+v ptyErr=%v health=%+v healthErr=%v sidecars=%+v sidecarErr=%v",
+				attempt, err, status, statusErr, recovery, recoveryErr, pty, ptyErr, health, healthErr, sidecars, sidecarErr)
 		}
 		health, err := cli.Call("state.health", map[string]any{})
 		if err != nil {
