@@ -181,8 +181,19 @@ func InstallCandidateFleet(planPath string, cli commandCaller) error {
 		return fmt.Errorf("commit candidate transaction: %w", err)
 	}
 	committed = true
-	if _, err := cli.Call("plugin.reload", map[string]any{}); err != nil {
+	reload, err := cli.Call("plugin.reload", map[string]any{})
+	if err != nil {
 		return fmt.Errorf("reload committed candidate records: %w", err)
+	}
+	rejected, _ := reload["rejected"].([]any)
+	pluginCount := 0
+	for _, candidate := range prepared {
+		if candidate.Kind == "plugin" {
+			pluginCount++
+		}
+	}
+	if len(rejected) > 0 || numericInt64(reload["reloaded"]) != int64(pluginCount) {
+		return fmt.Errorf("candidate plugin reload mismatch: want=%d response=%+v", pluginCount, reload)
 	}
 	return nil
 }
