@@ -26,6 +26,9 @@ func typeTerminalCommand(cli CLI, plugin, view, command string) error {
 	if err != nil {
 		return err
 	}
+	if _, err := cli.Call("ui.input.click", map[string]any{"address": address}); err != nil {
+		return err
+	}
 	for _, key := range keys {
 		if _, err := cli.Call("ui.input.key", map[string]any{"address": address, "key": key}); err != nil {
 			return err
