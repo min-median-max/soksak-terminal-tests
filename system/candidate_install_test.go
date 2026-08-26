@@ -119,7 +119,7 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 	for _, call := range caller.calls {
 		commands = append(commands, call.command)
 	}
-	want := []string{"environment_get", "artifact_install_begin", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_commit"}
+	want := []string{"environment_get", "artifact_install_begin", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_stage", "artifact_install_read_utf8", "artifact_install_commit", "plugin.reload"}
 	if len(commands) != len(want) {
 		t.Fatalf("commands=%v", commands)
 	}
