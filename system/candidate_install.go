@@ -151,7 +151,8 @@ func InstallCandidateFleet(planPath string, cli commandCaller) error {
 		staged, err := cli.Call("artifact_install_stage", map[string]any{
 			"transactionId": transactionID, "registryId": "candidate", "identity": identity,
 			"artifact": map[string]any{
-				"url": artifactURL, "size": candidate.size, "sha256": candidate.digest,
+				"file": filepath.Base(candidate.Artifact), "url": artifactURL,
+				"size": candidate.size, "sha256": candidate.digest,
 				"format": "tgz", "manifest": candidate.Manifest, "entrypoints": []string{candidate.Manifest},
 			},
 		})
