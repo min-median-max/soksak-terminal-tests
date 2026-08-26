@@ -46,6 +46,7 @@ type nativeKeyboardReport struct {
 	WindowFocused       bool   `json:"windowFocused"`
 	ForegroundPreserved bool   `json:"foregroundPreserved"`
 	FocusedInput        bool   `json:"focusedInput"`
+	ExpectedInputCount  int    `json:"expectedInputCount"`
 	AcceptedInputDelta  int    `json:"acceptedInputDelta"`
 	PTYWriteDelta       int    `json:"ptyWriteDelta"`
 }
@@ -152,10 +153,12 @@ func TestInstalledTerminalNativeKeyboardMatrix(t *testing.T) {
 		report := nativeKeyboardReport{
 			Provider: plugin.ID, PointerInputRoute: pointerRoute, KeyboardInputRoute: keyboardRoute,
 			WindowFocused: true, ForegroundPreserved: true,
+			ExpectedInputCount: len([]rune(command)) + 1,
 			AcceptedInputDelta: afterAccepted - beforeAccepted, PTYWriteDelta: afterWrites - beforeWrites,
 		}
 		report.FocusedInput, _ = after["focusedInput"].(bool)
-		if !report.FocusedInput || report.AcceptedInputDelta < 2 || report.PTYWriteDelta < 2 {
+		if !report.FocusedInput || report.AcceptedInputDelta != report.ExpectedInputCount ||
+			report.PTYWriteDelta != report.ExpectedInputCount {
 			t.Fatalf("native keyboard did not reach %s PTY: %+v", plugin.ID, report)
 		}
 		reports = append(reports, report)
