@@ -14,9 +14,10 @@ type pluginRealmLifetime struct {
 }
 
 type pluginReloadSample struct {
-	Attempt int                 `json:"attempt"`
-	Realms  pluginRealmLifetime `json:"realms"`
-	Streams int                 `json:"streams"`
+	Attempt   int                 `json:"attempt"`
+	Unchanged bool                `json:"unchanged"`
+	Realms    pluginRealmLifetime `json:"realms"`
+	Streams   int                 `json:"streams"`
 }
 
 func VerifyPluginReloadLifetime(platform string, cli CLI, view TerminalResult, attempts int) error {
@@ -44,6 +45,10 @@ func VerifyPluginReloadLifetime(platform string, cli CLI, view TerminalResult, a
 		reloaded, err := cli.Call("plugin.reload", map[string]any{"id": view.Plugin})
 		if err != nil || reloaded["status"] != "enabled" {
 			return fmt.Errorf("reload %d did not enable %s: err=%v response=%+v", attempt, view.Plugin, err, reloaded)
+		}
+		unchanged, _ := reloaded["unchanged"].(bool)
+		if !unchanged {
+			return fmt.Errorf("reload %d replaced unchanged %s runtime: %+v", attempt, view.Plugin, reloaded)
 		}
 		if _, err := cli.Call("plugin.boot.wait", map[string]any{"timeoutMs": 30000}); err != nil {
 			return err
@@ -78,7 +83,7 @@ func VerifyPluginReloadLifetime(platform string, cli CLI, view TerminalResult, a
 		if err != nil || pid != baselinePID {
 			return fmt.Errorf("plugin reload replaced PTY shell %d with %d: %v", baselinePID, pid, err)
 		}
-		samples = append(samples, pluginReloadSample{Attempt: attempt, Realms: realms, Streams: streams})
+		samples = append(samples, pluginReloadSample{Attempt: attempt, Unchanged: true, Realms: realms, Streams: streams})
 	}
 	marker := "SOKSAK_PLUGIN_RELOAD_LIFETIME"
 	command, err := terminalPrintCommand(platform, marker)
