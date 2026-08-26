@@ -82,7 +82,12 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err != nil {
 			status, statusErr := terminal(cli, plugin, "status", view, nil)
 			read, readErr := terminal(cli, plugin, "read", view, nil)
-			return nil, fmt.Errorf("%s marker wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v", plugin, err, status, statusErr, read, readErr)
+			recovery, recoveryErr := terminal(cli, plugin, "recovery-status", view, nil)
+			pty, ptyErr := ptyStatus(cli)
+			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+			health, healthErr := cli.Call("state.health", map[string]any{})
+			return nil, fmt.Errorf("%s marker wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v recovery=%+v recoveryErr=%v pty=%+v ptyErr=%v sidecars=%+v sidecarErr=%v health=%+v healthErr=%v",
+				plugin, err, status, statusErr, read, readErr, recovery, recoveryErr, pty, ptyErr, sidecars, sidecarErr, health, healthErr)
 		}
 		if ready["fidelity"] != "complete" {
 			return nil, fmt.Errorf("%s reported incomplete fidelity: %+v", plugin, ready)
