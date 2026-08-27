@@ -30,3 +30,7 @@ func processGone(pid uint32) (bool, error) {
 	}
 	return true, nil
 }
+
+func terminateProcess(pid uint32) error {
+	return exec.Command("taskkill.exe", "/PID", strconv.FormatUint(uint64(pid), 10), "/F").Run()
+}

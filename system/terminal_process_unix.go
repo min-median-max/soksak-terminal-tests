@@ -20,3 +20,7 @@ func processGone(pid uint32) (bool, error) {
 	}
 	return false, err
 }
+
+func terminateProcess(pid uint32) error {
+	return syscall.Kill(int(pid), syscall.SIGKILL)
+}

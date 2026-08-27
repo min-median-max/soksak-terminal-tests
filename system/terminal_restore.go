@@ -82,9 +82,6 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if err != nil || archived["archived"] != true || bytes < 1 {
 			return fmt.Errorf("%s archive failed: %v %+v", view.Plugin, err, archived)
 		}
-		if err := closePaneSession(cli, view.Pane); err != nil {
-			return err
-		}
 	}
 	markers := make([]string, 0, len(restore))
 	for _, view := range restore {
@@ -93,8 +90,15 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 	if err := verifyEncryptedCheckpoints(lifecycle.config.Home, profile.RecoverySidecarIDs(), markers, len(restore)); err != nil {
 		return err
 	}
+	oldDaemon, err := runningSidecarPID(cli, "soksak-sidecar-pty")
+	if err != nil {
+		return err
+	}
 	if err := lifecycle.Shutdown(); err != nil {
 		return err
+	}
+	if err := terminateProcess(oldDaemon); err != nil {
+		return fmt.Errorf("terminate detached PTY sidecar %d: %w", oldDaemon, err)
 	}
 	if err := lifecycle.Start(); err != nil {
 		return err
@@ -103,7 +107,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		return err
 	}
 	cli = lifecycle.Client()
-	for _, view := range restore {
+	for index, view := range restore {
 		if err := activateRestoredTerminal(cli, view.View); err != nil {
 			return err
 		}
@@ -111,7 +115,7 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 			return err
 		}
 		archived, err := terminal(cli, view.Plugin, "wait", view.View, map[string]any{
-			"phase": "archived", "contains": view.Marker, "timeoutMs": 20000,
+			"phase": "live", "timeoutMs": 30000,
 		})
 		if err != nil {
 			return terminalRestoreDiagnostic(cli, view, "archived restore wait", err)
@@ -119,18 +123,37 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if archived["recoveryOutcome"] != "archived" || archived["fidelity"] != "complete" {
 			return fmt.Errorf("%s archived restore is incomplete: %+v", view.Plugin, archived)
 		}
-		before, err := terminal(cli, view.Plugin, "status", view.View, nil)
+		status, err := ptyStatus(cli)
 		if err != nil {
 			return err
 		}
-		beforeWrites := presentationSequence(before, "ptyWriteSequence")
-		if err := typeTerminalCommand(cli, view.Plugin, view.View, "ARCHIVED_INPUT_MUST_FAIL"); err != nil {
+		pid, err := shellPID(status, view.Pane)
+		if err != nil || pid == view.ShellPID {
+			return fmt.Errorf("%s did not replace archived shell PID %d: pid=%d err=%v", view.Plugin, view.ShellPID, pid, err)
+		}
+		marker := fmt.Sprintf("SOKSAK_ARCHIVED_RESTART_%d", index)
+		command, err := terminalPrintCommand(profile.Platform, marker)
+		if err != nil {
 			return err
 		}
-		after, err := terminal(cli, view.Plugin, "status", view.View, nil)
-		if err != nil || presentationSequence(after, "ptyWriteSequence") != beforeWrites {
-			return fmt.Errorf("%s accepted archived keyboard input: %v before=%+v after=%+v", view.Plugin, err, before, after)
+		if err := typeTerminalCommand(cli, view.Plugin, view.View, command); err != nil {
+			return err
 		}
+		if _, err := terminal(cli, view.Plugin, "wait", view.View, map[string]any{
+			"phase": "live", "contains": marker, "timeoutMs": 12000,
+		}); err != nil {
+			return fmt.Errorf("%s did not accept input after archived recovery: %w", view.Plugin, err)
+		}
+		if err := captureTerminal(cli, view.Plugin+"-archived-restart"); err != nil {
+			return err
+		}
+	}
+	newDaemon, err := runningSidecarPID(cli, "soksak-sidecar-pty")
+	if err != nil || newDaemon == oldDaemon {
+		return fmt.Errorf("PTY sidecar did not restart after archive fault: %d -> %d: %v", oldDaemon, newDaemon, err)
+	}
+	if gone, err := processGone(oldDaemon); err != nil || !gone {
+		return fmt.Errorf("old PTY sidecar %d remains after archived recovery: gone=%v err=%v", oldDaemon, gone, err)
 	}
 	return nil
 }
@@ -141,12 +164,6 @@ func activateRestoredTerminal(cli CLI, view string) error {
 	}
 	_, err := cli.Call("ui.layout.wait-settled", map[string]any{"timeoutMs": 8000})
 	return err
-}
-
-func presentationSequence(status map[string]any, name string) int {
-	presentation, _ := status["presentation"].(map[string]any)
-	value, _ := exactInt(presentation[name])
-	return value
 }
 
 func terminalRestoreDiagnostic(cli CLI, view RestoreView, stage string, cause error) error {
