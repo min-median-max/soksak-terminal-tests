@@ -3,6 +3,7 @@ package system
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/min-median-max/soksak-terminal-tests/fleet"
@@ -45,14 +46,14 @@ func inventoryFixture(t *testing.T, profile fleet.Profile) platformspec.Environm
 		path := filepath.Join(root, plugin.ID)
 		_ = os.MkdirAll(path, 0o700)
 		environment.Plugins[plugin.ID] = platformspec.Plugin{
-			Component: platformspec.Component{Version: plugin.Version, Path: path, Source: platformspec.RegistrySource, Registry: "test"},
+			Component: platformspec.Component{Version: plugin.Version, Path: path, ArtifactSHA256: strings.Repeat("a", 64), Source: platformspec.RegistrySource, Registry: "test"},
 			Enabled:   true,
 		}
 	}
 	for _, expected := range profile.Sidecars {
 		path := filepath.Join(root, expected.ID)
 		_ = os.MkdirAll(path, 0o700)
-		environment.Sidecars[expected.ID] = platformspec.Component{Version: expected.Version, Path: path, Source: platformspec.RegistrySource, Registry: "test", Target: profile.Target}
+		environment.Sidecars[expected.ID] = platformspec.Component{Version: expected.Version, Path: path, ArtifactSHA256: strings.Repeat("a", 64), Source: platformspec.RegistrySource, Registry: "test", Target: profile.Target}
 	}
 	return environment
 }
