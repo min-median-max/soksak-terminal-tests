@@ -144,6 +144,10 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		}); err != nil {
 			return fmt.Errorf("%s did not accept input after archived recovery: %w", view.Plugin, err)
 		}
+		read, err := terminal(cli, view.Plugin, "read", view.View, nil)
+		if err != nil || countExactLine(fmt.Sprint(read["text"]), view.Marker) != 1 {
+			return fmt.Errorf("%s discarded archived screen after starting a shell: %v %+v", view.Plugin, err, read)
+		}
 		if err := captureTerminal(cli, view.Plugin+"-archived-restart"); err != nil {
 			return err
 		}
