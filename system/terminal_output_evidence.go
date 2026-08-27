@@ -23,6 +23,7 @@ type terminalOutputEvidence struct {
 }
 
 const minimumCompositionThroughputMBs = 3.0
+const highOutputPayloadBytes = 1 << 20
 
 func terminalOutputStatus(plugin, view string, status map[string]any) terminalOutputEvidence {
 	return terminalOutputEvidence{
@@ -36,7 +37,7 @@ func (evidence terminalOutputEvidence) failureBoundary() string {
 	if evidence.PTY == nil {
 		return "pty-output"
 	}
-	if evidence.PTY.OutputSequence-evidence.BeforeOutput < 262144 {
+	if evidence.PTY.OutputSequence-evidence.BeforeOutput < highOutputPayloadBytes {
 		return "pty-output"
 	}
 	if evidence.Recovery == nil || evidence.Recovery.Gaps != 0 ||
@@ -48,7 +49,7 @@ func (evidence terminalOutputEvidence) failureBoundary() string {
 		(!evidence.MarkerObserved && evidence.Rendered.OutputSequence < evidence.Recovery.OutputSequence) {
 		return "renderer-output"
 	}
-	if evidence.OutputBytes < 262144 || evidence.ElapsedMS <= 0 || evidence.ThroughputMBs < minimumCompositionThroughputMBs {
+	if evidence.OutputBytes < highOutputPayloadBytes || evidence.ElapsedMS <= 0 || evidence.ThroughputMBs < minimumCompositionThroughputMBs {
 		return "composition-throughput"
 	}
 	return ""

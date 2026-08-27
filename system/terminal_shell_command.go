@@ -23,10 +23,10 @@ func terminalHighOutputCommand(platform, marker string) (string, error) {
 	payload := base64.StdEncoding.EncodeToString([]byte(marker + "\n"))
 	switch platform {
 	case "windows":
-		script := "[Console]::Out.Write(('X' * 262144)); [Console]::Out.WriteLine(); [Console]::Out.WriteLine('" + marker + "')"
+		script := fmt.Sprintf("[Console]::Out.Write(('X' * %d)); [Console]::Out.WriteLine(); [Console]::Out.WriteLine('%s')", highOutputPayloadBytes, marker)
 		return "powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand " + encodePowerShell(script), nil
 	case "darwin", "linux":
-		return "head -c 262144 /dev/zero | tr '\\0' X; printf '\\n'; printf %s " + payload + " | base64 -d", nil
+		return fmt.Sprintf("head -c %d /dev/zero | tr '\\0' X; printf '\\n'; printf %%s %s | base64 -d", highOutputPayloadBytes, payload), nil
 	default:
 		return "", fmt.Errorf("unsupported terminal platform: %s", platform)
 	}

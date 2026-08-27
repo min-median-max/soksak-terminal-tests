@@ -27,7 +27,7 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 		t.Fatalf("Windows output command = %q", windowsOutput)
 	}
 	script := decodePowerShellForTest(t, windowsOutput[strings.LastIndex(windowsOutput, " ")+1:])
-	for _, required := range []string{"'X' * 262144", highOutputMarker} {
+	for _, required := range []string{"'X' * 1048576", highOutputMarker} {
 		if !strings.Contains(script, required) {
 			t.Errorf("Windows output script omits %q: %s", required, script)
 		}
@@ -43,7 +43,7 @@ func TestTerminalShellCommandsUseThePlatformShell(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(unixOutput, "head -c 262144 /dev/zero | tr '\\0' X") || !strings.Contains(unixOutput, "; printf") {
+	if !strings.Contains(unixOutput, "head -c 1048576 /dev/zero | tr '\\0' X") || !strings.Contains(unixOutput, "; printf") {
 		t.Fatalf("Linux output command = %q", unixOutput)
 	}
 	if strings.Contains(unixOutput, "yes X") {
