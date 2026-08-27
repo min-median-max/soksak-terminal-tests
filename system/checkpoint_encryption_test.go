@@ -15,7 +15,7 @@ func TestEncryptedCheckpointFilesRejectPlaintextAndInvalidEnvelopes(t *testing.T
 		t.Fatal(err)
 	}
 	marker := "SOKSAK_PRIVATE_MARKER"
-	valid := append([]byte("SKTERM01\x01"), make([]byte, 8+8+12+16)...)
+	valid := append([]byte("SKTERM01\x02"), make([]byte, 8+8+12+16)...)
 	if err := os.WriteFile(filepath.Join(directory, "one.checkpoint"), valid, 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -23,6 +23,12 @@ func TestEncryptedCheckpointFilesRejectPlaintextAndInvalidEnvelopes(t *testing.T
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(directory, ".one.checkpoint.7.tmp"), valid, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyEncryptedCheckpoints(home, []string{provider}, []string{marker}, 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(directory, ".one.checkpoint.7.tmp"), []byte("SKTE"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if err := verifyEncryptedCheckpoints(home, []string{provider}, []string{marker}, 1); err != nil {
@@ -40,8 +46,8 @@ func TestEncryptedCheckpointFilesRejectPlaintextAndInvalidEnvelopes(t *testing.T
 
 	for name, body := range map[string][]byte{
 		"plaintext": append(valid, marker...),
-		"header":    append([]byte("NOTCRYPT\x01"), valid[9:]...),
-		"short":     []byte("SKTERM01\x01"),
+		"header":    append([]byte("NOTCRYPT\x02"), valid[9:]...),
+		"short":     []byte("SKTERM01\x02"),
 	} {
 		t.Run(name, func(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(directory, "one.checkpoint"), body, 0o600); err != nil {
