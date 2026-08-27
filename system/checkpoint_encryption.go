@@ -11,6 +11,7 @@ import (
 var checkpointMagic = []byte("SKTERM01")
 
 const checkpointMinimumBytes = 8 + 1 + 8 + 8 + 12 + 16
+const checkpointFormatVersion = 2
 
 func verifyEncryptedCheckpoints(home string, providers, plaintext []string, expectedFiles int) error {
 	root := filepath.Join(home, "terminal-checkpoints")
@@ -37,17 +38,19 @@ func verifyEncryptedCheckpoints(home string, providers, plaintext []string, expe
 			if err != nil {
 				return err
 			}
-			if len(body) < checkpointMinimumBytes || !bytes.Equal(body[:8], checkpointMagic) || body[8] != 1 {
-				return fmt.Errorf("%s has an invalid encrypted checkpoint envelope", path)
-			}
 			for _, marker := range plaintext {
 				if marker != "" && bytes.Contains(body, []byte(marker)) {
 					return fmt.Errorf("%s contains plaintext marker %q", path, marker)
 				}
 			}
 			if final {
+				if len(body) < checkpointMinimumBytes || !bytes.Equal(body[:8], checkpointMagic) || body[8] != checkpointFormatVersion {
+					return fmt.Errorf("%s has an invalid encrypted checkpoint envelope", path)
+				}
 				providerFiles++
 				count++
+			} else if !isEncryptedCheckpointPrefix(body) {
+				return fmt.Errorf("%s has an invalid encrypted checkpoint prefix", path)
 			}
 		}
 		if providerFiles == 0 {
@@ -58,4 +61,11 @@ func verifyEncryptedCheckpoints(home string, providers, plaintext []string, expe
 		return fmt.Errorf("encrypted checkpoint files=%d, want %d", count, expectedFiles)
 	}
 	return nil
+}
+
+func isEncryptedCheckpointPrefix(body []byte) bool {
+	if len(body) <= len(checkpointMagic) {
+		return bytes.Equal(body, checkpointMagic[:len(body)])
+	}
+	return bytes.Equal(body[:len(checkpointMagic)], checkpointMagic) && body[len(checkpointMagic)] == checkpointFormatVersion
 }
