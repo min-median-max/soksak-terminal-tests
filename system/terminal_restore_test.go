@@ -44,3 +44,40 @@ func TestPaneSessionReadsTheHeldContractPayload(t *testing.T) {
 		}
 	}
 }
+
+func TestExactLineCountUsesStableHistoryCoordinates(t *testing.T) {
+	positions := map[int]bool{}
+	for _, page := range []struct {
+		offset int
+		text   string
+	}{
+		{offset: 0, text: "new\nmarker\n"},
+		{offset: 1, text: "old\nmarker"},
+	} {
+		recordExactLinePositions(positions, page.text, "marker", page.offset)
+	}
+	if len(positions) != 1 {
+		t.Fatalf("overlapping history pages counted one row %d times", len(positions))
+	}
+}
+
+func TestArchivedFrameTextJoinsDeclaredRuns(t *testing.T) {
+	frame := map[string]any{"lines": []any{
+		map[string]any{"runs": []any{map[string]any{"text": "archive-"}, map[string]any{"text": "marker"}}},
+		map[string]any{"runs": []any{map[string]any{"text": "prompt"}}},
+	}}
+	if text := archivedFrameText(frame); text != "archive-marker\nprompt" {
+		t.Fatalf("frame text=%q", text)
+	}
+}
+
+func TestPaneWindowLabelUsesThePTYSessionContract(t *testing.T) {
+	status := map[string]any{"sessions": []any{
+		map[string]any{"paneId": "pane-b", "windowLabel": "window-b"},
+		map[string]any{"paneId": "pane-a", "windowLabel": "window-a"},
+	}}
+	window, err := paneWindowLabel(status, "pane-a")
+	if err != nil || window != "window-a" {
+		t.Fatalf("window=%q err=%v", window, err)
+	}
+}

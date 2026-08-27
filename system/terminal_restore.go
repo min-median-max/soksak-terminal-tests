@@ -1,7 +1,10 @@
 package system
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/min-median-max/soksak-terminal-tests/fleet"
@@ -82,6 +85,9 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		if err != nil || archived["archived"] != true || bytes < 1 {
 			return fmt.Errorf("%s archive failed: %v %+v", view.Plugin, err, archived)
 		}
+		if err := writeArchivedCheckpointEvidence(lifecycle.config.EvidenceDir, cli, view, "archive", true); err != nil {
+			return err
+		}
 	}
 	markers := make([]string, 0, len(restore))
 	for _, view := range restore {
@@ -144,9 +150,11 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		}); err != nil {
 			return fmt.Errorf("%s did not accept input after archived recovery: %w", view.Plugin, err)
 		}
-		read, err := terminal(cli, view.Plugin, "read", view.View, nil)
-		if err != nil || countExactLine(fmt.Sprint(read["text"]), view.Marker) != 1 {
-			return fmt.Errorf("%s discarded archived screen after starting a shell: %v %+v", view.Plugin, err, read)
+		markerCount, err := countExactLineInTerminalHistory(cli, view.Plugin, view.View, view.Marker)
+		if err != nil || markerCount != 1 {
+			recoveryCount, recoveryErr := countExactLineInRecoveryHistory(lifecycle.config.EvidenceDir, cli, view, view.Marker)
+			postArchiveErr := writeArchivedCheckpointEvidence(lifecycle.config.EvidenceDir, cli, view, "post-recovery-archive", false)
+			return fmt.Errorf("%s discarded or duplicated archived screen after starting a shell: presenterCount=%d presenterErr=%v recoveryCount=%d recoveryErr=%v postArchiveErr=%v", view.Plugin, markerCount, err, recoveryCount, recoveryErr, postArchiveErr)
 		}
 		if err := captureTerminal(cli, view.Plugin+"-archived-restart"); err != nil {
 			return err
@@ -187,6 +195,189 @@ func countExactLine(text, wanted string) int {
 		}
 	}
 	return count
+}
+
+func countExactLineInTerminalHistory(cli CLI, plugin, view, wanted string) (int, error) {
+	positions := map[int]bool{}
+	scroll, err := terminal(cli, plugin, "scroll", view, map[string]any{"edge": "bottom"})
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _, _ = terminal(cli, plugin, "scroll", view, map[string]any{"edge": "bottom"}) }()
+	for {
+		offset, offsetOK := exactInt(scroll["offset"])
+		historySize, historyOK := exactInt(scroll["historySize"])
+		if !offsetOK || !historyOK || offset < 0 || historySize < offset {
+			return 0, fmt.Errorf("invalid scroll state: %+v", scroll)
+		}
+		read, readErr := terminal(cli, plugin, "read", view, nil)
+		if readErr != nil {
+			return 0, readErr
+		}
+		rows := recordExactLinePositions(positions, fmt.Sprint(read["text"]), wanted, offset)
+		if offset == historySize {
+			return len(positions), nil
+		}
+		next := offset + rows
+		if next > historySize {
+			next = historySize
+		}
+		if next <= offset {
+			return 0, fmt.Errorf("terminal history did not advance: offset=%d rows=%d history=%d", offset, rows, historySize)
+		}
+		scroll, err = terminal(cli, plugin, "scroll", view, map[string]any{"offset": next})
+		if err != nil {
+			return 0, err
+		}
+	}
+}
+
+func recordExactLinePositions(positions map[int]bool, text, wanted string, offset int) int {
+	lines := strings.Split(strings.ReplaceAll(text, "\r\n", "\n"), "\n")
+	for row, line := range lines {
+		if line == wanted {
+			positions[offset+len(lines)-1-row] = true
+		}
+	}
+	return len(lines)
+}
+
+func writeArchivedCheckpointEvidence(directory string, cli CLI, view RestoreView, suffix string, requireMarker bool) error {
+	status, err := terminal(cli, view.Plugin, "status", view.View, nil)
+	if err != nil {
+		return err
+	}
+	engine, _ := status["engineId"].(string)
+	if engine == "" {
+		return fmt.Errorf("%s archive status has no engine: %+v", view.Plugin, status)
+	}
+	pty, err := ptyStatus(cli)
+	if err != nil {
+		return err
+	}
+	window, err := paneWindowLabel(pty, view.Pane)
+	if err != nil {
+		return err
+	}
+	provider := "soksak-sidecar-terminal-" + engine
+	archived, err := sidecarRequest(cli, provider, "archived", "terminal.archived", map[string]any{
+		"request": map[string]any{"window": window, "pane": view.Pane},
+	})
+	if err != nil {
+		return err
+	}
+	text := archivedFrameText(archived["frame"])
+	if requireMarker && countExactLine(text, view.Marker) != 1 {
+		return fmt.Errorf("%s checkpoint frame does not contain marker exactly once: %q", view.Plugin, view.Marker)
+	}
+	body, err := json.MarshalIndent(map[string]any{
+		"plugin": view.Plugin, "engine": engine, "window": window, "pane": view.Pane,
+		"marker": view.Marker, "checkpoint": archived,
+	}, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(directory, view.Plugin+"-"+suffix+".json"), append(body, '\n'), 0o600)
+}
+
+func archivedFrameText(value any) string {
+	frame, _ := value.(map[string]any)
+	lines, _ := frame["lines"].([]any)
+	rows := make([]string, 0, len(lines))
+	for _, lineValue := range lines {
+		line, _ := lineValue.(map[string]any)
+		runs, _ := line["runs"].([]any)
+		var row strings.Builder
+		for _, runValue := range runs {
+			run, _ := runValue.(map[string]any)
+			row.WriteString(fmt.Sprint(run["text"]))
+		}
+		rows = append(rows, row.String())
+	}
+	return strings.Join(rows, "\n")
+}
+
+func paneWindowLabel(status map[string]any, pane string) (string, error) {
+	sessions, _ := status["sessions"].([]any)
+	for _, value := range sessions {
+		session, _ := value.(map[string]any)
+		if session["paneId"] == pane {
+			window, _ := session["windowLabel"].(string)
+			if window != "" {
+				return window, nil
+			}
+		}
+	}
+	return "", fmt.Errorf("PTY has no window label for pane %s", pane)
+}
+
+func countExactLineInRecoveryHistory(directory string, cli CLI, view RestoreView, wanted string) (int, error) {
+	status, err := terminal(cli, view.Plugin, "status", view.View, nil)
+	if err != nil {
+		return 0, err
+	}
+	engine, _ := status["engineId"].(string)
+	pty, err := ptyStatus(cli)
+	if err != nil {
+		return 0, err
+	}
+	window, err := paneWindowLabel(pty, view.Pane)
+	if err != nil {
+		return 0, err
+	}
+	provider := "soksak-sidecar-terminal-" + engine
+	positions := map[int]bool{}
+	pages := []map[string]any{}
+	offset := 0
+	for {
+		frame, requestErr := sidecarRequest(cli, provider, "frame", "terminal.frame", map[string]any{
+			"request": map[string]any{
+				"window": window, "pane": view.Pane, "subscriber": "restore-history", "offset": offset, "timeoutMs": 0,
+			},
+		})
+		if requestErr != nil {
+			return 0, requestErr
+		}
+		actualOffset, offsetOK := exactInt(frame["offset"])
+		historySize, historyOK := exactInt(frame["historySize"])
+		rows, rowsOK := exactInt(frame["rows"])
+		if !offsetOK || !historyOK || !rowsOK || actualOffset < 0 || historySize < actualOffset || rows < 1 {
+			return 0, fmt.Errorf("invalid recovery frame state: %+v", frame)
+		}
+		pages = append(pages, frame)
+		lines, _ := frame["lines"].([]any)
+		for _, lineValue := range lines {
+			line, _ := lineValue.(map[string]any)
+			y, yOK := exactInt(line["y"])
+			if !yOK || y < 0 || y >= rows {
+				continue
+			}
+			if countExactLine(archivedFrameText(map[string]any{"lines": []any{line}}), wanted) == 1 {
+				positions[actualOffset+rows-1-y] = true
+			}
+		}
+		if actualOffset == historySize {
+			body, marshalErr := json.MarshalIndent(map[string]any{
+				"plugin": view.Plugin, "engine": engine, "window": window, "pane": view.Pane,
+				"marker": wanted, "positions": positions, "pages": pages,
+			}, "", "  ")
+			if marshalErr != nil {
+				return 0, marshalErr
+			}
+			if writeErr := os.WriteFile(filepath.Join(directory, view.Plugin+"-recovery-history.json"), append(body, '\n'), 0o600); writeErr != nil {
+				return 0, writeErr
+			}
+			return len(positions), nil
+		}
+		next := actualOffset + rows
+		if next > historySize {
+			next = historySize
+		}
+		if next <= actualOffset {
+			return 0, fmt.Errorf("recovery history did not advance: offset=%d rows=%d history=%d", actualOffset, rows, historySize)
+		}
+		offset = next
+	}
 }
 
 func closePaneSession(cli CLI, pane string) error {
