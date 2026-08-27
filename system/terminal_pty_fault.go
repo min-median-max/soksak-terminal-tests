@@ -42,7 +42,7 @@ func VerifyPtyFaultRecovery(profile fleet.Profile, cli CLI, views []TerminalResu
 			return fmt.Errorf("%s did not recover from the PTY fault: %w", view.Plugin, err)
 		}
 		if live["fidelity"] != "complete" {
-			return fmt.Errorf("%s recovered with incomplete fidelity: %+v", view.Plugin, live)
+			return ptyFaultDiagnostic(cli, view, live)
 		}
 		marker := "SOKSAK_PTY_RESTART_" + view.Plugin
 		command, err := terminalPrintCommand(profile.Platform, marker)
@@ -99,6 +99,13 @@ func VerifyPtyFaultRecovery(profile fleet.Profile, cli CLI, views []TerminalResu
 		return fmt.Errorf("old PTY sidecar %d remains after recovery: gone=%v err=%v", oldDaemon, gone, err)
 	}
 	return nil
+}
+
+func ptyFaultDiagnostic(cli CLI, view TerminalResult, live map[string]any) error {
+	pty, ptyErr := ptyStatus(cli)
+	sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+	health, healthErr := cli.Call("state.health", map[string]any{})
+	return fmt.Errorf("%s recovered with incomplete fidelity: live=%+v pty=%+v ptyErr=%v sidecars=%+v sidecarErr=%v health=%+v healthErr=%v", view.Plugin, live, pty, ptyErr, sidecars, sidecarErr, health, healthErr)
 }
 
 func ptyFaultSessions(status map[string]any) (map[string]ptyFaultSession, error) {

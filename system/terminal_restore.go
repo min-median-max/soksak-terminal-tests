@@ -138,7 +138,10 @@ func presentationSequence(status map[string]any, name string) int {
 func terminalRestoreDiagnostic(cli CLI, view RestoreView, stage string, cause error) error {
 	status, statusErr := terminal(cli, view.Plugin, "status", view.View, nil)
 	read, readErr := terminal(cli, view.Plugin, "read", view.View, nil)
-	return fmt.Errorf("%s %s failed: %w; status=%+v statusErr=%v read=%+v readErr=%v", view.Plugin, stage, cause, status, statusErr, read, readErr)
+	pty, ptyErr := ptyStatus(cli)
+	sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+	health, healthErr := cli.Call("state.health", map[string]any{})
+	return fmt.Errorf("%s %s failed: %w; status=%+v statusErr=%v read=%+v readErr=%v pty=%+v ptyErr=%v sidecars=%+v sidecarErr=%v health=%+v healthErr=%v", view.Plugin, stage, cause, status, statusErr, read, readErr, pty, ptyErr, sidecars, sidecarErr, health, healthErr)
 }
 
 func countExactLine(text, wanted string) int {
