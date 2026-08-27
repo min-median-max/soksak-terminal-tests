@@ -4,7 +4,7 @@
   "spec": {
     "id": "soksak-spec",
     "repository": "soksak-ai/soksak-spec",
-    "sourceCommit": "58dcffedeb774ac948549f6de28748bb9bb83c15"
+    "sourceCommit": "d40ae3bd400a20ad29b56e170af046226a634ec0"
   },
   "contract": {
     "id": "soksak-contract-plugin-terminal",
@@ -20,37 +20,37 @@
     {
       "id": "soksak-plugin-terminal-alacritty",
       "repository": "soksak-ai/soksak-plugin-terminal-alacritty",
-      "sourceCommit": "5c7f1193e8722e5592450aad2cf82c8b027760c9"
+      "sourceCommit": "0b025eec412e2d480e53845152756e94bc119a9d"
     },
     {
       "id": "soksak-plugin-terminal-ghostty",
       "repository": "soksak-ai/soksak-plugin-terminal-ghostty",
-      "sourceCommit": "5513c70fd7a1b1dc416a150145bf807f3f2db1d9"
+      "sourceCommit": "18b2d665b4f5f4138b7db79a984518e76f9730c2"
     },
     {
       "id": "soksak-plugin-terminal-kitty",
       "repository": "soksak-ai/soksak-plugin-terminal-kitty",
-      "sourceCommit": "a18aa9d0b891020a182db948f08d3d3dd1d23081"
+      "sourceCommit": "8a7c4eed224b55171a15351a4eae2a72a32b845c"
     },
     {
       "id": "soksak-plugin-terminal-shitty",
       "repository": "soksak-ai/soksak-plugin-terminal-shitty",
-      "sourceCommit": "d5ac441ca72de7f44643af8ff4eab69549322c28"
+      "sourceCommit": "dc359d65e96c4fc600bb2865c2a929d8a72d2512"
     },
     {
       "id": "soksak-plugin-terminal-vt100",
       "repository": "soksak-ai/soksak-plugin-terminal-vt100",
-      "sourceCommit": "5518fa7753bd9921f91f64e2e9d4b746e7b4642e"
+      "sourceCommit": "15a678db7c78c8f0c65ac5bef9c5d2c1d37a7b14"
     },
     {
       "id": "soksak-plugin-terminal-wezterm",
       "repository": "soksak-ai/soksak-plugin-terminal-wezterm",
-      "sourceCommit": "fab23466d1d12424c254a8c31ef53ba46abaf3d5"
+      "sourceCommit": "954efe90c77b1e9cb9769cb7bed8abe6f3ddb663"
     },
     {
       "id": "soksak-plugin-terminal-xterm",
       "repository": "soksak-ai/soksak-plugin-terminal-xterm",
-      "sourceCommit": "96bba2d0fa3c7f2d4c9279f422932231b8dcea40"
+      "sourceCommit": "e92c925c8fad4d135a2594ed814469b81e4bf15c"
     }
   ],
   "sidecars": [
@@ -64,42 +64,42 @@
     {
       "id": "soksak-sidecar-terminal-alacritty",
       "repository": "soksak-ai/soksak-sidecar-terminal-alacritty",
-      "sourceCommit": "1369b8c74eb7fe3ddf858ae7424c19224d1cc85a",
+      "sourceCommit": "9b8a8b69af6574b47957356c6c92cf276dacccbc",
       "language": "rust",
       "profile": "standard"
     },
     {
       "id": "soksak-sidecar-terminal-ghostty",
       "repository": "soksak-ai/soksak-sidecar-terminal-ghostty",
-      "sourceCommit": "225977f4c1a02687fa37ab929fb89f020a740b82",
+      "sourceCommit": "26dc565e3c65482ff6198ab65685e5329f7be613",
       "language": "rust",
       "profile": "ghostty"
     },
     {
       "id": "soksak-sidecar-terminal-kitty",
       "repository": "soksak-ai/soksak-sidecar-terminal-kitty",
-      "sourceCommit": "a3bad121ee4b7cfa7a54651e91dd4a856edcbe4f",
+      "sourceCommit": "63472424b97f05ffba7a8672780e715961692e83",
       "language": "rust",
       "profile": "kitty"
     },
     {
       "id": "soksak-sidecar-terminal-shitty",
       "repository": "soksak-ai/soksak-sidecar-terminal-shitty",
-      "sourceCommit": "2fe224316d7e6d2c827309588112ea73dace86b2",
+      "sourceCommit": "7e585c2726770da3a4e5181883e68815e822ced2",
       "language": "rust",
       "profile": "shitty"
     },
     {
       "id": "soksak-sidecar-terminal-vt100",
       "repository": "soksak-ai/soksak-sidecar-terminal-vt100",
-      "sourceCommit": "b2f12c997c86d5fa9c30cbe022780a2840387681",
+      "sourceCommit": "9c6b92fa2b7f967e55fd9b5c532acbb5070a1568",
       "language": "rust",
       "profile": "standard"
     },
     {
       "id": "soksak-sidecar-terminal-wezterm",
       "repository": "soksak-ai/soksak-sidecar-terminal-wezterm",
-      "sourceCommit": "89b1a47dcd390d48f4a811892191d3e614b075e4",
+      "sourceCommit": "141034e6df1d1c6941833d7a3ae3fa068dcf80ee",
       "language": "rust",
       "profile": "standard"
     }
