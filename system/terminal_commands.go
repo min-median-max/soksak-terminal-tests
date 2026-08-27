@@ -184,8 +184,12 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err != nil {
 			return nil, err
 		}
+		inputAddress, err := prepareTerminalCommand(cli, plugin, view, highOutputCommand)
+		if err != nil {
+			return nil, err
+		}
 		started := time.Now()
-		if err := typeTerminalCommand(cli, plugin, view, highOutputCommand); err != nil {
+		if _, err := cli.Call("ui.input.key", map[string]any{"address": inputAddress, "key": "Enter"}); err != nil {
 			return nil, err
 		}
 		_, waitErr := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "contains": tail, "timeoutMs": 20000})

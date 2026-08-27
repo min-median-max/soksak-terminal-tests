@@ -18,21 +18,34 @@ func typeTerminalCommand(cli CLI, plugin, view, command string) error {
 	if err != nil {
 		return err
 	}
+	_, err = typeTerminalKeys(cli, plugin, view, keys)
+	return err
+}
+
+func prepareTerminalCommand(cli CLI, plugin, view, command string) (string, error) {
+	keys, err := terminalTypingKeys(command)
+	if err != nil {
+		return "", err
+	}
+	return typeTerminalKeys(cli, plugin, view, keys[:len(keys)-1])
+}
+
+func typeTerminalKeys(cli CLI, plugin, view string, keys []string) (string, error) {
 	tree, err := cli.Call("ui.tree", map[string]any{})
 	if err != nil {
-		return err
+		return "", err
 	}
 	address, err := terminalNodeAddress(tree, plugin, view, "terminal-input")
 	if err != nil {
-		return err
+		return "", err
 	}
 	if _, err := cli.Call("ui.input.click", map[string]any{"address": address}); err != nil {
-		return err
+		return "", err
 	}
 	for _, key := range keys {
 		if _, err := cli.Call("ui.input.key", map[string]any{"address": address, "key": key}); err != nil {
-			return err
+			return "", err
 		}
 	}
-	return nil
+	return address, nil
 }
