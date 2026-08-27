@@ -50,6 +50,9 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 	}
 	cli = lifecycle.Client()
 	for _, view := range restore {
+		if err := activateRestoredTerminal(cli, view.View); err != nil {
+			return err
+		}
 		if _, err := cli.Call("tab.mount.wait", map[string]any{"tab": view.View, "timeoutMs": 20000}); err != nil {
 			return err
 		}
@@ -101,6 +104,9 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 	}
 	cli = lifecycle.Client()
 	for _, view := range restore {
+		if err := activateRestoredTerminal(cli, view.View); err != nil {
+			return err
+		}
 		if _, err := cli.Call("tab.mount.wait", map[string]any{"tab": view.View, "timeoutMs": 20000}); err != nil {
 			return err
 		}
@@ -127,6 +133,14 @@ func VerifyWarmAndArchivedRestore(profile fleet.Profile, lifecycle *Lifecycle, v
 		}
 	}
 	return nil
+}
+
+func activateRestoredTerminal(cli CLI, view string) error {
+	if _, err := cli.Call("tab.activate", map[string]any{"tab": view}); err != nil {
+		return err
+	}
+	_, err := cli.Call("ui.layout.wait-settled", map[string]any{"timeoutMs": 8000})
+	return err
 }
 
 func presentationSequence(status map[string]any, name string) int {
