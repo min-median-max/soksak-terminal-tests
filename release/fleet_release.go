@@ -116,10 +116,11 @@ func verifyComponent(ctx context.Context, client *http.Client, target, kind stri
 	if selected == nil || selected.Size <= 0 || len(selected.SHA256) != 64 || selected.Manifest != kind+".json" {
 		return nil, fmt.Errorf("%s has no valid %s artifact", component.ID, wantedTarget)
 	}
-	if !strings.HasPrefix(selected.URL, repository+"/releases/download/v"+component.Version+"/") {
-		return nil, fmt.Errorf("%s artifact URL is outside its release", component.ID)
+	artifactURL, err := releaseAssetURL(repository, component.Version, selected.File)
+	if err != nil {
+		return nil, fmt.Errorf("%s artifact location: %w", component.ID, err)
 	}
-	archive, err := download(ctx, client, selected.URL, selected.Size, selected.SHA256)
+	archive, err := download(ctx, client, artifactURL, selected.Size, selected.SHA256)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", component.ID, err)
 	}
@@ -141,6 +142,14 @@ func verifyComponent(ctx context.Context, client *http.Client, target, kind stri
 		return nil, err
 	}
 	return &StagedArtifact{Path: destination, Repository: release.Source.Repository, Commit: release.Source.Commit, ArtifactSHA256: selected.SHA256, Target: wantedTarget}, nil
+}
+
+func releaseAssetURL(repository, version, file string) (string, error) {
+	if !strings.HasPrefix(repository, "https://github.com/"+platformspec.GitHubOrg+"/") ||
+		!platformspec.IsStrictSemver(version) || !platformspec.IsReleaseFile(file) {
+		return "", fmt.Errorf("release repository, version, or file is invalid")
+	}
+	return repository + "/releases/download/v" + version + "/" + file, nil
 }
 
 func get(ctx context.Context, client *http.Client, address string, limit int64) ([]byte, error) {
