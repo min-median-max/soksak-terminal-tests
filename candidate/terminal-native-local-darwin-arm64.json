@@ -9,48 +9,48 @@
   "contract": {
     "id": "soksak-contract-plugin-terminal",
     "repository": "soksak-ai/soksak-contract-plugin-terminal",
-    "sourceCommit": "da751af092d979670f45e0bbf6f76cb61ed80120"
+    "sourceCommit": "99a4c5cee13961d964cefc92b11a14dcbafbcf93"
   },
   "kit": {
     "id": "soksak-kit-plugin-terminal",
     "repository": "soksak-ai/soksak-kit-plugin-terminal",
-    "sourceCommit": "859161a4ad2390070c6fd051e20cb09fb1218e76"
+    "sourceCommit": "ef41ab7938b5d4ffdd78941cbb1219f0d95c5f5e"
   },
   "plugins": [
     {
       "id": "soksak-plugin-terminal-alacritty",
       "repository": "soksak-ai/soksak-plugin-terminal-alacritty",
-      "sourceCommit": "bf373a454a62f5848f62db090fc824de8dacbf39"
+      "sourceCommit": "29766e7d8490dd5858ff2bcaf1fbe58598041960"
     },
     {
       "id": "soksak-plugin-terminal-ghostty",
       "repository": "soksak-ai/soksak-plugin-terminal-ghostty",
-      "sourceCommit": "d2f8997dda28465bc02e62a9799bbb0051a92075"
+      "sourceCommit": "29c00a75c88e04cedebf185ee893fb954c113cf9"
     },
     {
       "id": "soksak-plugin-terminal-kitty",
       "repository": "soksak-ai/soksak-plugin-terminal-kitty",
-      "sourceCommit": "42bf103a56d69b8c7244aaa666c26bba50db5534"
+      "sourceCommit": "929cb942fd962fac0d90771d9090cb7cab6fdf82"
     },
     {
       "id": "soksak-plugin-terminal-shitty",
       "repository": "soksak-ai/soksak-plugin-terminal-shitty",
-      "sourceCommit": "e2d080fb8d98defc775717c7aa580fd70b9777d7"
+      "sourceCommit": "b08524099a0ba2d768ae57d9bc25e110332d459d"
     },
     {
       "id": "soksak-plugin-terminal-vt100",
       "repository": "soksak-ai/soksak-plugin-terminal-vt100",
-      "sourceCommit": "0d4377c7d093a740e5d19aa5a7d1ad15c6d03bf6"
+      "sourceCommit": "ef71da654d48b122c300104a8120bec6073b6ef8"
     },
     {
       "id": "soksak-plugin-terminal-wezterm",
       "repository": "soksak-ai/soksak-plugin-terminal-wezterm",
-      "sourceCommit": "70f3837d6363ab8d2a9cb2d8509b6989a2bc6f2c"
+      "sourceCommit": "360be5b28b640e8e4fc328173ee6e328d32f4e7f"
     },
     {
       "id": "soksak-plugin-terminal-xterm",
       "repository": "soksak-ai/soksak-plugin-terminal-xterm",
-      "sourceCommit": "81d9ae690cfdf9577b4bc51f13abe230e4c2e918"
+      "sourceCommit": "2ef072273f4f3fa3bf78ffc83702fe8f97b614f5"
     }
   ],
   "sidecars": [
