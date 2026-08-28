@@ -8,6 +8,24 @@ import (
 	"testing"
 )
 
+func TestReleaseAssetURLDerivesTheArtifactFileLocation(t *testing.T) {
+	got, err := releaseAssetURL(
+		"https://github.com/soksak-ai/soksak-sidecar-example",
+		"0.0.1",
+		"soksak-sidecar-example-0.0.1-aarch64-apple-darwin.tar.gz",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "https://github.com/soksak-ai/soksak-sidecar-example/releases/download/v0.0.1/soksak-sidecar-example-0.0.1-aarch64-apple-darwin.tar.gz"
+	if got != want {
+		t.Fatalf("artifact URL = %q, want %q", got, want)
+	}
+	if _, err := releaseAssetURL("https://github.com/soksak-ai/soksak-sidecar-example", "0.0.1", "../escape"); err == nil {
+		t.Fatal("unsafe release file was accepted")
+	}
+}
+
 func TestInspectArchiveRequiresTheDeclaredPlatformProcess(t *testing.T) {
 	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
 	valid := archiveFixture(t, map[string][]byte{
