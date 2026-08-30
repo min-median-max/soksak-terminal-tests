@@ -57,8 +57,9 @@ go run ./cmd/verify-installed-terminal-matrix \
 각 `*_SHA256` 변수는 실행 전에 예상 executable의 lowercase 64-character digest로 선언해야 하며,
 snapshot directory도 미리 존재해야 합니다.
 
-각 transaction은 Vision engine 선택, fresh `terminal-vision` tab open, event 기반 live wait,
-view/pane/engine/failure/gap 검증, `lines` 없는 전체 prompt read, exact 4-field `sidecar.status`와
+각 transaction은 Vision engine 선택, fresh `terminal-vision` tab open, `phase=live`와 prompt
+marker를 함께 요구하는 event 기반 wait, view/pane/engine/failure/gap 검증, `lines` 없는 전체
+prompt read, exact 4-field `sidecar.status`와
 선언된 executable digest 비교를 수행합니다. 이어 layout settled와 composition zero를 확인하고
 tab을 activate하거나 window focus를 바꾸지 않은 채 `window.snapshot`을 요청합니다. 출력 JSON의
 PNG 경로는 사람이 직접 확인합니다. polling, sleep, Enter workaround, PATH 변경, provider별 예외는

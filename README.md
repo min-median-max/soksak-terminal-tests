@@ -102,8 +102,9 @@ Each `*_SHA256` variable must be declared as the expected 64-character lowercase
 digest before running the command. The snapshot directory must already exist.
 
 Each engine transaction uses only public sok commands: select Vision's engine, open a fresh
-`terminal-vision` tab, use the event-backed live wait, validate the addressed view/pane and zero
-recovery gaps, perform an unscoped full read for the prompt marker, and verify the exact four-field
+`terminal-vision` tab, use one event-backed wait for both `phase=live` and the prompt marker,
+validate the addressed view/pane and zero recovery gaps, perform an unscoped full read for that
+marker, and verify the exact four-field
 `sidecar.status` identity against the declared executable digest. It then requires settled layout
 and zero composition violations before requesting `window.snapshot` for that tab without activating
 or focusing it. The JSON report names every snapshot for human inspection. There are no polling
