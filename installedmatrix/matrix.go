@@ -159,7 +159,8 @@ func verifyEngine(
 	}
 	pane := view + ".1"
 	waited, err := caller.Call("plugin.soksak-plugin-terminal-vision.wait", map[string]any{
-		"view": view, "pane": pane, "phase": "live", "timeoutMs": float64(30000), "window": window,
+		"view": view, "pane": pane, "phase": "live", "contains": config.PromptMarker,
+		"timeoutMs": float64(30000), "window": window,
 	})
 	if err != nil {
 		return EngineResult{}, err
