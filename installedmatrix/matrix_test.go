@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestInstalledSixEngineMatrixUsesOnlyThePublicVisionTranscript(t *testing.T) {
+func TestInstalledSixEngineMatrixWaitsForLivePromptBeforeReading(t *testing.T) {
 	expected := testExpectations()
 	config := Config{
 		Window: "w-installed", HostPane: "g-host", PromptMarker: "FRESH_PROMPT_MARKER",
@@ -143,7 +143,8 @@ func (fake *fakePublicTranscript) Call(command string, params map[string]any) (m
 	case 2:
 		wantCommand = "plugin.soksak-plugin-terminal-vision.wait"
 		wantParams = map[string]any{
-			"view": view, "pane": pane, "phase": "live", "timeoutMs": float64(30000), "window": window,
+			"view": view, "pane": pane, "phase": "live", "contains": fake.config.PromptMarker,
+			"timeoutMs": float64(30000), "window": window,
 		}
 		answer = map[string]any{
 			"phase": "live", "engineId": engine, "pane": pane, "failure": nil,
