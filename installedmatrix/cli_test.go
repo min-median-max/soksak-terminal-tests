@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestPublicCLIEnvelopeUsesOKAndObjectData(t *testing.T) {
+func TestPublicCLIEnvelopeNormalizesRendererAndDirectControlSuccess(t *testing.T) {
 	data, err := decodePublicEnvelope("sidecar.status", []byte(`{"ok":true,"data":{"units":[]}}`), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -15,12 +15,28 @@ func TestPublicCLIEnvelopeUsesOKAndObjectData(t *testing.T) {
 	if units, ok := data["units"].([]any); !ok || len(units) != 0 {
 		t.Fatalf("public data = %+v", data)
 	}
+	direct, err := os.ReadFile(filepath.Join("testdata", "surface-composition-direct.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	composition, err := decodePublicEnvelope("surface.composition", direct, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := validateComposition(composition); err != nil {
+		t.Fatal(err)
+	}
+	if surfaces, ok := composition["surfaces"].([]any); !ok || len(surfaces) != 14 {
+		t.Fatalf("real composition surfaces = %T/%d", composition["surfaces"], len(surfaces))
+	}
 	for _, run := range []struct {
 		body   string
 		runErr error
 	}{
-		{`{"code":"OK","data":{"units":[]}}`, nil},
+		{`{"code":"REFUSED","data":{"units":[]}}`, nil},
 		{`{"ok":false,"code":"REFUSED","error":"not ready"}`, nil},
+		{`{"ok":false,"code":"OK","data":{"units":[]}}`, nil},
+		{`{"ok":true,"code":"REFUSED","data":{"units":[]}}`, nil},
 		{`{"ok":true,"data":[]}`, nil},
 		{"not-json", nil},
 		{`{"ok":true,"data":{"units":[]}}`, errors.New("exit status 1")},

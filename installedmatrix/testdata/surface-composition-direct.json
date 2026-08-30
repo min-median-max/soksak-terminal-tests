@@ -1,0 +1,31 @@
+{
+  "code": "OK",
+  "data": {
+    "appliedAtUnixMs": 1788080990031.5798,
+    "coordinates": "css-top-left",
+    "displaced": 0,
+    "interactive": false,
+    "misparented": [],
+    "nativeParentPresent": true,
+    "sequence": 40,
+    "surfaces": [
+      {"id":"terminal.win-installed.tab-01-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-02-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-03-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-04-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-05-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-06-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-07-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-08-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-09-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-10-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-11-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-12-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"terminal.win-installed.tab-13-1","kind":"terminal","applied":{"x":625,"y":120,"w":369,"h":468},"declared":{"x":625,"y":120,"w":369,"h":468},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0},
+      {"id":"webview.win-installed.tab-host","kind":"webview","applied":{"x":625,"y":151,"w":369,"h":437},"declared":{"x":625,"y":151,"w":369,"h":437},"drift":{"x":0,"y":0,"w":0,"h":0},"coveredFraction":0,"misparented":false,"worst":0}
+    ],
+    "unapplied": [],
+    "undeclared": [],
+    "worst": 0
+  }
+}
