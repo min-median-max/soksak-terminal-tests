@@ -30,6 +30,40 @@ UTF-16LE PowerShell `-EncodedCommand` payload를 사용하고 Darwin과 Linux는
 macOS native runner는 Apple Silicon에서 universal application과 7개 plugin 전체 fleet를
 실행합니다. Darwin Unix socket 주소 제한 때문에 control socket은 짧은 temporary path를
 사용합니다. WebView2, ConPTY, Windows named pipe 동작은 Windows native runner만 판정합니다.
+
+## 설치된 Vision 6-engine matrix
+
+`verify-installed-terminal-matrix`는 이미 실행 중인 설치 제품만 공개 `sok` 명령으로 검증합니다.
+component를 설치하거나 제품 source를 읽지 않습니다. 호출자가 absolute CLI와 선택적 socket,
+workspace window, host pane, fresh prompt marker, 기존 non-symlink snapshot directory, 그리고 6개
+provider의 정확한 version과 executable SHA-256을 선언합니다.
+
+```sh
+go run ./cmd/verify-installed-terminal-matrix \
+  --cli /absolute/path/to/sok \
+  --socket /absolute/path/to/control.sock \
+  --window w-installed \
+  --pane g-host \
+  --prompt-marker 'FRESH_PROMPT_MARKER' \
+  --snapshot-dir /absolute/path/to/matrix-images \
+  --expect "alacritty=0.0.42@${ALACRITTY_SHA256}" \
+  --expect "ghostty=0.0.40@${GHOSTTY_SHA256}" \
+  --expect "kitty=0.0.36@${KITTY_SHA256}" \
+  --expect "shitty=0.0.37@${SHITTY_SHA256}" \
+  --expect "vt100=0.0.39@${VT100_SHA256}" \
+  --expect "wezterm=0.0.38@${WEZTERM_SHA256}"
+```
+
+각 `*_SHA256` 변수는 실행 전에 예상 executable의 lowercase 64-character digest로 선언해야 하며,
+snapshot directory도 미리 존재해야 합니다.
+
+각 transaction은 Vision engine 선택, fresh `terminal-vision` tab open, event 기반 live wait,
+view/pane/engine/failure/gap 검증, `lines` 없는 전체 prompt read, exact 4-field `sidecar.status`와
+선언된 executable digest 비교를 수행합니다. 이어 layout settled와 composition zero를 확인하고
+tab을 activate하거나 window focus를 바꾸지 않은 채 `window.snapshot`을 요청합니다. 출력 JSON의
+PNG 경로는 사람이 직접 확인합니다. polling, sleep, Enter workaround, PATH 변경, provider별 예외는
+없습니다.
+
 ## 검증 identity
 
 GREEN은 Core commit, 이 저장소 commit, Registry asset digest, 선택한 모든 release.json digest,

@@ -75,6 +75,40 @@ system-native-keyboard → system-visibility →
 system-performance → system-commands`. Theme and native input are therefore not blocked by a later
 performance RED.
 
+## Installed Vision six-engine matrix
+
+`verify-installed-terminal-matrix` checks an already running installed product without installing
+components or reading any product source. The caller declares the absolute CLI and optional socket,
+workspace window, host pane, expected fresh prompt marker, existing non-symlink snapshot directory,
+and the exact version plus executable SHA-256 for all six providers:
+
+```sh
+go run ./cmd/verify-installed-terminal-matrix \
+  --cli /absolute/path/to/sok \
+  --socket /absolute/path/to/control.sock \
+  --window w-installed \
+  --pane g-host \
+  --prompt-marker 'FRESH_PROMPT_MARKER' \
+  --snapshot-dir /absolute/path/to/matrix-images \
+  --expect "alacritty=0.0.42@${ALACRITTY_SHA256}" \
+  --expect "ghostty=0.0.40@${GHOSTTY_SHA256}" \
+  --expect "kitty=0.0.36@${KITTY_SHA256}" \
+  --expect "shitty=0.0.37@${SHITTY_SHA256}" \
+  --expect "vt100=0.0.39@${VT100_SHA256}" \
+  --expect "wezterm=0.0.38@${WEZTERM_SHA256}"
+```
+
+Each `*_SHA256` variable must be declared as the expected 64-character lowercase executable
+digest before running the command. The snapshot directory must already exist.
+
+Each engine transaction uses only public sok commands: select Vision's engine, open a fresh
+`terminal-vision` tab, use the event-backed live wait, validate the addressed view/pane and zero
+recovery gaps, perform an unscoped full read for the prompt marker, and verify the exact four-field
+`sidecar.status` identity against the declared executable digest. It then requires settled layout
+and zero composition violations before requesting `window.snapshot` for that tab without activating
+or focusing it. The JSON report names every snapshot for human inspection. There are no polling
+loops, sleeps, Enter-key workarounds, PATH changes, or provider-specific exceptions.
+
 ## Verification identity
 
 A GREEN result belongs only to one immutable input set: Core commit, this repository commit,
