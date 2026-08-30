@@ -43,7 +43,7 @@ func (caller ExecCaller) Call(command string, params map[string]any) (map[string
 }
 
 type publicEnvelope struct {
-	OK    bool            `json:"ok"`
+	OK    *bool           `json:"ok"`
 	Data  json.RawMessage `json:"data"`
 	Code  string          `json:"code"`
 	Error string          `json:"error"`
@@ -57,7 +57,11 @@ func decodePublicEnvelope(command string, output []byte, runErr error) (map[stri
 	if err := json.Unmarshal(output, &envelope); err != nil {
 		return nil, fmt.Errorf("%s returned invalid JSON: %w: %s", command, err, output)
 	}
-	if !envelope.OK || len(envelope.Data) == 0 || string(envelope.Data) == "null" {
+	success := envelope.Code == "OK"
+	if envelope.OK != nil {
+		success = *envelope.OK && (envelope.Code == "" || envelope.Code == "OK")
+	}
+	if !success || len(envelope.Data) == 0 || string(envelope.Data) == "null" {
 		return nil, fmt.Errorf("%s returned %s/%s: %s", command, envelope.Code, envelope.Error, output)
 	}
 	var data map[string]any
