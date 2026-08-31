@@ -4,11 +4,12 @@ import "testing"
 
 func TestOutputEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 	evidence := terminalOutputEvidence{}
-	if got := evidence.failureBoundary(); got != "pty-output" {
-		t.Fatalf("PTY boundary = %q", got)
+	if got := evidence.failureBoundary(); got != "source-output" {
+		t.Fatalf("source boundary = %q", got)
 	}
 	sequence := float64(highOutputPayloadBytes + 100)
-	evidence.PTY = &terminalSequencedSize{OutputSequence: sequence}
+	evidence.Source = &terminalSequencedSize{OutputSequence: sequence}
+	evidence.PTY = evidence.Source
 	if got := evidence.failureBoundary(); got != "recovery-output" {
 		t.Fatalf("recovery boundary = %q", got)
 	}
@@ -40,7 +41,7 @@ func TestOutputEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 		t.Fatalf("complete boundary = %q", got)
 	}
 	evidence.MarkerObserved = true
-	evidence.PTY.OutputSequence = sequence + 3
+	evidence.Source.OutputSequence = sequence + 3
 	evidence.Recovery.OutputSequence = sequence + 2
 	evidence.Rendered.OutputSequence = sequence + 1
 	if got := evidence.failureBoundary(); got != "" {
@@ -49,5 +50,19 @@ func TestOutputEvidenceIdentifiesTheFirstFailedBoundary(t *testing.T) {
 	evidence.Rendered.OutputSequence = sequence + 4
 	if got := evidence.failureBoundary(); got != "renderer-output" {
 		t.Fatalf("renderer-ahead boundary = %q", got)
+	}
+}
+
+func TestOutputEvidenceUsesRecoveryAsTheNativeSurfaceSource(t *testing.T) {
+	status := map[string]any{
+		"pty": nil,
+		"recovery": map[string]any{
+			"cols": float64(80), "rows": float64(24), "eventSequence": float64(9),
+			"outputSequence": float64(100), "gaps": float64(0),
+		},
+	}
+	evidence := terminalOutputStatus("plugin", "view", status)
+	if evidence.SourceKind != "recovery" || evidence.Source == nil || evidence.Source.OutputSequence != 100 {
+		t.Fatalf("native surface source = %+v", evidence)
 	}
 }

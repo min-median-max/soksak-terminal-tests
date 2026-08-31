@@ -10,6 +10,8 @@ import (
 type terminalOutputEvidence struct {
 	Plugin          string                 `json:"plugin"`
 	View            string                 `json:"view"`
+	SourceKind      string                 `json:"sourceKind"`
+	Source          *terminalSequencedSize `json:"source"`
 	PTY             *terminalSequencedSize `json:"pty"`
 	Recovery        *terminalRecoverySize  `json:"recovery"`
 	Rendered        *terminalRenderedSize  `json:"rendered"`
@@ -26,23 +28,31 @@ const minimumCompositionThroughputMBs = 3.0
 const highOutputPayloadBytes = 1 << 20
 
 func terminalOutputStatus(plugin, view string, status map[string]any) terminalOutputEvidence {
+	pty := readTerminalSequencedSize(status["pty"])
+	recovery := readTerminalRecoverySize(status["recovery"])
+	sourceKind := "pty"
+	source := pty
+	if source == nil && recovery != nil {
+		sourceKind = "recovery"
+		copy := recovery.terminalSequencedSize
+		source = &copy
+	}
 	return terminalOutputEvidence{
-		Plugin: plugin, View: view, PTY: readTerminalSequencedSize(status["pty"]),
-		Recovery: readTerminalRecoverySize(status["recovery"]),
-		Rendered: readTerminalRenderedSize(status["rendered"]),
+		Plugin: plugin, View: view, SourceKind: sourceKind, Source: source, PTY: pty,
+		Recovery: recovery, Rendered: readTerminalRenderedSize(status["rendered"]),
 	}
 }
 
 func (evidence terminalOutputEvidence) failureBoundary() string {
-	if evidence.PTY == nil {
-		return "pty-output"
+	if evidence.Source == nil {
+		return "source-output"
 	}
-	if evidence.PTY.OutputSequence-evidence.BeforeOutput < highOutputPayloadBytes {
-		return "pty-output"
+	if evidence.Source.OutputSequence-evidence.BeforeOutput < highOutputPayloadBytes {
+		return "source-output"
 	}
 	if evidence.Recovery == nil || evidence.Recovery.Gaps != 0 ||
-		evidence.Recovery.OutputSequence > evidence.PTY.OutputSequence ||
-		(!evidence.MarkerObserved && evidence.Recovery.OutputSequence < evidence.PTY.OutputSequence) {
+		evidence.Recovery.OutputSequence > evidence.Source.OutputSequence ||
+		(!evidence.MarkerObserved && evidence.Recovery.OutputSequence < evidence.Source.OutputSequence) {
 		return "recovery-output"
 	}
 	if evidence.Rendered == nil || evidence.Rendered.OutputSequence > evidence.Recovery.OutputSequence ||

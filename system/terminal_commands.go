@@ -214,9 +214,9 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err != nil {
 			return nil, err
 		}
-		beforePTY := readTerminalSequencedSize(beforeStatus["pty"])
-		if beforePTY == nil {
-			return nil, fmt.Errorf("%s reported no PTY output baseline", plugin)
+		beforeOutput := terminalOutputStatus(plugin, view, beforeStatus)
+		if beforeOutput.Source == nil {
+			return nil, fmt.Errorf("%s reported no output sequence baseline", plugin)
 		}
 		highOutputCommand, err := terminalHighOutputCommand(profile.Platform, tail)
 		if err != nil {
@@ -234,10 +234,10 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		status, statusErr := terminal(cli, plugin, "status", view, nil)
 		outputEvidence := terminalOutputStatus(plugin, view, status)
 		outputEvidence.MarkerObserved = waitErr == nil
-		outputEvidence.BeforeOutput = beforePTY.OutputSequence
+		outputEvidence.BeforeOutput = beforeOutput.Source.OutputSequence
 		outputEvidence.ElapsedMS = float64(time.Since(started).Microseconds()) / 1000
-		if outputEvidence.PTY != nil {
-			outputEvidence.OutputBytes = outputEvidence.PTY.OutputSequence - beforePTY.OutputSequence
+		if outputEvidence.Source != nil {
+			outputEvidence.OutputBytes = outputEvidence.Source.OutputSequence - beforeOutput.Source.OutputSequence
 			if outputEvidence.ElapsedMS > 0 {
 				outputEvidence.ThroughputMBs = outputEvidence.OutputBytes / 1000 / outputEvidence.ElapsedMS
 			}
