@@ -12,6 +12,7 @@ type lifecycleCleanupCaller struct {
 	calls       []string
 	statusRead  int
 	stopRunning bool
+	sidecarPID  uint32
 }
 
 func (caller *lifecycleCleanupCaller) Call(command string, params map[string]any) (map[string]any, error) {
@@ -47,8 +48,12 @@ func (caller *lifecycleCleanupCaller) Call(command string, params map[string]any
 	case "sidecar_status":
 		caller.statusRead++
 		if caller.statusRead == 1 {
+			open := map[string]any{"name": "sidecar-b"}
+			if caller.sidecarPID > 0 {
+				open["pid"] = float64(caller.sidecarPID)
+			}
 			return map[string]any{
-				"open":     []any{map[string]any{"name": "sidecar-b"}},
+				"open":     []any{open},
 				"recorded": []any{map[string]any{"name": "sidecar-a"}},
 			}, nil
 		}
@@ -134,6 +139,14 @@ func TestLifecycleRejectsSidecarStopThatReportsRunning(t *testing.T) {
 	caller := &lifecycleCleanupCaller{stopRunning: true}
 	err := quiesceTestRuntime(caller)
 	if err == nil || !strings.Contains(err.Error(), "still reports running") {
+		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestLifecycleRejectsSidecarProcessThatExistsAfterStop(t *testing.T) {
+	caller := &lifecycleCleanupCaller{sidecarPID: uint32(os.Getpid())}
+	err := quiesceTestRuntime(caller)
+	if err == nil || !strings.Contains(err.Error(), "still exists after stop") {
 		t.Fatalf("error=%v", err)
 	}
 }

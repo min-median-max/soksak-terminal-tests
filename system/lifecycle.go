@@ -333,6 +333,7 @@ func quiesceTestRuntime(cli commandCaller) error {
 	if err != nil {
 		return err
 	}
+	pids := ownedSidecarPIDs(value)
 	for _, name := range ownedSidecarNames(value) {
 		stopped, err := cli.Call("sidecar_stop", map[string]any{"name": name})
 		if err != nil {
@@ -352,6 +353,15 @@ func quiesceTestRuntime(cli commandCaller) error {
 	}
 	if remaining := ownedSidecarNames(after); len(remaining) > 0 {
 		return fmt.Errorf("sidecar ownership remains after stop: %v", remaining)
+	}
+	for _, pid := range pids {
+		gone, err := processGone(pid)
+		if err != nil {
+			return fmt.Errorf("read sidecar process %d after stop: %w", pid, err)
+		}
+		if !gone {
+			return fmt.Errorf("sidecar process %d still exists after stop", pid)
+		}
 	}
 	return nil
 }
@@ -431,6 +441,26 @@ func ownedSidecarNames(status map[string]any) []string {
 	}
 	sort.Strings(names)
 	return names
+}
+
+func ownedSidecarPIDs(status map[string]any) []uint32 {
+	unique := map[uint32]struct{}{}
+	for _, field := range []string{"open", "recorded"} {
+		entries, _ := status[field].([]any)
+		for _, item := range entries {
+			entry, _ := item.(map[string]any)
+			pid, ok := exactInt(entry["pid"])
+			if ok && pid > 0 && uint64(pid) <= uint64(^uint32(0)) {
+				unique[uint32(pid)] = struct{}{}
+			}
+		}
+	}
+	pids := make([]uint32, 0, len(unique))
+	for pid := range unique {
+		pids = append(pids, pid)
+	}
+	sort.Slice(pids, func(left, right int) bool { return pids[left] < pids[right] })
+	return pids
 }
 
 func (lifecycle *Lifecycle) Client() CLI {
