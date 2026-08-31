@@ -55,7 +55,7 @@ func TestInstalledTerminalThemeParity(t *testing.T) {
 	var baseline *terminalThemeEvidence
 	var pixelBaseline *terminalThemePixels
 	for _, plugin := range profile.Plugins {
-		program := strings.TrimPrefix(plugin.ID, "soksak-plugin-")
+		program := plugin.Program
 		opened, err := cli.Call("tab.open", map[string]any{"pane": pane, "program": program, "mountTimeoutMs": 12000})
 		if err != nil {
 			t.Fatalf("open %s: %v", plugin.ID, err)

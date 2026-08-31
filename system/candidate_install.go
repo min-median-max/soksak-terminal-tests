@@ -20,6 +20,7 @@ type CandidateComponent struct {
 	Version           string            `json:"version"`
 	Artifact          string            `json:"artifact"`
 	Manifest          string            `json:"manifest"`
+	Program           string            `json:"program,omitempty"`
 	Target            string            `json:"target,omitempty"`
 	SourceRepository  string            `json:"sourceRepository"`
 	SourceCommit      string            `json:"sourceCommit"`
@@ -319,6 +320,8 @@ func prepareCandidate(root string, component CandidateComponent) (preparedCandid
 		!candidateIdentity.MatchString(component.ID) || !candidateVersion.MatchString(component.Version) ||
 		!candidateCommit.MatchString(component.SourceCommit) ||
 		(component.Manifest != "plugin.json" && component.Manifest != "sidecar.json") ||
+		(component.Kind == "plugin" && !candidateIdentity.MatchString(component.Program)) ||
+		(component.Kind == "sidecar" && component.Program != "") ||
 		!strings.HasPrefix(component.SourceRepository, "https://github.com/") {
 		return preparedCandidate{}, fmt.Errorf("invalid candidate component: %+v", component)
 	}

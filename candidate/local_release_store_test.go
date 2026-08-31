@@ -74,7 +74,8 @@ func TestComposeLocalReleaseStoreProducesCurrentImmutablePlan(t *testing.T) {
 	}, nil)
 	pluginRelease := createLocalRelease(t, store, "plugin", "soksak-plugin-terminal-example", "0.0.2", pluginCommit, "", map[string]any{
 		"id": "soksak-plugin-terminal-example", "version": "0.0.2",
-		"implements": []map[string]string{{"id": "soksak-spec-plugin-terminal", "version": "0.0.8"}},
+		"implements":  []map[string]string{{"id": "soksak-spec-plugin-terminal", "version": "0.0.8"}},
+		"contributes": map[string]any{"programs": []map[string]string{{"id": "terminal-example", "kind": "view"}}},
 	}, map[string]any{"sidecars": []map[string]any{{
 		"id": "soksak-sidecar-example", "version": "0.0.3", "size": sidecarRelease.Size, "sha256": sidecarRelease.SHA256,
 	}}})
@@ -144,7 +145,8 @@ func TestComposeLocalReleaseStoreAcceptsSidecarsPartitionedAcrossPlugins(t *test
 		pluginID := "soksak-plugin-terminal-" + suffix
 		pluginRelease := createLocalRelease(t, store, "plugin", pluginID, "0.0.2", strings.Repeat(string(rune('4'+index)), 40), "", map[string]any{
 			"id": pluginID, "version": "0.0.2",
-			"implements": []map[string]string{{"id": "soksak-spec-plugin-terminal", "version": "0.0.8"}},
+			"implements":  []map[string]string{{"id": "soksak-spec-plugin-terminal", "version": "0.0.8"}},
+			"contributes": map[string]any{"programs": []map[string]string{{"id": "terminal-" + suffix, "kind": "view"}}},
 		}, map[string]any{"sidecars": []map[string]any{{
 			"id": sidecarID, "version": "0.0.3", "size": sidecarRelease.Size, "sha256": sidecarRelease.SHA256,
 		}}})

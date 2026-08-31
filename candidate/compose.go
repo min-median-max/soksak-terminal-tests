@@ -104,6 +104,7 @@ type outputComponent struct {
 	Version           string            `json:"version"`
 	Artifact          string            `json:"artifact"`
 	Manifest          string            `json:"manifest"`
+	Program           string            `json:"program,omitempty"`
 	Target            string            `json:"target,omitempty"`
 	SourceRepository  string            `json:"sourceRepository"`
 	SourceCommit      string            `json:"sourceCommit"`

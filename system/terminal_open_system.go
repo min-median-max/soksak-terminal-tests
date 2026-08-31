@@ -4,7 +4,6 @@ package system
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/min-median-max/soksak-terminal-tests/fleet"
 )
@@ -14,7 +13,7 @@ func openTerminalForScenario(cli CLI, plugin fleet.Plugin) (TerminalResult, erro
 	if err != nil {
 		return TerminalResult{}, err
 	}
-	program := strings.TrimPrefix(plugin.ID, "soksak-plugin-")
+	program := plugin.Program
 	opened, err := cli.Call("tab.open", map[string]any{
 		"pane": pane, "program": program, "mountTimeoutMs": 12000,
 	})

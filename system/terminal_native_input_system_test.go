@@ -213,7 +213,7 @@ func nativeInputLifecycleConfigFromEnvironment(t *testing.T, scenario string) Li
 
 func openNativeTerminal(t *testing.T, matrix nativeMatrix, plugin fleet.Plugin) (string, string, string) {
 	t.Helper()
-	program := strings.TrimPrefix(plugin.ID, "soksak-plugin-")
+	program := plugin.Program
 	opened, err := matrix.cli.Call("tab.open", map[string]any{
 		"pane": matrix.pane, "program": program, "mountTimeoutMs": 12000,
 	})

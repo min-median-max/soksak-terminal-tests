@@ -4,6 +4,7 @@ The local candidate plan selects immutable release documents. Each Contract, Plu
 entry contains `id`, `version`, and `releaseSha256`. The composer verifies the selected
 `release.json`, every declared file, the target artifact, Plugin contract implementation, and the
 complete Plugin runtime Sidecar set.
+For each Plugin, the composer also verifies one contributed view program and records its exact ID.
 
 The composer does not read component source repositories, package registry storage, build output,
 or checkout state. Source repository and commit fields in the output come from the verified release

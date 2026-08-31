@@ -106,7 +106,7 @@ func TestCandidateFleetUsesOneAtomicPublicInstallTransaction(t *testing.T) {
 		"sourceRepository": "https://github.com/soksak-ai/soksak-contract-plugin-terminal", "sourceCommit": "3333333333333333333333333333333333333333",
 	}, "components": []any{
 		map[string]any{"kind": "sidecar", "id": "soksak-sidecar-terminal-vt100", "version": "0.0.12", "artifact": "soksak-sidecar-terminal-vt100.tgz", "manifest": "sidecar.json", "target": "aarch64-apple-darwin", "sourceRepository": "https://github.com/soksak-ai/soksak-sidecar-terminal-vt100", "sourceCommit": "1111111111111111111111111111111111111111"},
-		map[string]any{"kind": "plugin", "id": "soksak-plugin-terminal-vt100", "version": "0.0.15", "artifact": "soksak-plugin-terminal-vt100.tgz", "manifest": "plugin.json", "sourceRepository": "https://github.com/soksak-ai/soksak-plugin-terminal-vt100", "sourceCommit": "2222222222222222222222222222222222222222"},
+		map[string]any{"kind": "plugin", "id": "soksak-plugin-terminal-vt100", "version": "0.0.15", "artifact": "soksak-plugin-terminal-vt100.tgz", "manifest": "plugin.json", "program": "terminal-vt100", "sourceRepository": "https://github.com/soksak-ai/soksak-plugin-terminal-vt100", "sourceCommit": "2222222222222222222222222222222222222222"},
 	}}
 	body, _ := json.Marshal(plan)
 	planPath := filepath.Join(root, "candidate-plan.json")

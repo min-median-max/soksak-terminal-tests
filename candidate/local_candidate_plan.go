@@ -8,26 +8,48 @@ import (
 	"path/filepath"
 )
 
-func pluginManifestContract(path, contractVersion string) error {
+func pluginManifestContract(path, contractVersion string) (string, error) {
 	body, err := os.ReadFile(path)
 	if err != nil {
-		return err
+		return "", err
 	}
 	var manifest struct {
 		Implements []struct {
 			ID      string `json:"id"`
 			Version string `json:"version"`
 		} `json:"implements"`
+		Contributes struct {
+			Programs []struct {
+				ID   string `json:"id"`
+				Kind string `json:"kind"`
+			} `json:"programs"`
+		} `json:"contributes"`
 	}
 	if err := json.Unmarshal(body, &manifest); err != nil {
-		return err
+		return "", err
 	}
+	implementsContract := false
 	for _, implemented := range manifest.Implements {
 		if implemented.ID == "soksak-spec-plugin-terminal" && implemented.Version == contractVersion {
-			return nil
+			implementsContract = true
 		}
 	}
-	return fmt.Errorf("plugin manifest does not implement terminal contract %s", contractVersion)
+	if !implementsContract {
+		return "", fmt.Errorf("plugin manifest does not implement terminal contract %s", contractVersion)
+	}
+	program := ""
+	for _, candidate := range manifest.Contributes.Programs {
+		if candidate.Kind == "view" {
+			if program != "" || !candidateIDPattern.MatchString(candidate.ID) {
+				return "", fmt.Errorf("plugin manifest must expose one view program")
+			}
+			program = candidate.ID
+		}
+	}
+	if program == "" {
+		return "", fmt.Errorf("plugin manifest exposes no view program")
+	}
+	return program, nil
 }
 
 func validateRuntimeDependencies(plugin verifiedLocalRelease, sidecars map[string]verifiedLocalRelease) (map[string]bool, error) {
@@ -105,6 +127,7 @@ func ComposeLocal(options LocalComposeOptions) (string, error) {
 		sidecars[selected.ID] = release
 	}
 	plugins := map[string]verifiedLocalRelease{}
+	programs := map[string]string{}
 	usedSidecars := map[string]bool{}
 	for _, selected := range selection.Plugins {
 		if _, exists := plugins[selected.ID]; exists {
@@ -114,7 +137,8 @@ func ComposeLocal(options LocalComposeOptions) (string, error) {
 		if resolveErr != nil {
 			return "", resolveErr
 		}
-		if err := pluginManifestContract(filepath.Join(release.directory, release.document.Manifest.File), contract.document.Version); err != nil {
+		program, err := pluginManifestContract(filepath.Join(release.directory, release.document.Manifest.File), contract.document.Version)
+		if err != nil {
 			return "", err
 		}
 		dependencies, err := validateRuntimeDependencies(release, sidecars)
@@ -125,6 +149,7 @@ func ComposeLocal(options LocalComposeOptions) (string, error) {
 			usedSidecars[id] = true
 		}
 		plugins[selected.ID] = release
+		programs[selected.ID] = program
 	}
 	if len(usedSidecars) != len(sidecars) {
 		return "", fmt.Errorf("local candidate contains an unused sidecar")
@@ -157,7 +182,7 @@ func ComposeLocal(options LocalComposeOptions) (string, error) {
 		}
 		output.Components = append(output.Components, outputComponent{
 			Kind: "plugin", ID: selected.ID, Version: release.document.Version, Artifact: artifact,
-			Manifest: release.artifact.Manifest, SourceRepository: release.document.Source.Repository,
+			Manifest: release.artifact.Manifest, Program: programs[selected.ID], SourceRepository: release.document.Source.Repository,
 			SourceCommit: release.document.Source.Commit,
 		})
 	}
