@@ -1,6 +1,6 @@
 github.com/soksak-ai/soksak-contract-control v0.0.0-20260822080701-f12f3a6f579b h1:Kbsf+Zp716huYDif+sxU9NgsJ/34TXmrPbyF5rIaKZc=
 github.com/soksak-ai/soksak-contract-control v0.0.0-20260822080701-f12f3a6f579b/go.mod h1:onYfujFaCchwifFz86roX8J7EkpiDEpSgNajcoiuBbw=
-github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260826182326-0a871c9d2036 h1:oOr4UhMP/1uxYBjlsqPqAPdppSC+ie+tIjjmmUyTLo8=
-github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260826182326-0a871c9d2036/go.mod h1:IfcO4wTw2RDCPvUz+x92mqUt3J/5lkJe4rn9FiyINFI=
+github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260828170819-d66aebf6e732 h1:1QGjP2pFsT0qAIFcFXa4PkBO3eLPYAfRzY5ErUhzqoc=
+github.com/soksak-ai/soksak-spec/go/platformspec v0.0.0-20260828170819-d66aebf6e732/go.mod h1:IfcO4wTw2RDCPvUz+x92mqUt3J/5lkJe4rn9FiyINFI=
 golang.org/x/mod v0.29.0 h1:HV8lRxZC4l2cr3Zq1LvtOsi/ThTgWnUk/y64QSs8GwA=
 golang.org/x/mod v0.29.0/go.mod h1:NyhrlYXJ2H4eJiRy/WDBO6HMqZQ6q9nk4JzS3NuCK+w=

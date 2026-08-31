@@ -29,14 +29,14 @@ func TestReleaseAssetURLDerivesTheArtifactFileLocation(t *testing.T) {
 func TestInspectArchiveRequiresTheDeclaredPlatformProcess(t *testing.T) {
 	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
 	valid := archiveFixture(t, map[string][]byte{
-		"sidecar.json":                    []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example.exe"}`),
+		"sidecar.json":                    []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","processRole":"sidecar-example","interface":[{"id":"soksak-spec-sidecar-example","version":"0.0.1"}],"process":"dist/soksak-sidecar-example.exe"}`),
 		"dist/soksak-sidecar-example.exe": []byte("binary"),
 	})
 	if err := inspectArchive(valid, "sidecar", component, "x86_64-pc-windows-msvc"); err != nil {
 		t.Fatal(err)
 	}
 	missing := archiveFixture(t, map[string][]byte{
-		"sidecar.json": []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example.exe"}`),
+		"sidecar.json": []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","processRole":"sidecar-example","interface":[{"id":"soksak-spec-sidecar-example","version":"0.0.1"}],"process":"dist/soksak-sidecar-example.exe"}`),
 	})
 	if err := inspectArchive(missing, "sidecar", component, "x86_64-pc-windows-msvc"); err == nil {
 		t.Fatal("missing Windows process was accepted")
@@ -53,7 +53,7 @@ func TestInspectArchiveRejectsLinks(t *testing.T) {
 func TestInspectArchiveRejectsDotPrefixedPaths(t *testing.T) {
 	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
 	archive := archiveFixture(t, map[string][]byte{
-		"./sidecar.json":                    []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example.exe"}`),
+		"./sidecar.json":                    []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","processRole":"sidecar-example","interface":[{"id":"soksak-spec-sidecar-example","version":"0.0.1"}],"process":"dist/soksak-sidecar-example.exe"}`),
 		"./dist/soksak-sidecar-example.exe": []byte("binary"),
 	})
 	if err := inspectArchive(archive, "sidecar", component, "x86_64-pc-windows-msvc"); err == nil {
@@ -64,7 +64,7 @@ func TestInspectArchiveRejectsDotPrefixedPaths(t *testing.T) {
 func TestInspectArchiveRequiresAUnixProcessForDarwinAndLinux(t *testing.T) {
 	component := Component{ID: "soksak-sidecar-example", Version: "0.0.1"}
 	valid := archiveFixture(t, map[string][]byte{
-		"sidecar.json":                []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","interface":{"id":"soksak-spec-sidecar-example","version":"0.0.1"},"process":"dist/soksak-sidecar-example"}`),
+		"sidecar.json":                []byte(`{"id":"soksak-sidecar-example","version":"0.0.1","processRole":"sidecar-example","interface":[{"id":"soksak-spec-sidecar-example","version":"0.0.1"}],"process":"dist/soksak-sidecar-example"}`),
 		"dist/soksak-sidecar-example": []byte("binary"),
 	})
 	for _, target := range []string{"aarch64-apple-darwin", "x86_64-unknown-linux-gnu"} {

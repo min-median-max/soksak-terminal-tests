@@ -10,6 +10,33 @@ import (
 	platformspec "github.com/soksak-ai/soksak-spec/go/platformspec"
 )
 
+type runtimeEnvironmentFixture struct{}
+
+func (runtimeEnvironmentFixture) Call(string, map[string]any) (map[string]any, error) {
+	return nil, nil
+}
+
+func (runtimeEnvironmentFixture) CallValue(string, map[string]any) (any, error) {
+	return map[string]any{
+		"revision": float64(1),
+		"plugins":  map[string]any{},
+		"sidecars": map[string]any{"terminal-runtime": map[string]any{
+			"version": "1.0.0", "path": "/runtime/terminal-runtime", "process": "/runtime/terminal-runtime/process",
+			"artifactSha256": strings.Repeat("a", 64), "source": "local", "target": "aarch64-apple-darwin",
+		}},
+	}, nil
+}
+
+func TestRuntimeEnvironmentAcceptsTheContractProcessField(t *testing.T) {
+	environment, err := ReadRuntimeEnvironment(runtimeEnvironmentFixture{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, exists := environment.Sidecars["terminal-runtime"]; !exists {
+		t.Fatal("runtime sidecar was not decoded")
+	}
+}
+
 func TestTerminalInventoryRequiresSevenPluginsAndSevenSidecars(t *testing.T) {
 	profile, _ := fleet.ForTarget("linux", "aarch64-unknown-linux-gnu")
 	environment := inventoryFixture(t, profile)
@@ -53,7 +80,7 @@ func inventoryFixture(t *testing.T, profile fleet.Profile) platformspec.Environm
 	for _, expected := range profile.Sidecars {
 		path := filepath.Join(root, expected.ID)
 		_ = os.MkdirAll(path, 0o700)
-		environment.Sidecars[expected.ID] = platformspec.Component{Version: expected.Version, Path: path, ArtifactSHA256: strings.Repeat("a", 64), Source: platformspec.RegistrySource, Registry: "test", Target: profile.Target}
+		environment.Sidecars[expected.ID] = platformspec.Component{Version: expected.Version, Path: path, Process: filepath.Join(path, "process"), ArtifactSHA256: strings.Repeat("a", 64), Source: platformspec.RegistrySource, Registry: "test", Target: profile.Target}
 	}
 	return environment
 }
