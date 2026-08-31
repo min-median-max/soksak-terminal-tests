@@ -9,8 +9,8 @@
   "plugins": [
     {
       "id": "soksak-plugin-terminal-vision",
-      "version": "0.0.66",
-      "releaseSha256": "5d8cede6a27212b4454a9eb7a7e7d81b6d1a1dcec851fe21c92c2d89f0dbb3a8"
+      "version": "0.0.67",
+      "releaseSha256": "88dcf10d27996955de553e55c0ca1875d9b0f2f26378babe6a0167a4048397cb"
     }
   ],
   "sidecars": [
