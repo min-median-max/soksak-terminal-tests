@@ -30,45 +30,20 @@ func pluginManifestContract(path, contractVersion string) error {
 	return fmt.Errorf("plugin manifest does not implement terminal contract %s", contractVersion)
 }
 
-func packageDependency(metadata packageMetadata, name string) string {
-	for _, dependencies := range []map[string]string{metadata.Dependencies, metadata.PeerDependencies, metadata.DevDependencies, metadata.OptionalDependencies} {
-		if version := dependencies[name]; version != "" {
-			return version
-		}
-	}
-	return ""
-}
-
-func validatePluginDependencies(root string, contract, kit verifiedPackage) error {
-	body, err := os.ReadFile(filepath.Join(root, "frontend", "package.json"))
-	if err != nil {
-		return err
-	}
-	var metadata packageMetadata
-	if err := json.Unmarshal(body, &metadata); err != nil {
-		return err
-	}
-	if packageDependency(metadata, contract.metadata.Name) != contract.metadata.Version ||
-		packageDependency(metadata, kit.metadata.Name) != kit.metadata.Version {
-		return fmt.Errorf("plugin package dependency versions differ: %s", metadata.Name)
-	}
-	return nil
-}
-
-func validateRuntimeDependencies(plugin verifiedLocalRelease, sidecars map[string]verifiedLocalRelease) error {
+func validateRuntimeDependencies(plugin verifiedLocalRelease, sidecars map[string]verifiedLocalRelease) (map[string]bool, error) {
 	seen := map[string]bool{}
 	for _, dependency := range plugin.document.RuntimeDependencies.Sidecars {
 		sidecar, exists := sidecars[dependency.ID]
 		if !exists || seen[dependency.ID] || dependency.Version != sidecar.document.Version ||
 			dependency.Size != sidecar.releaseBytes.Size || dependency.SHA256 != sidecar.releaseBytes.SHA256 {
-			return fmt.Errorf("plugin runtime dependency mismatch: %s=%s", plugin.document.ID, dependency.ID)
+			return nil, fmt.Errorf("plugin runtime dependency mismatch: %s=%s", plugin.document.ID, dependency.ID)
 		}
 		seen[dependency.ID] = true
 	}
 	if len(seen) == 0 {
-		return fmt.Errorf("plugin has no runtime dependency: %s", plugin.document.ID)
+		return nil, fmt.Errorf("plugin runtime dependency set is empty: %s", plugin.document.ID)
 	}
-	return nil
+	return seen, nil
 }
 
 func writeImmutablePlan(path string, body []byte) (string, error) {
@@ -96,8 +71,7 @@ func writeImmutablePlan(path string, body []byte) (string, error) {
 
 func ComposeLocal(options LocalComposeOptions) (string, error) {
 	for name, value := range map[string]string{
-		"source plan": options.SourcePlan, "release store": options.Store, "registry": options.Registry,
-		"source workspace": options.Workspace, "output": options.Output,
+		"plan": options.Plan, "release store": options.Store, "output": options.Output,
 	} {
 		if !filepath.IsAbs(value) {
 			return "", fmt.Errorf("%s path must be absolute", name)
@@ -107,90 +81,87 @@ func ComposeLocal(options LocalComposeOptions) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	registry, err := regularDirectory(options.Registry)
+	var selection localCandidatePlan
+	if err := decodeStrict(options.Plan, &selection); err != nil {
+		return "", err
+	}
+	if selection.Schema != "soksak-terminal-local-candidate-v1" || selection.Target == "" ||
+		len(selection.Plugins) == 0 || len(selection.Sidecars) == 0 {
+		return "", fmt.Errorf("local candidate plan identity is invalid")
+	}
+	contract, err := resolveLocalRelease(store, selection.Contract, "contract", selection.Target)
 	if err != nil {
 		return "", err
-	}
-	var sources sourcePlan
-	if err := decodeStrict(options.SourcePlan, &sources); err != nil {
-		return "", err
-	}
-	if sources.Schema != "soksak-terminal-native-candidate-v1" || sources.Target == "" {
-		return "", fmt.Errorf("candidate source plan identity is invalid")
-	}
-	roots, err := discoverSourceRoots(options.Workspace, sources)
-	if err != nil {
-		return "", err
-	}
-	contract, err := verifyRegistryPackage(roots[sources.Contract.ID], registry, "contract", sources.Contract.ID)
-	if err != nil {
-		return "", err
-	}
-	kit, err := verifyRegistryPackage(roots[sources.Kit.ID], registry, "kit", sources.Kit.ID)
-	if err != nil {
-		return "", err
-	}
-	if packageDependency(kit.metadata, contract.metadata.Name) != contract.metadata.Version {
-		return "", fmt.Errorf("terminal kit contract version differs")
 	}
 	sidecars := map[string]verifiedLocalRelease{}
-	for _, source := range sources.Sidecars {
-		release, resolveErr := resolveLocalRelease(store, source, "sidecar", sources.Target)
+	for _, selected := range selection.Sidecars {
+		if _, exists := sidecars[selected.ID]; exists {
+			return "", fmt.Errorf("local candidate repeats sidecar: %s", selected.ID)
+		}
+		release, resolveErr := resolveLocalRelease(store, selected, "sidecar", selection.Target)
 		if resolveErr != nil {
 			return "", resolveErr
 		}
-		sidecars[source.ID] = release
+		sidecars[selected.ID] = release
 	}
 	plugins := map[string]verifiedLocalRelease{}
-	for _, source := range sources.Plugins {
-		release, resolveErr := resolveLocalRelease(store, source, "plugin", sources.Target)
+	usedSidecars := map[string]bool{}
+	for _, selected := range selection.Plugins {
+		if _, exists := plugins[selected.ID]; exists {
+			return "", fmt.Errorf("local candidate repeats plugin: %s", selected.ID)
+		}
+		release, resolveErr := resolveLocalRelease(store, selected, "plugin", selection.Target)
 		if resolveErr != nil {
 			return "", resolveErr
 		}
-		if err := pluginManifestContract(filepath.Join(release.directory, release.document.Manifest.File), contract.metadata.Version); err != nil {
+		if err := pluginManifestContract(filepath.Join(release.directory, release.document.Manifest.File), contract.document.Version); err != nil {
 			return "", err
 		}
-		if err := validatePluginDependencies(roots[source.ID], contract, kit); err != nil {
+		dependencies, err := validateRuntimeDependencies(release, sidecars)
+		if err != nil {
 			return "", err
 		}
-		if err := validateRuntimeDependencies(release, sidecars); err != nil {
-			return "", err
+		for id := range dependencies {
+			usedSidecars[id] = true
 		}
-		plugins[source.ID] = release
+		plugins[selected.ID] = release
 	}
-	contractArtifact, err := relativeArtifact(options.Output, contract.artifact)
+	if len(usedSidecars) != len(sidecars) {
+		return "", fmt.Errorf("local candidate contains an unused sidecar")
+	}
+	contractArtifact, err := relativeArtifact(options.Output, filepath.Join(contract.directory, contract.artifact.File))
 	if err != nil {
 		return "", err
 	}
-	plan := outputPlan{PresentationContract: outputPresentation{
-		ID: sources.Contract.ID, Version: contract.metadata.Version, Artifact: contractArtifact,
-		SourceRepository: "https://github.com/" + sources.Contract.Repository, SourceCommit: sources.Contract.SourceCommit,
+	output := outputPlan{PresentationContract: outputPresentation{
+		ID: contract.document.ID, Version: contract.document.Version, Artifact: contractArtifact,
+		SourceRepository: contract.document.Source.Repository, SourceCommit: contract.document.Source.Commit,
 	}}
-	for _, source := range sources.Sidecars {
-		release := sidecars[source.ID]
+	for _, selected := range selection.Sidecars {
+		release := sidecars[selected.ID]
 		artifact, relativeErr := relativeArtifact(options.Output, filepath.Join(release.directory, release.artifact.File))
 		if relativeErr != nil {
 			return "", relativeErr
 		}
-		plan.Components = append(plan.Components, outputComponent{
-			Kind: "sidecar", ID: source.ID, Version: release.document.Version, Artifact: artifact,
-			Manifest: release.artifact.Manifest, Target: sources.Target,
+		output.Components = append(output.Components, outputComponent{
+			Kind: "sidecar", ID: selected.ID, Version: release.document.Version, Artifact: artifact,
+			Manifest: release.artifact.Manifest, Target: selection.Target,
 			SourceRepository: release.document.Source.Repository, SourceCommit: release.document.Source.Commit,
 		})
 	}
-	for _, source := range sources.Plugins {
-		release := plugins[source.ID]
+	for _, selected := range selection.Plugins {
+		release := plugins[selected.ID]
 		artifact, relativeErr := relativeArtifact(options.Output, filepath.Join(release.directory, release.artifact.File))
 		if relativeErr != nil {
 			return "", relativeErr
 		}
-		plan.Components = append(plan.Components, outputComponent{
-			Kind: "plugin", ID: source.ID, Version: release.document.Version, Artifact: artifact,
-			Manifest: release.artifact.Manifest, SourceRepository: release.document.Source.Repository, SourceCommit: release.document.Source.Commit,
-			DependencyCommits: map[string]string{sources.Contract.ID: sources.Contract.SourceCommit, sources.Kit.ID: sources.Kit.SourceCommit},
+		output.Components = append(output.Components, outputComponent{
+			Kind: "plugin", ID: selected.ID, Version: release.document.Version, Artifact: artifact,
+			Manifest: release.artifact.Manifest, SourceRepository: release.document.Source.Repository,
+			SourceCommit: release.document.Source.Commit,
 		})
 	}
-	body, err := json.MarshalIndent(plan, "", "  ")
+	body, err := json.MarshalIndent(output, "", "  ")
 	if err != nil {
 		return "", err
 	}

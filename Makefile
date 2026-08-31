@@ -33,9 +33,9 @@ compose-candidate-plan: prepare
 	@go run ./cmd/compose-candidate-plan -source-plan '$(SOURCE_PLAN)' -artifacts '$(ARTIFACTS)' -out '$(OUT)'
 
 compose-local-candidate-plan: prepare
-	@test '$(origin SOURCE_PLAN)' = 'command line' && test '$(origin STORE)' = 'command line' && test '$(origin REGISTRY_STORAGE)' = 'command line' && test '$(origin SOURCE_WORKSPACE)' = 'command line' && test '$(origin OUT)' = 'command line' || { echo 'SOURCE_PLAN, STORE, REGISTRY_STORAGE, SOURCE_WORKSPACE and OUT must be explicit Make command-line variables' >&2; exit 2; }
-	@case '$(SOURCE_PLAN):$(STORE):$(REGISTRY_STORAGE):$(SOURCE_WORKSPACE):$(OUT)' in /*:/*:/*:/*:/*) ;; *) echo 'local candidate composition paths must be absolute' >&2; exit 2 ;; esac
-	@go run ./cmd/compose-local-candidate-plan -source-plan '$(SOURCE_PLAN)' -store '$(STORE)' -registry '$(REGISTRY_STORAGE)' -workspace '$(SOURCE_WORKSPACE)' -out '$(OUT)'
+	@test '$(origin PLAN)' = 'command line' && test '$(origin STORE)' = 'command line' && test '$(origin OUT)' = 'command line' || { echo 'PLAN, STORE and OUT must be explicit Make command-line variables' >&2; exit 2; }
+	@case '$(PLAN):$(STORE):$(OUT)' in /*:/*:/*) ;; *) echo 'local candidate composition paths must be absolute' >&2; exit 2 ;; esac
+	@go run ./cmd/compose-local-candidate-plan -plan '$(PLAN)' -store '$(STORE)' -out '$(OUT)'
 
 system-commands: TEST_NAME := TestInstalledTerminalCommands
 system-commands: system

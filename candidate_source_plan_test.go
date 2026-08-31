@@ -27,12 +27,63 @@ type candidateSourcePlan struct {
 	Sidecars []candidateSource `json:"sidecars"`
 }
 
+type localReleaseSelection struct {
+	ID            string `json:"id"`
+	Version       string `json:"version"`
+	ReleaseSHA256 string `json:"releaseSha256"`
+}
+
+type localCandidateSelectionPlan struct {
+	Schema   string                  `json:"schema"`
+	Target   string                  `json:"target"`
+	Contract localReleaseSelection   `json:"contract"`
+	Plugins  []localReleaseSelection `json:"plugins"`
+	Sidecars []localReleaseSelection `json:"sidecars"`
+}
+
 func TestTerminalNativeCandidateSourcePlansAreExactAndPortable(t *testing.T) {
-	for name, path := range map[string]string{
-		"remote": "candidate/terminal-native-darwin-arm64.json",
-		"local":  "candidate/terminal-native-local-darwin-arm64.json",
-	} {
-		t.Run(name, func(t *testing.T) { assertCandidateSourcePlan(t, path) })
+	assertCandidateSourcePlan(t, "candidate/terminal-native-darwin-arm64.json")
+}
+
+func TestTerminalVisionLocalSelectionIsExactAndPortable(t *testing.T) {
+	body, err := os.ReadFile("candidate/terminal-vision-local-darwin-arm64.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(body), "file:") || strings.Contains(string(body), "/tmp/") || strings.Contains(string(body), "/Users/") {
+		t.Fatal("local candidate selection contains a local locator")
+	}
+	decoder := json.NewDecoder(strings.NewReader(string(body)))
+	decoder.DisallowUnknownFields()
+	var plan localCandidateSelectionPlan
+	if err := decoder.Decode(&plan); err != nil {
+		t.Fatal(err)
+	}
+	if plan.Schema != "soksak-terminal-local-candidate-v1" || plan.Target != "aarch64-apple-darwin" {
+		t.Fatalf("local candidate identity=%s/%s", plan.Schema, plan.Target)
+	}
+	if plan.Contract.ID != "soksak-contract-plugin-terminal" || len(plan.Plugins) != 1 ||
+		plan.Plugins[0].ID != "soksak-plugin-terminal-vision" || len(plan.Sidecars) != 7 {
+		t.Fatalf("local candidate closure contract=%s plugins=%d sidecars=%d", plan.Contract.ID, len(plan.Plugins), len(plan.Sidecars))
+	}
+	version := regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
+	digest := regexp.MustCompile(`^[0-9a-f]{64}$`)
+	all := append([]localReleaseSelection{plan.Contract}, append(plan.Plugins, plan.Sidecars...)...)
+	seen := map[string]bool{}
+	for _, component := range all {
+		if component.ID == "" || seen[component.ID] || !version.MatchString(component.Version) || !digest.MatchString(component.ReleaseSHA256) {
+			t.Fatalf("invalid local release selection: %+v", component)
+		}
+		seen[component.ID] = true
+	}
+	sidecarIDs := make([]string, len(plan.Sidecars))
+	for index, sidecar := range plan.Sidecars {
+		sidecarIDs[index] = sidecar.ID
+	}
+	sorted := append([]string(nil), sidecarIDs...)
+	sort.Strings(sorted)
+	if strings.Join(sidecarIDs, "\n") != strings.Join(sorted, "\n") {
+		t.Fatal("local candidate sidecars are not sorted")
 	}
 }
 

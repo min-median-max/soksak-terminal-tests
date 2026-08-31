@@ -14,6 +14,8 @@ This repository owns only cross-provider comparison and installed-system behavio
 
 The system-test lifecycle is specified in [LIFECYCLE.md](LIFECYCLE.md). The Korean translation is
 available in [LIFECYCLE.ko.md](LIFECYCLE.ko.md).
+Local candidate composition is specified in [CANDIDATE.md](CANDIDATE.md). The Korean translation is
+available in [CANDIDATE.ko.md](CANDIDATE.ko.md).
 
 Darwin and Linux require seven plugins plus PTY and six recovery sidecars. Windows requires the five
 plugins backed by Alacritty, Ghostty, VT100, WezTerm, and Xterm plus PTY and four recovery sidecars;

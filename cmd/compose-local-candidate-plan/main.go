@@ -10,10 +10,8 @@ import (
 )
 
 func main() {
-	sourcePlan := flag.String("source-plan", "", "absolute candidate source plan")
+	plan := flag.String("plan", "", "absolute local release selection plan")
 	store := flag.String("store", "", "absolute immutable local release store")
-	registry := flag.String("registry", "", "absolute package registry storage")
-	workspace := flag.String("workspace", "", "absolute source discovery workspace")
 	output := flag.String("out", "", "absolute candidate plan output")
 	flag.Parse()
 	if flag.NArg() != 0 {
@@ -21,7 +19,7 @@ func main() {
 		os.Exit(2)
 	}
 	state, err := candidate.ComposeLocal(candidate.LocalComposeOptions{
-		SourcePlan: *sourcePlan, Store: *store, Registry: *registry, Workspace: *workspace, Output: *output,
+		Plan: *plan, Store: *store, Output: *output,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

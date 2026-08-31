@@ -8,11 +8,23 @@ import (
 )
 
 type LocalComposeOptions struct {
-	SourcePlan string
-	Store      string
-	Registry   string
-	Workspace  string
-	Output     string
+	Plan   string
+	Store  string
+	Output string
+}
+
+type localReleaseSelection struct {
+	ID            string `json:"id"`
+	Version       string `json:"version"`
+	ReleaseSHA256 string `json:"releaseSha256"`
+}
+
+type localCandidatePlan struct {
+	Schema   string                  `json:"schema"`
+	Target   string                  `json:"target"`
+	Contract localReleaseSelection   `json:"contract"`
+	Plugins  []localReleaseSelection `json:"plugins"`
+	Sidecars []localReleaseSelection `json:"sidecars"`
 }
 
 type localFileReference struct {
@@ -60,6 +72,7 @@ type verifiedLocalRelease struct {
 }
 
 var candidateVersionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
+var candidateIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,127}$`)
 
 func regularDirectory(path string) (string, error) {
 	if !filepath.IsAbs(path) {
@@ -87,15 +100,16 @@ func verifyLocalFile(directory string, reference localFileReference) error {
 	return nil
 }
 
-func readLocalRelease(directory string, expected sourceComponent, kind, target string) (verifiedLocalRelease, error) {
+func readLocalRelease(directory string, selection localReleaseSelection, kind, target string) (verifiedLocalRelease, error) {
 	var document localReleaseDocument
 	releasePath := filepath.Join(directory, "release.json")
 	if err := decodeStrict(releasePath, &document); err != nil {
 		return verifiedLocalRelease{}, err
 	}
-	if document.Kind != kind || document.ID != expected.ID || !candidateVersionPattern.MatchString(document.Version) ||
-		document.Source.Repository != "https://github.com/"+expected.Repository || document.Source.Commit != expected.SourceCommit {
-		return verifiedLocalRelease{}, fmt.Errorf("local release identity mismatch: %s", expected.ID)
+	if document.Kind != kind || document.ID != selection.ID || document.Version != selection.Version ||
+		!candidateVersionPattern.MatchString(document.Version) || !commitPattern.MatchString(document.Source.Commit) ||
+		document.Source.Repository == "" {
+		return verifiedLocalRelease{}, fmt.Errorf("local release identity mismatch: %s", selection.ID)
 	}
 	if err := verifyLocalFile(directory, document.Manifest); err != nil {
 		return verifiedLocalRelease{}, err
@@ -104,26 +118,26 @@ func readLocalRelease(directory string, expected sourceComponent, kind, target s
 	if kind == "sidecar" {
 		wanted = target
 	}
-	var selected *localReleaseArtifact
+	var artifact *localReleaseArtifact
 	files := map[string]bool{"release.json": true, document.Manifest.File: true}
 	for index := range document.Artifacts {
-		artifact := &document.Artifacts[index]
-		if err := verifyLocalFile(directory, localFileReference{File: artifact.File, Size: artifact.Size, SHA256: artifact.SHA256}); err != nil {
+		current := &document.Artifacts[index]
+		if err := verifyLocalFile(directory, localFileReference{File: current.File, Size: current.Size, SHA256: current.SHA256}); err != nil {
 			return verifiedLocalRelease{}, err
 		}
-		if artifact.Manifest != document.Manifest.File || (artifact.Format != "tgz" && artifact.Format != "tar.gz") {
-			return verifiedLocalRelease{}, fmt.Errorf("local release artifact contract mismatch: %s", expected.ID)
+		if current.Manifest != document.Manifest.File || (current.Format != "tgz" && current.Format != "tar.gz") {
+			return verifiedLocalRelease{}, fmt.Errorf("local release artifact contract mismatch: %s", selection.ID)
 		}
-		files[artifact.File] = true
-		if artifact.Target == wanted {
-			if selected != nil {
-				return verifiedLocalRelease{}, fmt.Errorf("local release repeats target %s: %s", wanted, expected.ID)
+		files[current.File] = true
+		if current.Target == wanted {
+			if artifact != nil {
+				return verifiedLocalRelease{}, fmt.Errorf("local release repeats target %s: %s", wanted, selection.ID)
 			}
-			selected = artifact
+			artifact = current
 		}
 	}
-	if selected == nil {
-		return verifiedLocalRelease{}, fmt.Errorf("local release omits target %s: %s", wanted, expected.ID)
+	if artifact == nil {
+		return verifiedLocalRelease{}, fmt.Errorf("local release omits target %s: %s", wanted, selection.ID)
 	}
 	for _, evidence := range document.Evidence {
 		if err := verifyLocalFile(directory, evidence); err != nil {
@@ -136,7 +150,7 @@ func readLocalRelease(directory string, expected sourceComponent, kind, target s
 		return verifiedLocalRelease{}, err
 	}
 	if len(entries) != len(files) {
-		return verifiedLocalRelease{}, fmt.Errorf("local release inventory mismatch: %s", expected.ID)
+		return verifiedLocalRelease{}, fmt.Errorf("local release inventory mismatch: %s", selection.ID)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 || !files[entry.Name()] {
@@ -147,30 +161,24 @@ func readLocalRelease(directory string, expected sourceComponent, kind, target s
 	if err != nil {
 		return verifiedLocalRelease{}, err
 	}
+	if digest != selection.ReleaseSHA256 {
+		return verifiedLocalRelease{}, fmt.Errorf("local release document digest mismatch: %s", selection.ID)
+	}
 	return verifiedLocalRelease{
-		directory: directory, document: document, artifact: *selected,
+		directory: directory, document: document, artifact: *artifact,
 		releaseBytes: fileReference{Path: releasePath, Size: size, SHA256: digest},
 	}, nil
 }
 
-func resolveLocalRelease(store string, expected sourceComponent, kind, target string) (verifiedLocalRelease, error) {
-	root := filepath.Join(store, kind+"s", expected.ID)
-	entries, err := os.ReadDir(root)
-	if err != nil {
-		return verifiedLocalRelease{}, fmt.Errorf("local release is missing: %s: %w", expected.ID, err)
+func resolveLocalRelease(store string, selected localReleaseSelection, kind, target string) (verifiedLocalRelease, error) {
+	if !candidateIDPattern.MatchString(selected.ID) || !candidateVersionPattern.MatchString(selected.Version) ||
+		!digestPattern.MatchString(selected.ReleaseSHA256) {
+		return verifiedLocalRelease{}, fmt.Errorf("local release selection is invalid: %s", selected.ID)
 	}
-	matches := []verifiedLocalRelease{}
-	for _, entry := range entries {
-		if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
-			return verifiedLocalRelease{}, fmt.Errorf("local release version is not a regular directory: %s", entry.Name())
-		}
-		candidate, readErr := readLocalRelease(filepath.Join(root, entry.Name()), expected, kind, target)
-		if readErr == nil {
-			matches = append(matches, candidate)
-		}
+	directory := filepath.Join(store, kind+"s", selected.ID, selected.Version)
+	info, err := os.Lstat(directory)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return verifiedLocalRelease{}, fmt.Errorf("local release directory is invalid: %s", selected.ID)
 	}
-	if len(matches) != 1 {
-		return verifiedLocalRelease{}, fmt.Errorf("local release match count=%d: %s", len(matches), expected.ID)
-	}
-	return matches[0], nil
+	return readLocalRelease(directory, selected, kind, target)
 }
