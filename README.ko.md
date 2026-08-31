@@ -31,6 +31,11 @@ macOS native runner는 Apple Silicon에서 universal application과 7개 plugin 
 실행합니다. Darwin Unix socket 주소 제한 때문에 control socket은 짧은 temporary path를
 사용합니다. WebView2, ConPTY, Windows named pipe 동작은 Windows native runner만 판정합니다.
 
+Native system test는 `SOKSAK_TEST_CLI`, `SOKSAK_TEST_APP`, `SOKSAK_TEST_HOME`,
+`SOKSAK_TEST_RUNTIME`, `SOKSAK_TEST_WORKSPACE`, `SOKSAK_TEST_IDENTIFIER`,
+`SOKSAK_TEST_EVIDENCE`를 절대 경로 또는 명시적 identity로 받습니다. Darwin에서는
+`SOKSAK_TEST_RUNTIME`에 `/private/tmp` 아래의 짧은 절대 경로를 지정합니다.
+
 ## 설치된 Vision 6-engine matrix
 
 `verify-installed-terminal-matrix`는 이미 실행 중인 설치 제품만 공개 `sok` 명령으로 검증합니다.

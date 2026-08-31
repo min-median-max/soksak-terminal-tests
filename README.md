@@ -41,12 +41,16 @@ The default test suite validates the harness. Native system tests require the ap
 SOKSAK_TEST_PLATFORM=linux \
 SOKSAK_TEST_CLI=/absolute/path/to/sok \
 SOKSAK_TEST_APP=/absolute/path/to/soksak \
+SOKSAK_TEST_HOME=/absolute/path/to/home \
 SOKSAK_TEST_RUNTIME=/absolute/path/to/runtime \
 SOKSAK_TEST_WORKSPACE=/absolute/path/to/workspace \
 SOKSAK_TEST_IDENTIFIER=com.soksak.systemtest \
 SOKSAK_TEST_EVIDENCE=/absolute/path/to/evidence \
 make system-commands TARGET=x86_64-unknown-linux-gnu
 ```
+
+On Darwin, `SOKSAK_TEST_RUNTIME` must be a short absolute path below `/private/tmp` so every control
+socket stays within the platform path limit.
 
 Run `make system-restore TARGET=<native-target>` for the restore scenario and `make verify` for this
 repository's owner tests. `go.mod` is the only Go-version owner. `fleet TARGET=<target>` may audit an
