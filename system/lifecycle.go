@@ -334,8 +334,16 @@ func quiesceTestRuntime(cli commandCaller) error {
 		return err
 	}
 	for _, name := range ownedSidecarNames(value) {
-		if _, err := cli.Call("sidecar_stop", map[string]any{"name": name}); err != nil {
+		stopped, err := cli.Call("sidecar_stop", map[string]any{"name": name})
+		if err != nil {
 			return fmt.Errorf("stop sidecar %s: %w", name, err)
+		}
+		running, ok := stopped["running"].(bool)
+		if !ok {
+			return fmt.Errorf("stop sidecar %s returned no running status", name)
+		}
+		if running {
+			return fmt.Errorf("sidecar %s still reports running after stop", name)
 		}
 	}
 	after, err := cli.Call("sidecar_status", map[string]any{})

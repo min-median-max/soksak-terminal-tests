@@ -12,6 +12,9 @@ tree. Inputs are installed artifacts, public commands, contract reports and benc
 Each plugin and sidecar repository remains responsible for its own conformance and release gates.
 This repository owns only cross-provider comparison and installed-system behavior.
 
+The system-test lifecycle is specified in [LIFECYCLE.md](LIFECYCLE.md). The Korean translation is
+available in [LIFECYCLE.ko.md](LIFECYCLE.ko.md).
+
 Darwin and Linux require seven plugins plus PTY and six recovery sidecars. Windows requires the five
 plugins backed by Alacritty, Ghostty, VT100, WezTerm, and Xterm plus PTY and four recovery sidecars;
 Kitty and Shitty are not Windows artifacts. `verify-fleet` validates those immutable release bytes.

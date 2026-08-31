@@ -9,8 +9,9 @@ import (
 )
 
 type lifecycleCleanupCaller struct {
-	calls      []string
-	statusRead int
+	calls       []string
+	statusRead  int
+	stopRunning bool
 }
 
 func (caller *lifecycleCleanupCaller) Call(command string, params map[string]any) (map[string]any, error) {
@@ -53,7 +54,7 @@ func (caller *lifecycleCleanupCaller) Call(command string, params map[string]any
 		}
 		return map[string]any{"open": []any{}, "recorded": []any{}}, nil
 	case "sidecar_stop":
-		return map[string]any{"name": name, "running": false}, nil
+		return map[string]any{"name": name, "running": caller.stopRunning}, nil
 	default:
 		return nil, fmt.Errorf("unexpected command %s", command)
 	}
@@ -126,6 +127,14 @@ func TestLifecycleDisablesPluginsBeforeStoppingPersistentSidecars(t *testing.T) 
 	}, ",")
 	if got := strings.Join(caller.calls, ","); got != want {
 		t.Fatalf("cleanup order=%s want=%s", got, want)
+	}
+}
+
+func TestLifecycleRejectsSidecarStopThatReportsRunning(t *testing.T) {
+	caller := &lifecycleCleanupCaller{stopRunning: true}
+	err := quiesceTestRuntime(caller)
+	if err == nil || !strings.Contains(err.Error(), "still reports running") {
+		t.Fatalf("error=%v", err)
 	}
 }
 
