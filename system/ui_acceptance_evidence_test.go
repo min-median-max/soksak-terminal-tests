@@ -1,6 +1,10 @@
 package system
 
-import "testing"
+import (
+	"image"
+	"image/color"
+	"testing"
+)
 
 func TestReadWorkspaceTitleEvidenceRequiresTextAndVisibleRect(t *testing.T) {
 	snapshot := map[string]any{
@@ -26,6 +30,38 @@ func TestReadWorkspaceTitleEvidenceRequiresTextAndVisibleRect(t *testing.T) {
 	}
 	if evidence.Nodes[0].X != 20 || evidence.Nodes[0].Y != 12 || evidence.Nodes[0].Width != 88 || evidence.Nodes[0].Height != 24 {
 		t.Fatalf("workspace title rectangle = %+v", evidence.Nodes[0])
+	}
+}
+
+func TestMeasureWorkspaceTitlePixelsRequiresOpaqueContrast(t *testing.T) {
+	pixels := image.NewRGBA(image.Rect(0, 0, 20, 10))
+	for y := 0; y < 10; y++ {
+		for x := 0; x < 20; x++ {
+			pixels.Set(x, y, color.RGBA{R: 240, G: 240, B: 240, A: 255})
+		}
+	}
+	for y := 2; y < 8; y++ {
+		for x := 6; x < 14; x++ {
+			pixels.Set(x, y, color.RGBA{R: 20, G: 20, B: 20, A: 255})
+		}
+	}
+
+	evidence, err := measureWorkspaceTitlePixels(pixels)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if evidence.Width != 20 || evidence.Height != 10 || evidence.OpaquePixels != 200 || evidence.DistinctPixels != 2 || evidence.LuminanceRange != 220 {
+		t.Fatalf("workspace title pixels = %+v", evidence)
+	}
+
+	uniform := image.NewRGBA(image.Rect(0, 0, 20, 10))
+	for y := 0; y < 10; y++ {
+		for x := 0; x < 20; x++ {
+			uniform.Set(x, y, color.RGBA{R: 240, G: 240, B: 240, A: 255})
+		}
+	}
+	if _, err := measureWorkspaceTitlePixels(uniform); err == nil {
+		t.Fatal("uniform workspace title capture passed")
 	}
 }
 

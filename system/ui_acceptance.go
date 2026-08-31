@@ -1,6 +1,9 @@
 package system
 
-import "fmt"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 func VerifyInstalledUI(cli CLI) error {
 	plugins, err := cli.Call("plugin.list", map[string]any{})
@@ -53,12 +56,32 @@ func VerifyInstalledUI(cli CLI) error {
 	titleEvidence, titleErr := readWorkspaceTitleEvidence(titleSnapshot)
 	if titleErr != nil {
 		titleEvidence.Failure = titleErr.Error()
+		_ = writeWorkspaceTitleEvidence(cli.EvidenceDir, titleEvidence)
+		return titleErr
+	}
+	titleNode := titleEvidence.Nodes[0]
+	capturePath := filepath.Join(cli.EvidenceDir, "workspace-title.png")
+	_, captureErr := cli.Call("window.snapshot", map[string]any{
+		"path": capturePath,
+		"rect": map[string]any{
+			"x": titleNode.X, "y": titleNode.Y, "w": titleNode.Width, "h": titleNode.Height,
+		},
+	})
+	if captureErr == nil {
+		var pixels workspaceTitlePixelEvidence
+		pixels, captureErr = readWorkspaceTitleCapture(capturePath)
+		if captureErr == nil {
+			titleEvidence.Capture = &pixels
+		}
+	}
+	if captureErr != nil {
+		titleEvidence.Failure = captureErr.Error()
 	}
 	if err := writeWorkspaceTitleEvidence(cli.EvidenceDir, titleEvidence); err != nil {
 		return err
 	}
-	if titleErr != nil {
-		return titleErr
+	if captureErr != nil {
+		return captureErr
 	}
 	return nil
 }
