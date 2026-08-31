@@ -27,8 +27,9 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 	terminalPane := ""
 	for index, selected := range profile.Plugins {
 		plugin := selected.ID
-		engine := strings.TrimPrefix(plugin, "soksak-plugin-terminal-")
-		openParams := map[string]any{"program": "terminal-" + engine}
+		engine := selected.Program
+		firstTerminal := terminalPane == ""
+		openParams := map[string]any{"program": selected.Program}
 		if terminalPane != "" {
 			openParams["pane"] = terminalPane
 		}
@@ -42,13 +43,10 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if view == "" {
 			return nil, fmt.Errorf("%s opened no tab", plugin)
 		}
-		if terminalPane == "" {
+		if firstTerminal {
 			terminalPane, _ = opened["paneId"].(string)
 			if terminalPane == "" {
 				return nil, fmt.Errorf("%s opened no pane", plugin)
-			}
-			if _, err := cli.Call("pane.split", map[string]any{"pane": terminalPane, "side": "right"}); err != nil {
-				return nil, err
 			}
 		}
 		if _, err := cli.Call("tab.activate", map[string]any{"tab": view}); err != nil {
@@ -61,6 +59,46 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		if err != nil || tabs["activeTabId"] != view {
 			return nil, fmt.Errorf("%s activation did not reach session state: %v %+v", plugin, err, tabs)
 		}
+		live, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "timeoutMs": 8000})
+		if err != nil {
+			status, statusErr := terminal(cli, plugin, "status", view, nil)
+			read, readErr := terminal(cli, plugin, "read", view, nil)
+			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+			return nil, fmt.Errorf("%s live wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, err, status, statusErr, read, readErr, sidecars, sidecarErr)
+		}
+		if firstTerminal {
+			initialCols, _ := live["cols"].(float64)
+			if initialCols < 1 {
+				return nil, fmt.Errorf("%s initial terminal has no columns: %+v", plugin, live)
+			}
+			if _, err := cli.Call("pane.split", map[string]any{"pane": terminalPane, "side": "right"}); err != nil {
+				return nil, err
+			}
+			if _, err := cli.Call("ui.layout.wait-settled", map[string]any{"timeoutMs": 8000}); err != nil {
+				return nil, err
+			}
+			shrunk, err := terminal(cli, plugin, "wait", view, map[string]any{
+				"phase": "live", "colsLessThan": initialCols, "timeoutMs": 8000,
+			})
+			if err != nil {
+				status, statusErr := terminal(cli, plugin, "status", view, nil)
+				layout, layoutErr := cli.Call("pane.list", map[string]any{})
+				return nil, fmt.Errorf("%s split resize did not reach the terminal: %w; initialCols=%.0f status=%+v statusErr=%v layout=%+v layoutErr=%v",
+					plugin, err, initialCols, status, statusErr, layout, layoutErr)
+			}
+			shrunkCols, _ := shrunk["cols"].(float64)
+			if _, err := resizePane(cli, terminalPane, 0.75); err != nil {
+				return nil, err
+			}
+			if _, err := terminal(cli, plugin, "wait", view, map[string]any{
+				"phase": "live", "colsGreaterThan": shrunkCols, "timeoutMs": 8000,
+			}); err != nil {
+				status, statusErr := terminal(cli, plugin, "status", view, nil)
+				layout, layoutErr := cli.Call("pane.list", map[string]any{})
+				return nil, fmt.Errorf("%s expanded resize did not reach the terminal: %w; shrunkCols=%.0f status=%+v statusErr=%v layout=%+v layoutErr=%v",
+					plugin, err, shrunkCols, status, statusErr, layout, layoutErr)
+			}
+		}
 		if _, err := resizePane(cli, terminalPane, 0.75); err != nil {
 			return nil, err
 		}
@@ -68,12 +106,6 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 		markerCommand, err := terminalPrintCommand(profile.Platform, marker)
 		if err != nil {
 			return nil, err
-		}
-		if _, err := terminal(cli, plugin, "wait", view, map[string]any{"phase": "live", "timeoutMs": 8000}); err != nil {
-			status, statusErr := terminal(cli, plugin, "status", view, nil)
-			read, readErr := terminal(cli, plugin, "read", view, nil)
-			sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
-			return nil, fmt.Errorf("%s live wait failed: %w; status=%+v statusErr=%v read=%+v readErr=%v sidecars=%+v sidecarErr=%v", plugin, err, status, statusErr, read, readErr, sidecars, sidecarErr)
 		}
 		if err := typeTerminalCommand(cli, plugin, view, markerCommand); err != nil {
 			return nil, err
@@ -158,7 +190,13 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			return nil, err
 		}
 		if _, err := terminal(cli, plugin, "wait", view, wideResizeWait(wide)); err != nil {
-			return nil, fmt.Errorf("%s wide resize did not reach the terminal before output: %w", plugin, err)
+			restored, measureErr := measureTerminalResize(cli, plugin, view, address)
+			if measureErr == nil {
+				evidence.Restored = &restored
+			}
+			evidence.Failure = err.Error()
+			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
+			return nil, fmt.Errorf("%s wide resize did not reach the terminal before output: %w; restored=%+v measureErr=%v", plugin, err, evidence.Restored, measureErr)
 		}
 		read, err := terminal(cli, plugin, "read", view, nil)
 		if err != nil || !strings.Contains(fmt.Sprint(read["text"]), marker) {
