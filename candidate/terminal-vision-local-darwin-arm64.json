@@ -3,14 +3,14 @@
   "target": "aarch64-apple-darwin",
   "contract": {
     "id": "soksak-contract-plugin-terminal",
-    "version": "0.0.21",
-    "releaseSha256": "4fc4a30a7320e983dd668802d11e785d90fdad9c1d68f4a27be30a61db6fc251"
+    "version": "0.0.22",
+    "releaseSha256": "623b722c44b6713eda5c283c4e9441224db9dc4f9400dd0ac663ec30aea696e4"
   },
   "plugins": [
     {
       "id": "soksak-plugin-terminal-vision",
-      "version": "0.0.59",
-      "releaseSha256": "6fc2c1e0e76a86761668c1201b6b2a28171b43d986a1f7cb1221a8af1673dc3e"
+      "version": "0.0.65",
+      "releaseSha256": "621815b5e9fd6d6bbe2e49b0861ec127357eec01a4dfcb09d0c1e8129f1145cd"
     }
   ],
   "sidecars": [
@@ -21,8 +21,8 @@
     },
     {
       "id": "soksak-sidecar-terminal-alacritty",
-      "version": "0.0.43",
-      "releaseSha256": "12a82343cecdf24004f2e79e29c910d57b5fd5c5ee6c42f8c8d65c50bc4c2554"
+      "version": "0.0.46",
+      "releaseSha256": "44748ec7d1abb2863f9d1873e4cf4101c1a455d3a8f74e4ceb1bcd42d3466b12"
     },
     {
       "id": "soksak-sidecar-terminal-ghostty",
