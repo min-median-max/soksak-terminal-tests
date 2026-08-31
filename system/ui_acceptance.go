@@ -46,5 +46,19 @@ func VerifyInstalledUI(cli CLI) error {
 	if off > 2 {
 		return fmt.Errorf("surface alignment is off by %.2fpx", off)
 	}
+	titleSnapshot, err := cli.Call("ui.snapshot.dom", map[string]any{"selector": workspaceTitleSelector})
+	if err != nil {
+		return err
+	}
+	titleEvidence, titleErr := readWorkspaceTitleEvidence(titleSnapshot)
+	if titleErr != nil {
+		titleEvidence.Failure = titleErr.Error()
+	}
+	if err := writeWorkspaceTitleEvidence(cli.EvidenceDir, titleEvidence); err != nil {
+		return err
+	}
+	if titleErr != nil {
+		return titleErr
+	}
 	return nil
 }
