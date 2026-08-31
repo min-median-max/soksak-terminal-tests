@@ -9,8 +9,8 @@
   "plugins": [
     {
       "id": "soksak-plugin-terminal-vision",
-      "version": "0.0.65",
-      "releaseSha256": "621815b5e9fd6d6bbe2e49b0861ec127357eec01a4dfcb09d0c1e8129f1145cd"
+      "version": "0.0.66",
+      "releaseSha256": "5d8cede6a27212b4454a9eb7a7e7d81b6d1a1dcec851fe21c92c2d89f0dbb3a8"
     }
   ],
   "sidecars": [
@@ -21,8 +21,8 @@
     },
     {
       "id": "soksak-sidecar-terminal-alacritty",
-      "version": "0.0.46",
-      "releaseSha256": "44748ec7d1abb2863f9d1873e4cf4101c1a455d3a8f74e4ceb1bcd42d3466b12"
+      "version": "0.0.47",
+      "releaseSha256": "41f46bc57fd9598d11335cdf4cd8d69cf76e2056b0ef8f176676279190de0966"
     },
     {
       "id": "soksak-sidecar-terminal-ghostty",
