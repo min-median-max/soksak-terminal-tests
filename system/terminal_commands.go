@@ -183,9 +183,6 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
 			return nil, fmt.Errorf("%s columns did not decrease: %.0f -> %.0f", plugin, wide, narrow)
 		}
-		if err := writeTerminalResizeEvidence(cli.EvidenceDir, evidence); err != nil {
-			return nil, err
-		}
 		if _, err := resizePane(cli, terminalPane, 0.75); err != nil {
 			return nil, err
 		}
@@ -197,6 +194,22 @@ func VerifyTerminalCommands(profile fleet.Profile, cli CLI) ([]TerminalResult, e
 			evidence.Failure = err.Error()
 			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
 			return nil, fmt.Errorf("%s wide resize did not reach the terminal before output: %w; restored=%+v measureErr=%v", plugin, err, evidence.Restored, measureErr)
+		}
+		restored, err := measureTerminalResize(cli, plugin, view, address)
+		if err != nil {
+			evidence.Failure = err.Error()
+			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
+			return nil, err
+		}
+		evidence.Restored = &restored
+		if boundary := evidence.failureBoundary(); boundary != "" {
+			evidence.FailureBoundary = boundary
+			evidence.Failure = "terminal resize evidence is incomplete"
+			_ = writeTerminalResizeEvidence(cli.EvidenceDir, evidence)
+			return nil, fmt.Errorf("%s resize failed at %s", plugin, boundary)
+		}
+		if err := writeTerminalResizeEvidence(cli.EvidenceDir, evidence); err != nil {
+			return nil, err
 		}
 		read, err := terminal(cli, plugin, "read", view, nil)
 		if err != nil || !strings.Contains(fmt.Sprint(read["text"]), marker) {

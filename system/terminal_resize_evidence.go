@@ -67,31 +67,37 @@ func (evidence terminalResizeEvidence) failureBoundary() string {
 	if evidence.Narrow.Requested == nil {
 		return "plugin-request"
 	}
-	if evidence.Narrow.PTY == nil ||
-		evidence.Narrow.PTY.Cols != evidence.Narrow.Requested.Cols ||
-		evidence.Narrow.PTY.Rows != evidence.Narrow.Requested.Rows {
-		return "pty-observation"
+	observed := evidence.Narrow.PTY
+	if observed == nil && evidence.Narrow.Recovery != nil {
+		copy := evidence.Narrow.Recovery.terminalSequencedSize
+		observed = &copy
+	}
+	if observed == nil || observed.Cols != evidence.Narrow.Requested.Cols ||
+		observed.Rows != evidence.Narrow.Requested.Rows {
+		return "source-observation"
 	}
 	if evidence.Narrow.Recovery == nil || evidence.Narrow.Recovery.Gaps != 0 ||
-		evidence.Narrow.Recovery.Cols != evidence.Narrow.PTY.Cols ||
-		evidence.Narrow.Recovery.Rows != evidence.Narrow.PTY.Rows ||
-		evidence.Narrow.Recovery.EventSequence != evidence.Narrow.PTY.EventSequence ||
-		evidence.Narrow.Recovery.OutputSequence != evidence.Narrow.PTY.OutputSequence {
+		evidence.Narrow.Recovery.Cols != observed.Cols ||
+		evidence.Narrow.Recovery.Rows != observed.Rows ||
+		evidence.Narrow.Recovery.EventSequence != observed.EventSequence ||
+		evidence.Narrow.Recovery.OutputSequence != observed.OutputSequence {
 		return "recovery-observation"
 	}
 	if evidence.Narrow.Rendered == nil ||
 		evidence.Narrow.Rendered.Cols != evidence.Narrow.Recovery.Cols ||
 		evidence.Narrow.Rendered.Rows != evidence.Narrow.Recovery.Rows ||
-		evidence.Narrow.Rendered.OutputSequence != evidence.Narrow.Recovery.OutputSequence {
+		evidence.Narrow.Rendered.OutputSequence <= 0 ||
+		evidence.Narrow.Rendered.OutputSequence > evidence.Narrow.Recovery.OutputSequence {
 		return "rendered-frame"
 	}
-	if evidence.Restored != nil {
-		if evidence.Restored.DOM.Width < evidence.Wide.DOM.Width {
-			return "core-layout-restore"
-		}
-		if evidence.Restored.ReportedCols != evidence.Wide.ReportedCols {
-			return "plugin-size-restore"
-		}
+	if evidence.Restored == nil {
+		return "restore-observation"
+	}
+	if evidence.Restored.DOM.Width < evidence.Wide.DOM.Width {
+		return "core-layout-restore"
+	}
+	if evidence.Restored.ReportedCols != evidence.Wide.ReportedCols {
+		return "plugin-size-restore"
 	}
 	return ""
 }
