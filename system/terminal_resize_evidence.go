@@ -46,14 +46,15 @@ type terminalResizeSample struct {
 }
 
 type terminalResizeEvidence struct {
-	Plugin          string               `json:"plugin"`
-	View            string               `json:"view"`
-	NodeAddress     string               `json:"nodeAddress"`
-	ResizeReceipt   map[string]any       `json:"resizeReceipt,omitempty"`
-	Wide            terminalResizeSample `json:"wide"`
-	Narrow          terminalResizeSample `json:"narrow"`
-	FailureBoundary string               `json:"failureBoundary,omitempty"`
-	Failure         string               `json:"failure,omitempty"`
+	Plugin          string                `json:"plugin"`
+	View            string                `json:"view"`
+	NodeAddress     string                `json:"nodeAddress"`
+	ResizeReceipt   map[string]any        `json:"resizeReceipt,omitempty"`
+	Wide            terminalResizeSample  `json:"wide"`
+	Narrow          terminalResizeSample  `json:"narrow"`
+	Restored        *terminalResizeSample `json:"restored,omitempty"`
+	FailureBoundary string                `json:"failureBoundary,omitempty"`
+	Failure         string                `json:"failure,omitempty"`
 }
 
 func (evidence terminalResizeEvidence) failureBoundary() string {
@@ -83,6 +84,14 @@ func (evidence terminalResizeEvidence) failureBoundary() string {
 		evidence.Narrow.Rendered.Rows != evidence.Narrow.Recovery.Rows ||
 		evidence.Narrow.Rendered.OutputSequence != evidence.Narrow.Recovery.OutputSequence {
 		return "rendered-frame"
+	}
+	if evidence.Restored != nil {
+		if evidence.Restored.DOM.Width < evidence.Wide.DOM.Width {
+			return "core-layout-restore"
+		}
+		if evidence.Restored.ReportedCols != evidence.Wide.ReportedCols {
+			return "plugin-size-restore"
+		}
 	}
 	return ""
 }
@@ -121,7 +130,9 @@ func measureTerminalResize(cli CLI, plugin, view, address string) (terminalResiz
 	}
 	status, err := terminal(cli, plugin, "status", view, nil)
 	if err != nil {
-		return terminalResizeSample{}, err
+		sidecars, sidecarErr := cli.Call("sidecar_status", map[string]any{})
+		return terminalResizeSample{}, fmt.Errorf("terminal resize status failed after ui.measure=%+v: %w; sidecars=%+v sidecarErr=%v",
+			measured, err, sidecars, sidecarErr)
 	}
 	requested := readTerminalSize(status["requested"])
 	pty := readTerminalSequencedSize(status["pty"])
